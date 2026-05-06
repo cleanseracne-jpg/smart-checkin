@@ -36,7 +36,7 @@
         .modal-body-scroll { max-height: 70vh; overflow-y: auto; }
 
         #reader { width: 100%; min-height: 200px; background-color: #ffffff; text-align: center; border: none !important; }
-        #reader video { border-radius: 0.75rem; width: 100% !important; max-height: 350px; }
+        #reader video { border-radius: 0.75rem; width: 100% !important; max-height: 350px; object-fit: contain; }
 
         @media print {
             body * { visibility: hidden; }
@@ -176,7 +176,7 @@
                             </div>
                             <div class="p-4 bg-gray-50 flex-1 text-center border-t border-gray-100">
                                 <label for="barcode-input" class="block text-sm font-bold text-gray-700 mb-2 cursor-pointer"><i class="fas fa-barcode text-lg mr-1 text-indigo-600"></i> ใช้เครื่องยิงบาร์โค้ด USB เสียบแล้วยิงได้เลย!</label>
-                                <input type="text" id="barcode-input" placeholder="เคอร์เซอร์จะกระพริบที่นี่อัตโนมัติ..." class="w-full max-w-sm mx-auto px-4 py-3 border-2 border-indigo-300 rounded-xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 outline-none text-center font-bold tracking-widest text-lg shadow-inner bg-white transition" onkeypress="handleBarcodeInput(event)">
+                                <input type="text" id="barcode-input" placeholder="เคอร์เซอร์จะกระพริบที่นี่อัตโนมัติ..." class="w-full max-w-sm mx-auto px-4 py-3 border-2 border-indigo-300 rounded-xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 outline-none text-center font-bold tracking-widest text-lg shadow-inner bg-white transition" onkeydown="handleBarcodeInput(event)">
                             </div>
                         </div>
 
@@ -522,7 +522,7 @@
 
     <script>
         // ==========================================
-        // URL ของ Web App จาก Google Apps Script (ใส่ URL ใหม่ของคุณแล้ว)
+        // URL ของ Web App จาก Google Apps Script
         // ==========================================
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvGbkS3y8_hlDu_mSvdDiZeiRgfYrDm0G_k-XuqlzCXEtdFzgAO_C7WIyh9kD2WN05/exec"; 
         
@@ -680,9 +680,16 @@
         function hideLoader() { document.getElementById('loader').style.display = 'none'; }
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
         
+        // --- ระบบรีเฟรชหน้าจอเมื่อเปลี่ยน Tab ---
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
+            
+            // สั่งให้รีเฟรชข้อมูลอัตโนมัติเมื่อกดเข้า Tab ต่างๆ (ไม่ต้องกด F5)
+            if(tabId === 'tab-check') loadBulkTable();
+            if(tabId === 'tab-summary') renderSummary();
+            if(tabId === 'tab-students') renderStudentTable();
+            
             if(tabId !== 'tab-scan' && html5QrCode) {
                 try { stopCamera(); } catch(e){}
             } else if (tabId === 'tab-scan') {
@@ -778,13 +785,11 @@
                 const onScan = async (decodedText) => {
                     if(isScanningProcess) return;
                     isScanningProcess = true;
-                    // นำ pause() ออกเพื่อป้องกันกล้องค้าง แล้วใช้ try...catch แทน
                     try {
                         await processScan(decodedText);
                     } catch (e) {
                         console.error("Scan processing error:", e);
                     }
-                    // หน่วงเวลา 1.5 วินาทีถึงจะสแกนคนต่อไปได้
                     setTimeout(() => { isScanningProcess = false; }, 1500);
                 };
                 
@@ -865,11 +870,14 @@
                 Swal.fire({ title: 'เช็คชื่อรายวัน', html: htmlContent, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'ยกเลิก' });
             } else {
                 let studentLogs = [];
-                // Index 2=ActID, Index 4=StudentID
-                for(let l of appData.scoreLogs) { if(l[2] === actId && l[4] === student[0]) studentLogs.push(l); } 
+                // --- Smart Match System --- ป้องกันกรณีเด็กลบแล้วสร้างใหม่
+                for(let l of appData.scoreLogs) { 
+                    if(l[2] === actId && (l[4] === student[0] || (l[5] == student[1] && l[7] === student[4]))) {
+                        studentLogs.push(l); 
+                    }
+                } 
                 
                 let sumScore = 0;
-                // Index 8=Points
                 for(let log of studentLogs) { sumScore += parseFloat(log[8]||0); } 
 
                 htmlContent += `
@@ -916,11 +924,15 @@
             };
             
             updateScanLogUI(studentId, value);
+            
+            // --- Instant UI Update ---
+            const tempLogId = 'mock_' + Date.now();
+            appData.attendance.push([tempLogId, date, new Date().toLocaleTimeString(), actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, value, currentUser.id]);
+
+            // --- Background Sync ---
             try {
-                await api.call('saveScanRecord', data);
-                // 11 Elements matching the server array
-                appData.attendance.push(['mockId', date, new Date().toLocaleTimeString(), actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, value, currentUser.id]);
-            } catch(e) {}
+                const res = await api.call('saveScanRecord', data);
+            } catch(e) { console.error("Sync Failed", e); }
         }
 
         async function submitScoreLog(studentId) {
@@ -951,13 +963,18 @@
             playSound('success');
             updateScanLogUI(studentId, `+${points} คะแนน`);
             
+            // --- Instant UI Update ---
+            const tempLogId = 'temp_' + Date.now();
+            appData.scoreLogs.push([tempLogId, timestamp, actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, points, note, currentUser.id]);
+
+            // --- Background Sync ---
             try {
                 const res = await api.call('saveScoreLog', data);
                 if(res.status === 'success') {
-                    // 11 Elements exactly like the Google Sheet
-                    appData.scoreLogs.push([res.logId, res.timestamp, actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, points, note, currentUser.id]);
+                    const log = appData.scoreLogs.find(l => l[0] === tempLogId);
+                    if(log) log[0] = res.logId;
                 }
-            } catch(e) {}
+            } catch(e) { console.error("Sync Failed", e); }
         }
 
         function updateScanLogUI(studentId, badgeText) {
@@ -990,7 +1007,7 @@
                 document.getElementById('btn-view-card').classList.add('bg-white', 'shadow-sm');
                 document.getElementById('btn-view-table').classList.replace('text-indigo-600', 'text-gray-500');
                 document.getElementById('btn-view-table').classList.remove('bg-white', 'shadow-sm');
-                document.getElementById('chk-table-view').classList.add('hidden');
+                document.getElementById('chk-table-view').add('hidden');
                 document.getElementById('chk-card-view').classList.remove('hidden');
             }
             loadBulkTable();
@@ -1031,8 +1048,12 @@
 
             cardView.innerHTML = filteredStudents.map(s => {
                 let sumScore = 0;
-                // Index 2=ActID, 4=StudentID, 8=Points
-                for(let log of appData.scoreLogs) { if(log[2] === cActId && log[4] === s[0]) sumScore += parseFloat(log[8]||0); }
+                // --- Smart Match System ---
+                for(let log of appData.scoreLogs) { 
+                    if(log[2] === cActId && (log[4] === s[0] || (log[5] == s[1] && log[7] === s[4]))) {
+                        sumScore += parseFloat(log[8]||0); 
+                    }
+                }
                 const imgUrl = s[5] ? s[5] : `https://api.dicebear.com/7.x/avataaars/svg?seed=${s[3]}&backgroundColor=e2e8f0`;
                 const scoreDisplay = isDaily ? '-' : `${sumScore} คะแนน`;
                 
@@ -1082,43 +1103,41 @@
             const actInfo = appData.activities.find(a => a[0] === actId);
             const actNameStr = actInfo ? `[${actInfo[2]}] ${actInfo[3]}` : "";
 
-            showLoader("กำลังส่งข้อมูลเข้า Sheet...");
+            const tempBatchId = 'batch_' + Date.now();
+
+            // --- Instant UI Update ---
+            if (isDaily) {
+                const date = document.getElementById('chk-date').value;
+                records.forEach(r => { 
+                    appData.attendance.push(['mock_'+tempBatchId, date, new Date().toLocaleTimeString(), actId, actNameStr, r.studentId, r.stdNum, r.stdName, r.stdClass, r.value, currentUser.id]); 
+                });
+            } else {
+                const timestamp = new Date().toLocaleString('th-TH');
+                records.forEach(r => { 
+                    appData.scoreLogs.push(['mock_'+tempBatchId, timestamp, actId, actNameStr, r.studentId, r.stdNum, r.stdName, r.stdClass, r.value, "เช็คกลุ่ม", currentUser.id]); 
+                });
+            }
+            
+            loadBulkTable(); 
+            Swal.fire({ title: 'สำเร็จ', text: 'กำลังบันทึกข้อมูลเข้า Sheet ในพื้นหลัง', icon: 'success', timer: 1500, showConfirmButton: false });
+
+            // --- Background Sync ---
             try {
                 if (isDaily) {
-                    const data = { 
-                        date: document.getElementById('chk-date').value, 
-                        activityId: actId, 
-                        actName: actNameStr,
-                        records, 
-                        userId: currentUser.id 
-                    };
+                    const data = { date: document.getElementById('chk-date').value, activityId: actId, actName: actNameStr, records, userId: currentUser.id };
                     await api.call('saveBulkAttendance', data);
-                    records.forEach(r => { 
-                        appData.attendance.push(['mock', data.date, 'time', actId, actNameStr, r.studentId, r.stdNum, r.stdName, r.stdClass, r.value, currentUser.id]); 
-                    });
                 } else {
                     const timestamp = new Date().toLocaleString('th-TH');
-                    const data = { 
-                        activityId: actId, 
-                        actName: actNameStr,
-                        records, 
-                        note: "เช็คกลุ่ม", 
-                        timestamp, 
-                        userId: currentUser.id 
-                    };
-                    const res = await api.call('saveBulkScoreLog', data);
-                    records.forEach(r => { 
-                        appData.scoreLogs.push(['id_'+Math.random(), res.timestamp || timestamp, actId, actNameStr, r.studentId, r.stdNum, r.stdName, r.stdClass, r.value, "เช็คกลุ่ม", currentUser.id]); 
-                    });
+                    const data = { activityId: actId, actName: actNameStr, records, note: "เช็คกลุ่ม", timestamp, userId: currentUser.id };
+                    await api.call('saveBulkScoreLog', data);
                 }
-                Swal.fire('สำเร็จ', 'บันทึกข้อมูลเข้า Sheet สำเร็จ', 'success');
-                loadBulkTable(); 
-            } catch(e) {}
-            hideLoader();
+            } catch(e) { console.error("Bulk sync error", e); }
         }
 
         function openCardScorePopup(studentId, studentName, isDaily) {
             const actId = document.getElementById('chk-activity').value;
+            const studentInfo = appData.students.find(s => s[0] === studentId);
+
             if (isDaily) {
                 Swal.fire({
                     title: `เช็คชื่อ: ${studentName}`,
@@ -1134,8 +1153,13 @@
                 });
             } else {
                 let sumScore = 0;
-                // Index 2=ActID, 4=StudentID, 8=Points
-                for(let log of appData.scoreLogs) { if(log[2] === actId && log[4] === studentId) sumScore += parseFloat(log[8]||0); }
+                // --- Smart Match System ---
+                for(let log of appData.scoreLogs) { 
+                    if(log[2] === actId && (log[4] === studentId || (studentInfo && log[5] == studentInfo[1] && log[7] === studentInfo[4]))) {
+                        sumScore += parseFloat(log[8]||0); 
+                    }
+                }
+                
                 Swal.fire({
                     title: `ให้คะแนน: ${studentName}`,
                     html: `
@@ -1179,12 +1203,19 @@
             };
 
             playSound('success');
+
+            // --- Instant UI Update ---
+            const tempLogId = 'mock_' + Date.now();
+            appData.attendance.push([tempLogId, date, new Date().toLocaleTimeString(), actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, value, currentUser.id]);
+            loadBulkTable(); // รีเฟรชทันที
+            
+            // ใช้ Toast alert เพื่อไม่ให้กวนการใช้งาน
+            Swal.fire({ title: 'สำเร็จ', text: `บันทึกสถานะ ${value} เรียบร้อย`, icon: 'success', timer: 1000, showConfirmButton: false, position: 'top-end', toast: true });
+
+            // --- Background Sync ---
             try {
                 await api.call('saveScanRecord', data);
-                appData.attendance.push(['mockId', date, new Date().toLocaleTimeString(), actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, value, currentUser.id]);
-                loadBulkTable(); 
-                Swal.fire({ title: 'สำเร็จ', text: `บันทึกสถานะ ${value} ลง Sheet แล้ว`, icon: 'success', timer: 1000, showConfirmButton: false });
-            } catch(e) {}
+            } catch(e) { console.error("Sync Failed", e); }
         }
 
         async function submitCardScore(studentId) {
@@ -1214,14 +1245,21 @@
             
             playSound('success');
             
+            // --- Instant UI Update ---
+            const tempLogId = 'temp_' + Date.now();
+            appData.scoreLogs.push([tempLogId, timestamp, actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, points, note, currentUser.id]);
+            loadBulkTable(); // รีเฟรชการ์ดทันที ตัวเลขเด้งเลย
+            
+            Swal.fire({ title: 'สำเร็จ', text: `เพิ่ม ${points} คะแนน เรียบร้อย`, icon: 'success', timer: 1000, showConfirmButton: false, position: 'top-end', toast: true });
+
+            // --- Background Sync ---
             try {
                 const res = await api.call('saveScoreLog', data);
                 if(res.status === 'success') {
-                    appData.scoreLogs.push([res.logId, res.timestamp, actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, points, note, currentUser.id]);
+                    const log = appData.scoreLogs.find(l => l[0] === tempLogId);
+                    if(log) log[0] = res.logId;
                 }
-                loadBulkTable(); 
-                Swal.fire({ title: 'สำเร็จ', text: `เพิ่ม ${points} คะแนน ลง Sheet แล้ว`, icon: 'success', timer: 1000, showConfirmButton: false });
-            } catch(e) {}
+            } catch(e) { console.error("Sync Failed", e); }
         }
 
         // =====================================
@@ -1252,8 +1290,14 @@
         function viewStudentHistory(studentId, studentName) {
             document.getElementById('hist-title').innerHTML = `<i class="fas fa-history text-blue-500 mr-2"></i> ประวัติคะแนน: ${studentName}`;
             
+            const s = appData.students.find(st => st[0] === studentId);
             let sLogs = [];
-            for(let l of appData.scoreLogs) { if(l[4] === studentId) sLogs.push(l); } // เช็คกับ Column 4
+            // --- Smart Match System ---
+            for(let l of appData.scoreLogs) { 
+                if(l[4] === studentId || (s && l[5] == s[1] && l[7] === s[4])) {
+                    sLogs.push(l); 
+                }
+            } 
             sLogs.sort((a,b) => new Date(b[1]) - new Date(a[1])); 
             
             const histBody = document.getElementById('hist-body');
@@ -1289,32 +1333,30 @@
         async function editScoreLog(logId, currentPoints, sId, sName) {
             const { value: newPoints } = await Swal.fire({ title: 'แก้ไขคะแนน', input: 'number', inputValue: currentPoints, showCancelButton: true, confirmButtonText: 'บันทึก' });
             if (newPoints && newPoints !== currentPoints) {
-                showLoader("อัปเดตข้อมูลใน Sheet...");
+                
+                // Optimistic UI
+                for(let l of appData.scoreLogs) { if(l[0] === logId) { l[8] = newPoints; break; } }
+                viewStudentHistory(sId, sName); 
+                loadBulkTable(); 
+
                 try {
-                    const res = await api.call('updateScoreLog', logId, newPoints);
-                    if(res.status === 'success') {
-                        for(let l of appData.scoreLogs) { if(l[0] === logId) { l[8] = newPoints; break; } }
-                        viewStudentHistory(sId, sName); 
-                        loadBulkTable(); // รีเฟรชหน้าจอหลักทันทีเผื่อแก้คะแนนแล้ว
-                    }
-                } catch(e) {}
-                hideLoader();
+                    await api.call('updateScoreLog', logId, newPoints);
+                } catch(e) { console.error("Sync Failed", e); }
             }
         }
 
         async function deleteScoreLog(logId, sId, sName) {
             const res = await Swal.fire({ title: 'ลบรายการนี้?', text: "คะแนนจะถูกหักออก", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33' });
             if(res.isConfirmed) {
-                showLoader("กำลังลบจาก Sheet...");
+
+                // Optimistic UI
+                appData.scoreLogs = appData.scoreLogs.filter(l => l[0] !== logId);
+                viewStudentHistory(sId, sName);
+                loadBulkTable();
+
                 try {
-                    const r = await api.call('deleteScoreLog', logId);
-                    if(r.status === 'success') {
-                        appData.scoreLogs = appData.scoreLogs.filter(l => l[0] !== logId);
-                        viewStudentHistory(sId, sName);
-                        loadBulkTable(); // รีเฟรชหน้าจอหลักทันทีเผื่อลบคะแนนแล้ว
-                    }
-                } catch(e) {}
-                hideLoader();
+                    await api.call('deleteScoreLog', logId);
+                } catch(e) { console.error("Sync Failed", e); }
             }
         }
 
@@ -1501,8 +1543,12 @@
 
                 if (isDaily) {
                     let records = [];
-                    // Index 3=ActID, 5=StudentID
-                    for(let att of appData.attendance) { if(att[3] === cActId && att[5] === s[0]) records.push(att); }
+                    // --- Smart Match System ---
+                    for(let att of appData.attendance) { 
+                        if(att[3] === cActId && (att[5] === s[0] || (att[6] == s[1] && att[8] === s[4]))) {
+                            records.push(att); 
+                        }
+                    }
                     
                     let maCount = 0;
                     // Index 9=Status
@@ -1516,8 +1562,13 @@
                     } else { statusHtml = `<span class="bg-gray-100 text-gray-500 px-2 py-1 rounded text-xs">ไม่มีข้อมูล</span>`; }
                 } else {
                     let studentLogs = [];
-                    // Index 2=ActID, 4=StudentID
-                    for(let log of appData.scoreLogs) { if(log[2] === cActId && log[4] === s[0]) studentLogs.push(log); }
+                    // --- Smart Match System ---
+                    for(let log of appData.scoreLogs) { 
+                        if(log[2] === cActId && (log[4] === s[0] || (log[5] == s[1] && log[7] === s[4]))) {
+                            studentLogs.push(log); 
+                        }
+                    }
+                    
                     // Index 8=Points
                     for(let log of studentLogs) { sumScore += parseFloat(log[8]||0); }
                     
