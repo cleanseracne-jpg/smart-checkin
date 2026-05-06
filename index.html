@@ -778,8 +778,13 @@
                 
                 if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
                 const config = { 
-                    fps: 10, 
-                    qrbox: { width: 250, height: 250 }
+                    fps: 30, // 🚀 1. เพิ่ม FPS เป็น 30 ภาพต่อวินาที (จับภาพไวขึ้น 3 เท่า)
+                    disableFlip: false, // 🚀 2. อนุญาตให้สแกนโค้ดกลับหัวหรือเอียงได้
+                    qrbox: function(viewfinderWidth, viewfinderHeight) {
+                        let minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
+                        let qrboxSize = Math.floor(minEdgeSize * 0.85); // 🚀 3. ขยายกรอบรับภาพให้ใหญ่ขึ้น (85%) ไม่ต้องเล็งเป๊ะก็สแกนโดน
+                        return { width: qrboxSize, height: qrboxSize };
+                    }
                 };
                 
                 const onScan = async (decodedText) => {
@@ -790,7 +795,7 @@
                     } catch (e) {
                         console.error("Scan processing error:", e);
                     }
-                    setTimeout(() => { isScanningProcess = false; }, 1500);
+                    setTimeout(() => { isScanningProcess = false; }, 1000); // 🚀 4. ลดดีเลย์เหลือ 1 วินาที สแกนคิวต่อไปได้ไวขึ้น
                 };
                 
                 const cameras = await Html5Qrcode.getCameras();
@@ -801,7 +806,21 @@
                             cameraId = c.id; break;
                         }
                     }
-                    await html5QrCode.start(cameraId, config, onScan);
+                    
+                    // 🚀 5. บังคับใช้ความละเอียดระดับ HD (720p) เพื่อให้มองเห็นและสแกนระยะไกลได้แม่นยำ
+                    const videoConstraints = {
+                        deviceId: { exact: cameraId },
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    };
+                    
+                    try {
+                        await html5QrCode.start(videoConstraints, config, onScan);
+                    } catch (err1) {
+                        // หากมือถือรุ่นเก่าไม่รองรับสเปก HD ให้เปิดด้วยกล้องปกติ (Fallback)
+                        await html5QrCode.start(cameraId, config, onScan);
+                    }
+                    
                     startBtn.classList.add('hidden'); document.getElementById('camera-stop-btn').classList.remove('hidden');
                 } else throw new Error("ไม่พบอุปกรณ์กล้อง");
             } catch (err) {
