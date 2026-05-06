@@ -772,19 +772,20 @@
                 if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
                 const config = { 
                     fps: 10, 
-                    qrbox: function(viewfinderWidth, viewfinderHeight) {
-                        let minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
-                        let qrboxSize = Math.floor(minEdgeSize * 0.7);
-                        return { width: qrboxSize, height: qrboxSize };
-                    }
+                    qrbox: { width: 250, height: 250 }
                 };
                 
-                const onScan = (decodedText) => {
+                const onScan = async (decodedText) => {
                     if(isScanningProcess) return;
-                    isScanningProcess = true; html5QrCode.pause();
-                    processScan(decodedText).finally(() => {
-                        setTimeout(() => { isScanningProcess = false; if(html5QrCode && html5QrCode.getState() === 2) html5QrCode.resume(); }, 1500);
-                    });
+                    isScanningProcess = true;
+                    // นำ pause() ออกเพื่อป้องกันกล้องค้าง แล้วใช้ try...catch แทน
+                    try {
+                        await processScan(decodedText);
+                    } catch (e) {
+                        console.error("Scan processing error:", e);
+                    }
+                    // หน่วงเวลา 1.5 วินาทีถึงจะสแกนคนต่อไปได้
+                    setTimeout(() => { isScanningProcess = false; }, 1500);
                 };
                 
                 const cameras = await Html5Qrcode.getCameras();
@@ -819,14 +820,27 @@
         }
 
         async function handleBarcodeInput(e) {
-            if (e.key === 'Enter') { const code = e.target.value.trim(); e.target.value = ''; if(code) await processScan(code); }
+            if (e.key === 'Enter') { 
+                const code = e.target.value.trim(); 
+                e.target.value = ''; 
+                if(code) {
+                    if(isScanningProcess) return;
+                    isScanningProcess = true;
+                    try {
+                        await processScan(code);
+                    } catch(err) { console.error(err); }
+                    setTimeout(() => { isScanningProcess = false; }, 1000);
+                }
+            }
         }
 
         async function processScan(code) {
+            const codeStr = String(code).trim();
             const actId = document.getElementById('scan-activity').value;
             if(!actId) { playSound('error'); return Swal.fire('แจ้งเตือน', 'กรุณาเลือก กิจกรรม/ชิ้นงาน ก่อนสแกน', 'warning'); }
-            const student = appData.students.find(s => s[2] == code);
-            if(!student) { playSound('error'); return Swal.fire('ไม่พบข้อมูล', `ไม่มีนักเรียนรหัส ${code} ในระบบ`, 'error'); }
+            
+            const student = appData.students.find(s => String(s[2]).trim() === codeStr);
+            if(!student) { playSound('error'); return Swal.fire('ไม่พบข้อมูล', `ไม่มีนักเรียนรหัส ${codeStr} ในระบบ`, 'error'); }
 
             playSound('success');
             let actInfo = null;
