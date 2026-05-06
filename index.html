@@ -1651,7 +1651,77 @@
         }
 
         function exportSummary() {
-            const table = document.getElementById("table-export"); const wb = XLSX.utils.table_to_book(table, {sheet: "Summary"}); XLSX.writeFile(wb, `รายงานสรุป_${document.getElementById('sum-class').value}.xlsx`);
+            const cClass = document.getElementById('sum-class').value;
+            if(!cClass) return Swal.fire('เตือน', 'กรุณาเลือกห้องเรียนก่อนทำการ Export', 'warning');
+
+            // 1. ดึงนักเรียนในห้องและจัดเรียงตามเลขที่
+            const students = appData.students.filter(s => s[4] === cClass).sort((a,b) => parseInt(a[1]) - parseInt(b[1]));
+            if(students.length === 0) return Swal.fire('เตือน', 'ไม่พบข้อมูลนักเรียนในห้องนี้', 'warning');
+
+            // 2. สร้างหัวตาราง (Headers)
+            const headerRow1 = ["เลขที่", "รหัสประจำตัว", "ชื่อ-สกุล"];
+            const headerRow2 = ["", "", "คะแนนเต็ม / จำนวนครั้ง"];
+            let totalMaxScore = 0;
+
+            // ดึงกิจกรรมทั้งหมดมาเป็นหัวคอลัมน์
+            appData.activities.forEach(act => {
+                headerRow1.push(`[${act[2]}] ${act[3]}`); // ชื่อวิชา/กิจกรรม
+                if (act[1] === 'วิชา') {
+                    const max = parseFloat(act[4]) || 0;
+                    headerRow2.push(max);
+                    totalMaxScore += max;
+                } else {
+                    headerRow2.push("นับจำนวนครั้ง");
+                }
+            });
+
+            headerRow1.push("คะแนนรวมทั้งหมด");
+            headerRow2.push(totalMaxScore);
+
+            const aoa = [headerRow1, headerRow2]; // Array of Arrays
+
+            // 3. เติมข้อมูลนักเรียนแต่ละคน (Data Rows)
+            students.forEach(s => {
+                const row = [parseInt(s[1]) || s[1], s[2], s[3]];
+                let studentTotalScore = 0;
+
+                appData.activities.forEach(act => {
+                    if (act[1] === 'รายวัน') {
+                        let count = 0;
+                        for(let att of appData.attendance) { 
+                            if(att[3] === act[0] && (att[5] === s[0] || (att[6] == s[1] && att[8] === s[4]))) {
+                                if(att[9] === 'มา' || att[9] === 'สาย') count++;
+                            }
+                        }
+                        row.push(count); // ใส่เป็นตัวเลข (Number)
+                    } else {
+                        let score = 0;
+                        for(let log of appData.scoreLogs) { 
+                            if(log[2] === act[0] && (log[4] === s[0] || (log[5] == s[1] && log[7] === s[4]))) {
+                                score += parseFloat(log[8]||0); 
+                            }
+                        }
+                        row.push(score); // ใส่เป็นตัวเลข (Number) ป้องกัน Excel แปลงเป็นวันที่
+                        studentTotalScore += score;
+                    }
+                });
+
+                row.push(studentTotalScore); // คะแนนรวม
+                aoa.push(row);
+            });
+
+            // 4. แปลงข้อมูลเป็น Excel Worksheet และปรับขนาดความกว้างของคอลัมน์ให้สวยงาม
+            const ws = XLSX.utils.aoa_to_sheet(aoa);
+            
+            const wscols = [{wch: 8}, {wch: 15}, {wch: 25}];
+            appData.activities.forEach(() => wscols.push({wch: 20}));
+            wscols.push({wch: 18});
+            ws['!cols'] = wscols;
+
+            // 5. สร้างและบันทึกไฟล์
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "สรุปผลคะแนน");
+            XLSX.writeFile(wb, `รายงานสรุปผล_${cClass}.xlsx`);
         }
     </script>
 </body>
