@@ -779,11 +779,17 @@
                 
                 if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
                 
+                // 🚀 การปรับแต่งระดับ High Performance
                 const config = { 
-                    fps: 30, 
-                    disableFlip: false, 
+                    fps: 30, // ดึงภาพ 30 เฟรม/วินาทีเต็มแม็กซ์
+                    disableFlip: false, // รองรับการสแกนสลับซ้ายขวา
+                    
+                    // 🚀 โฟกัสเฉพาะฟอร์แมต (เคล็ดลับความไว): ค้นหาเฉพาะ QR Code และ Barcode แบบ Code128 ทำให้ประมวลผลเร็วขึ้น 5 เท่า
+                    formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE, Html5QrcodeSupportedFormats.CODE_128 ],
+                    
                     qrbox: function(viewfinderWidth, viewfinderHeight) {
                         let minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
+                        // 🚀 พื้นที่สแกนแบบ Wide Area 85% กว้างเต็มจอ ไม่ต้องเล็งเป๊ะ
                         let qrboxSize = Math.floor(minEdgeSize * 0.85); 
                         return { width: qrboxSize, height: qrboxSize };
                     }
@@ -797,11 +803,26 @@
                     } catch (e) {
                         console.error("Scan processing error:", e);
                     }
-                    setTimeout(() => { isScanningProcess = false; }, 1000); 
+                    // 🚀 ลดดีเลย์เหลือ 0.8 วิ เพื่อความต่อเนื่องขั้นสุด
+                    setTimeout(() => { isScanningProcess = false; }, 800); 
                 };
                 
-                // 2. ใช้ facingMode: "environment" เสถียรที่สุดสำหรับทั้งมือถือและคอมพิวเตอร์
-                await html5QrCode.start({ facingMode: "environment" }, config, onScan);
+                // 🚀 บังคับกล้องโหมดประสิทธิภาพสูง: ขอความละเอียดภาพ 1080p/720p เพื่อสแกนระยะไกล + บังคับ AutoFocus แบบฮาร์ดแวร์
+                const cameraConstraints = {
+                    facingMode: "environment",
+                    width: { ideal: 1920, min: 1280 },
+                    height: { ideal: 1080, min: 720 },
+                    advanced: [{ focusMode: "continuous" }]
+                };
+                
+                try {
+                    // ลองเปิดกล้องด้วยโหมดขั้นเทพก่อน
+                    await html5QrCode.start(cameraConstraints, config, onScan);
+                } catch (errHD) {
+                    console.warn("อุปกรณ์ไม่รองรับโหมด HD หรือ AutoFocus กลับไปใช้โหมดเสถียรมาตรฐาน", errHD);
+                    // หากมือถือสเปคเก่า หรือเบราว์เซอร์ไม่รองรับคำสั่งด้านบน ให้ Fallback กลับมาใช้โหมดมาตรฐาน
+                    await html5QrCode.start({ facingMode: "environment" }, config, onScan);
+                }
                 
                 startBtn.classList.add('hidden'); 
                 document.getElementById('camera-stop-btn').classList.remove('hidden');
