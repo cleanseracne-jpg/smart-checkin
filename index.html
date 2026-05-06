@@ -36,7 +36,6 @@
         .modal-body-scroll { max-height: 70vh; overflow-y: auto; }
 
         #reader { width: 100%; min-height: 200px; background-color: #ffffff; text-align: center; border: none !important; }
-        /* นำ object-fit: cover; ออก เพื่อให้สัดส่วนวิดีโอตรงกับตัวสแกนเนอร์ */
         #reader video { border-radius: 0.75rem; width: 100% !important; max-height: 350px; }
 
         @media print {
@@ -523,8 +522,7 @@
 
     <script>
         // ==========================================
-        // ตั้งค่า URL ของ Web App จาก Google Apps Script (สำคัญมาก!)
-        // นำ URL ที่ได้จากการ Deploy มาใส่ที่นี่ (ต้องลงท้ายด้วย /exec)
+        // URL ของ Web App จาก Google Apps Script (ใส่ URL ใหม่ของคุณแล้ว)
         // ==========================================
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvGbkS3y8_hlDu_mSvdDiZeiRgfYrDm0G_k-XuqlzCXEtdFzgAO_C7WIyh9kD2WN05/exec"; 
         
@@ -542,18 +540,10 @@
         // ==========================================
         const api = {
             call: async (funcName, ...args) => {
-                if (!WEB_APP_URL || WEB_APP_URL === "วาง_URL_ของ_GOOGLE_APPS_SCRIPT_ที่นี่") {
-                    Swal.fire('ข้อผิดพลาดระบบ', 'คุณยังไม่ได้นำ URL จาก Google Apps Script มาใส่ในตัวแปร WEB_APP_URL ภายในโค้ด HTML', 'error');
-                    throw new Error("Missing WEB_APP_URL");
-                }
-
                 try {
-                    // ใช้ text/plain เพื่อป้องกันปัญหา CORS Preflight OPTIONS บน Google Script
                     const response = await fetch(WEB_APP_URL, {
                         method: 'POST',
-                        headers: {
-                            "Content-Type": "text/plain;charset=utf-8",
-                        },
+                        headers: { "Content-Type": "text/plain;charset=utf-8" },
                         body: JSON.stringify({ action: funcName, args: args }),
                         redirect: "follow"
                     });
@@ -718,7 +708,6 @@
         function openSettingsModal() { 
             document.getElementById('modal-settings').classList.remove('hidden');
             document.getElementById('set-teacher-name').innerText = "ครู" + currentUser.name;
-            // เปลี่ยน Link เป็น URL ปัจจุบันของเว็บเราแทน Google Script URL
             const webUrl = window.location.origin + window.location.pathname;
             setupShareLink(webUrl + "?teacher=" + currentUser.id);
         }
@@ -762,8 +751,8 @@
                 try {
                     const result = await api.call('clearAttendanceData', currentUser.id);
                     if (result.status === 'success') {
-                        appData.attendance = appData.attendance.filter(r => r[6] !== currentUser.id);
-                        appData.scoreLogs = appData.scoreLogs.filter(r => r[6] !== currentUser.id);
+                        appData.attendance = appData.attendance.filter(r => r[10] !== currentUser.id);
+                        appData.scoreLogs = appData.scoreLogs.filter(r => r[10] !== currentUser.id);
                         renderSummary(); 
                         Swal.fire('ล้างข้อมูลสำเร็จ', `ลบประวัติการเช็คงานทั้งหมด ${result.count} รายการเรียบร้อยแล้ว`, 'success');
                     }
@@ -777,18 +766,14 @@
             startBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> กำลังเตรียมกล้อง...';
             startBtn.disabled = true;
             try {
-                // ขออนุญาตใช้กล้องโดยตรง (ตอนนี้ทำงานบนเว็บตรง ไม่โดนบล็อกแล้ว)
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 stream.getTracks().forEach(track => track.stop());
                 
                 if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
-                
-                // ปรับ config ให้สแกนง่ายขึ้นและกรอบสัมพันธ์กับขนาดจอ
                 const config = { 
                     fps: 10, 
                     qrbox: function(viewfinderWidth, viewfinderHeight) {
                         let minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
-                        // ให้กรอบสแกนมีขนาด 70% ของด้านที่สั้นที่สุด
                         let qrboxSize = Math.floor(minEdgeSize * 0.7);
                         return { width: qrboxSize, height: qrboxSize };
                     }
@@ -866,10 +851,12 @@
                 Swal.fire({ title: 'เช็คชื่อรายวัน', html: htmlContent, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'ยกเลิก' });
             } else {
                 let studentLogs = [];
-                for(let l of appData.scoreLogs) { if(l[2] === actId && l[3] === student[0]) studentLogs.push(l); }
+                // Index 2=ActID, Index 4=StudentID
+                for(let l of appData.scoreLogs) { if(l[2] === actId && l[4] === student[0]) studentLogs.push(l); } 
                 
                 let sumScore = 0;
-                for(let log of studentLogs) { sumScore += parseFloat(log[4]||0); }
+                // Index 8=Points
+                for(let log of studentLogs) { sumScore += parseFloat(log[8]||0); } 
 
                 htmlContent += `
                     <div class="mb-3 text-left bg-blue-50 p-3 rounded-xl border border-blue-100 flex justify-between items-center">
@@ -899,7 +886,6 @@
             const actId = document.getElementById('scan-activity').value;
             const date = document.getElementById('scan-date').value;
             
-            // ค้นหาข้อมูลวิชา และข้อมูลเด็กจาก Memory
             const actInfo = appData.activities.find(a => a[0] === actId);
             const studentInfo = appData.students.find(s => s[0] === studentId);
             
@@ -909,7 +895,6 @@
                 date, 
                 value, 
                 userId: currentUser.id,
-                // ข้อมูลใหม่ที่เพิ่มเข้าไป
                 actName: actInfo ? `[${actInfo[2]}] ${actInfo[3]}` : "",
                 stdNum: studentInfo ? studentInfo[1] : "",
                 stdName: studentInfo ? studentInfo[3] : "",
@@ -919,7 +904,7 @@
             updateScanLogUI(studentId, value);
             try {
                 await api.call('saveScanRecord', data);
-                // ดันข้อมูลลง Memory แบบใหม่ (11 คอลัมน์)
+                // 11 Elements matching the server array
                 appData.attendance.push(['mockId', date, new Date().toLocaleTimeString(), actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, value, currentUser.id]);
             } catch(e) {}
         }
@@ -943,7 +928,6 @@
                 note, 
                 timestamp, 
                 userId: currentUser.id,
-                // ข้อมูลใหม่ที่เพิ่มเข้าไป
                 actName: actInfo ? `[${actInfo[2]}] ${actInfo[3]}` : "",
                 stdNum: studentInfo ? studentInfo[1] : "",
                 stdName: studentInfo ? studentInfo[3] : "",
@@ -956,6 +940,7 @@
             try {
                 const res = await api.call('saveScoreLog', data);
                 if(res.status === 'success') {
+                    // 11 Elements exactly like the Google Sheet
                     appData.scoreLogs.push([res.logId, res.timestamp, actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, points, note, currentUser.id]);
                 }
             } catch(e) {}
@@ -1032,7 +1017,8 @@
 
             cardView.innerHTML = filteredStudents.map(s => {
                 let sumScore = 0;
-                for(let log of appData.scoreLogs) { if(log[2] === cActId && log[3] === s[0]) sumScore += parseFloat(log[4]||0); }
+                // Index 2=ActID, 4=StudentID, 8=Points
+                for(let log of appData.scoreLogs) { if(log[2] === cActId && log[4] === s[0]) sumScore += parseFloat(log[8]||0); }
                 const imgUrl = s[5] ? s[5] : `https://api.dicebear.com/7.x/avataaars/svg?seed=${s[3]}&backgroundColor=e2e8f0`;
                 const scoreDisplay = isDaily ? '-' : `${sumScore} คะแนน`;
                 
@@ -1061,7 +1047,6 @@
         function bulkMark(val) { document.querySelectorAll('.bulk-input').forEach(el => el.value = val === '0' ? '' : val); }
 
         async function saveBulkData() {
-            // แมปข้อมูลเด็กรายคนในตารางเข้ากับ Payload
             const records = Array.from(document.querySelectorAll('.bulk-input')).filter(el => el.value !== "").map(el => {
                 const sid = el.getAttribute('data-sid');
                 const studentInfo = appData.students.find(s => s[0] === sid);
@@ -1135,7 +1120,8 @@
                 });
             } else {
                 let sumScore = 0;
-                for(let log of appData.scoreLogs) { if(log[2] === actId && log[3] === studentId) sumScore += parseFloat(log[4]||0); }
+                // Index 2=ActID, 4=StudentID, 8=Points
+                for(let log of appData.scoreLogs) { if(log[2] === actId && log[4] === studentId) sumScore += parseFloat(log[8]||0); }
                 Swal.fire({
                     title: `ให้คะแนน: ${studentName}`,
                     html: `
@@ -1263,7 +1249,6 @@
             } else {
                 let html = '<div class="space-y-3">';
                 sLogs.forEach(log => {
-                    // ใช้ log[3] ที่บันทึกชื่อวิชาไว้แล้วแทนการไปหาใหม่
                     let actName = log[3] || "วิชาที่ไม่รู้จัก"; 
                     
                     html += `
@@ -1296,6 +1281,7 @@
                     if(res.status === 'success') {
                         for(let l of appData.scoreLogs) { if(l[0] === logId) { l[8] = newPoints; break; } }
                         viewStudentHistory(sId, sName); 
+                        loadBulkTable(); // รีเฟรชหน้าจอหลักทันทีเผื่อแก้คะแนนแล้ว
                     }
                 } catch(e) {}
                 hideLoader();
@@ -1311,6 +1297,7 @@
                     if(r.status === 'success') {
                         appData.scoreLogs = appData.scoreLogs.filter(l => l[0] !== logId);
                         viewStudentHistory(sId, sName);
+                        loadBulkTable(); // รีเฟรชหน้าจอหลักทันทีเผื่อลบคะแนนแล้ว
                     }
                 } catch(e) {}
                 hideLoader();
@@ -1500,11 +1487,11 @@
 
                 if (isDaily) {
                     let records = [];
-                    // เช็คกับ Column 3 (ActID) และ Column 5 (StudentID)
+                    // Index 3=ActID, 5=StudentID
                     for(let att of appData.attendance) { if(att[3] === cActId && att[5] === s[0]) records.push(att); }
                     
                     let maCount = 0;
-                    // เช็คกับ Column 9 (Status)
+                    // Index 9=Status
                     for(let r of records) { if(r[9] === 'มา' || r[9] === 'สาย') maCount++; }
                     
                     const totalCount = records.length;
@@ -1515,9 +1502,9 @@
                     } else { statusHtml = `<span class="bg-gray-100 text-gray-500 px-2 py-1 rounded text-xs">ไม่มีข้อมูล</span>`; }
                 } else {
                     let studentLogs = [];
-                    // เช็คกับ Column 2 (ActID) และ Column 4 (StudentID)
+                    // Index 2=ActID, 4=StudentID
                     for(let log of appData.scoreLogs) { if(log[2] === cActId && log[4] === s[0]) studentLogs.push(log); }
-                    // รวมคะแนนจาก Column 8 (Points)
+                    // Index 8=Points
                     for(let log of studentLogs) { sumScore += parseFloat(log[8]||0); }
                     
                     if(studentLogs.length > 0) {
