@@ -666,11 +666,7 @@
             document.getElementById('drop-name').innerText = (currentUser && currentUser.name) ? currentUser.name : 'ครูผู้สอน';
             document.getElementById('drop-email').innerText = (currentUser && currentUser.email) ? currentUser.email : 'Teacher Account';
             
-            if(currentUser && currentUser.logo) {
-                document.getElementById('head-logo-icon').classList.add('hidden');
-                const img = document.getElementById('head-logo-img'); img.src = currentUser.logo; img.classList.remove('hidden');
-                document.getElementById('head-logo-container').classList.replace('bg-indigo-600', 'bg-white');
-            }
+            // ลบโค้ดส่วนที่เปลี่ยนโลโก้มุมซ้ายบนของเว็บออก เพื่อให้คงไอคอนเดิมไว้ตลอด
             
             showLoader("กำลังซิงค์ข้อมูลจาก Google Sheets...");
             try {
@@ -750,10 +746,10 @@
                 const res = await api.call('saveUserLogo', currentUser.id, selectedLogoBase64); 
                 if (res.status === 'success') {
                     currentUser.logo = res.logo; localStorage.setItem('att_user', JSON.stringify(currentUser));
-                    document.getElementById('head-logo-icon').classList.add('hidden');
-                    document.getElementById('head-logo-img').src = currentUser.logo; document.getElementById('head-logo-img').classList.remove('hidden');
-                    document.getElementById('head-logo-container').classList.replace('bg-indigo-600', 'bg-white');
-                    Swal.fire('สำเร็จ', 'บันทึกโลโก้โรงเรียนเรียบร้อย', 'success');
+                    
+                    // ลบโค้ดส่วนที่อัปเดตโลโก้มุมซ้ายบนของเว็บออก
+                    
+                    Swal.fire('สำเร็จ', 'บันทึกโลโก้โรงเรียนเรียบร้อยแล้ว (โลโก้จะไปแสดงที่บัตรนักเรียน)', 'success');
                 }
             } catch(e) {}
             hideLoader();
@@ -1521,10 +1517,18 @@
             
             const grid = document.getElementById('card-grid'); document.getElementById('card-placeholder').style.display = 'none'; grid.innerHTML = '';
 
+            // สร้าง Element สำหรับโลโก้โรงเรียน (ถ้ามีการอัปโหลดไว้)
+            const schoolLogoHtml = (currentUser && currentUser.logo) 
+                ? `<img src="${currentUser.logo}" class="w-6 h-6 object-contain bg-white rounded p-0.5 shrink-0" style="border-radius: 4px;">` 
+                : '';
+
             students.forEach((s, idx) => {
                 const card = document.createElement('div'); card.className = "border border-gray-300 rounded-xl overflow-hidden flex flex-col bg-white"; card.style.height = "240px";
                 card.innerHTML = `
-                    <div class="py-1.5 text-center text-white font-bold text-xs" style="background-color: ${color};">${title}</div>
+                    <div class="py-1.5 px-2 flex justify-center items-center gap-2 text-white font-bold text-xs" style="background-color: ${color};">
+                        ${schoolLogoHtml}
+                        <span class="truncate">${title}</span>
+                    </div>
                     <div class="flex-1 flex flex-col items-center justify-center p-2 text-center">
                         <div class="w-14 h-14 bg-gray-100 rounded-full mb-2 flex items-center justify-center text-gray-400 border-2 border-dashed border-gray-300 overflow-hidden">
                              ${s[5] ? `<img src="${s[5]}" class="w-full h-full object-cover">` : `<i class="fas fa-user"></i>`}
