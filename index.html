@@ -101,8 +101,8 @@
         <header class="bg-white/80 backdrop-blur-md shadow-sm z-10 px-4 py-3 flex justify-between items-center no-print border-b border-white/20">
             <div class="flex items-center gap-3">
                 <div id="head-logo-container" class="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xl overflow-hidden">
-                    <i id="head-logo-icon" class="fas fa-chalkboard-teacher"></i>
-                    <img id="head-logo-img" src="" class="w-full h-full object-cover hidden" alt="School Logo">
+                    <!-- ล็อกให้เป็นไอคอนครูตลอดเวลา ถอนระบบสลับรูปภาพออก 100% -->
+                    <i class="fas fa-chalkboard-teacher"></i>
                 </div>
                 <div>
                     <h1 class="font-bold text-lg leading-tight text-gray-800" id="head-school-name">โรงเรียน</h1>
@@ -666,8 +666,6 @@
             document.getElementById('drop-name').innerText = (currentUser && currentUser.name) ? currentUser.name : 'ครูผู้สอน';
             document.getElementById('drop-email').innerText = (currentUser && currentUser.email) ? currentUser.email : 'Teacher Account';
             
-            // ลบโค้ดส่วนที่เปลี่ยนโลโก้มุมซ้ายบนของเว็บออก เพื่อให้คงไอคอนเดิมไว้ตลอด
-            
             showLoader("กำลังซิงค์ข้อมูลจาก Google Sheets...");
             try {
                 appData = await api.call('getAppData');
@@ -746,9 +744,6 @@
                 const res = await api.call('saveUserLogo', currentUser.id, selectedLogoBase64); 
                 if (res.status === 'success') {
                     currentUser.logo = res.logo; localStorage.setItem('att_user', JSON.stringify(currentUser));
-                    
-                    // ลบโค้ดส่วนที่อัปเดตโลโก้มุมซ้ายบนของเว็บออก
-                    
                     Swal.fire('สำเร็จ', 'บันทึกโลโก้โรงเรียนเรียบร้อยแล้ว (โลโก้จะไปแสดงที่บัตรนักเรียน)', 'success');
                 }
             } catch(e) {}
@@ -777,18 +772,14 @@
             startBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> กำลังเตรียมกล้อง...';
             startBtn.disabled = true;
             try {
-                // เคลียร์ Instance เก่าทิ้งถ้ามีค้างอยู่
                 if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
                 
-                // คงความเร็วในการสแกนไว้ แต่เอาข้อจำกัด Hardware ที่มีปัญหาออก
                 const config = { 
-                    fps: 30, // 30 เฟรม/วินาที สแกนติดไว
+                    fps: 30, 
                     disableFlip: false, 
-                    // กรองเฉพาะ QR Code และ Code128 ทำให้ซีพียูทำงานน้อยลงและอ่านเร็วขึ้น
                     formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE, Html5QrcodeSupportedFormats.CODE_128 ],
                     qrbox: function(viewfinderWidth, viewfinderHeight) {
                         let minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
-                        // กรอบสแกน 85% กว้างเต็มตา
                         let qrboxSize = Math.floor(minEdgeSize * 0.85); 
                         return { width: qrboxSize, height: qrboxSize };
                     }
@@ -805,12 +796,10 @@
                     setTimeout(() => { isScanningProcess = false; }, 800); 
                 };
                 
-                // ใช้ facingMode: "environment" เรียบง่ายและปลอดภัยที่สุด เปิดกล้องหลังอัตโนมัติ
                 try {
                     await html5QrCode.start({ facingMode: "environment" }, config, onScan);
                 } catch (errFirst) {
                     console.warn("facingMode failed, trying getCameras fallback...", errFirst);
-                    // ถ้าระบบบังคับ facingMode ไม่ได้ ให้หาทีละกล้องแล้วบังคับเปิด
                     const cameras = await Html5Qrcode.getCameras();
                     if (cameras && cameras.length > 0) {
                         let cameraId = cameras[0].id;
