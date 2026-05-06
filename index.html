@@ -666,6 +666,8 @@
             document.getElementById('drop-name').innerText = (currentUser && currentUser.name) ? currentUser.name : 'ครูผู้สอน';
             document.getElementById('drop-email').innerText = (currentUser && currentUser.email) ? currentUser.email : 'Teacher Account';
             
+            // ลบส่วนที่สั่งแสดงโลโก้มุมซ้ายบนออก 100% แล้วครับ
+            
             showLoader("กำลังซิงค์ข้อมูลจาก Google Sheets...");
             try {
                 appData = await api.call('getAppData');
@@ -744,6 +746,7 @@
                 const res = await api.call('saveUserLogo', currentUser.id, selectedLogoBase64); 
                 if (res.status === 'success') {
                     currentUser.logo = res.logo; localStorage.setItem('att_user', JSON.stringify(currentUser));
+                    // ลบคำสั่งอัปเดตโลโก้มุมซ้ายบนตรงนี้ออกเรียบร้อยแล้ว
                     Swal.fire('สำเร็จ', 'บันทึกโลโก้โรงเรียนเรียบร้อยแล้ว (โลโก้จะไปแสดงที่บัตรนักเรียน)', 'success');
                 }
             } catch(e) {}
