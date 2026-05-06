@@ -773,23 +773,18 @@
             startBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> กำลังเตรียมกล้อง...';
             startBtn.disabled = true;
             try {
-                // 1. นำการขอสิทธิ์เบื้องต้นกลับมา เพื่อกระตุ้นให้เบราว์เซอร์ยอมรับการทำงานของกล้อง
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                stream.getTracks().forEach(track => track.stop()); // ปิดทันทีเพื่อส่งสิทธิ์ต่อให้สแกนเนอร์
-                
+                // เคลียร์ Instance เก่าทิ้งถ้ามีค้างอยู่
                 if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
                 
-                // 🚀 การปรับแต่งระดับ High Performance
+                // คงความเร็วในการสแกนไว้ แต่เอาข้อจำกัด Hardware ที่มีปัญหาออก
                 const config = { 
-                    fps: 30, // ดึงภาพ 30 เฟรม/วินาทีเต็มแม็กซ์
-                    disableFlip: false, // รองรับการสแกนสลับซ้ายขวา
-                    
-                    // 🚀 โฟกัสเฉพาะฟอร์แมต (เคล็ดลับความไว): ค้นหาเฉพาะ QR Code และ Barcode แบบ Code128 ทำให้ประมวลผลเร็วขึ้น 5 เท่า
+                    fps: 30, // 30 เฟรม/วินาที สแกนติดไว
+                    disableFlip: false, 
+                    // กรองเฉพาะ QR Code และ Code128 ทำให้ซีพียูทำงานน้อยลงและอ่านเร็วขึ้น
                     formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE, Html5QrcodeSupportedFormats.CODE_128 ],
-                    
                     qrbox: function(viewfinderWidth, viewfinderHeight) {
                         let minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
-                        // 🚀 พื้นที่สแกนแบบ Wide Area 85% กว้างเต็มจอ ไม่ต้องเล็งเป๊ะ
+                        // กรอบสแกน 85% กว้างเต็มตา
                         let qrboxSize = Math.floor(minEdgeSize * 0.85); 
                         return { width: qrboxSize, height: qrboxSize };
                     }
@@ -803,25 +798,27 @@
                     } catch (e) {
                         console.error("Scan processing error:", e);
                     }
-                    // 🚀 ลดดีเลย์เหลือ 0.8 วิ เพื่อความต่อเนื่องขั้นสุด
                     setTimeout(() => { isScanningProcess = false; }, 800); 
                 };
                 
-                // 🚀 บังคับกล้องโหมดประสิทธิภาพสูง: ขอความละเอียดภาพ 1080p/720p เพื่อสแกนระยะไกล + บังคับ AutoFocus แบบฮาร์ดแวร์
-                const cameraConstraints = {
-                    facingMode: "environment",
-                    width: { ideal: 1920, min: 1280 },
-                    height: { ideal: 1080, min: 720 },
-                    advanced: [{ focusMode: "continuous" }]
-                };
-                
+                // ใช้ facingMode: "environment" เรียบง่ายและปลอดภัยที่สุด เปิดกล้องหลังอัตโนมัติ
                 try {
-                    // ลองเปิดกล้องด้วยโหมดขั้นเทพก่อน
-                    await html5QrCode.start(cameraConstraints, config, onScan);
-                } catch (errHD) {
-                    console.warn("อุปกรณ์ไม่รองรับโหมด HD หรือ AutoFocus กลับไปใช้โหมดเสถียรมาตรฐาน", errHD);
-                    // หากมือถือสเปคเก่า หรือเบราว์เซอร์ไม่รองรับคำสั่งด้านบน ให้ Fallback กลับมาใช้โหมดมาตรฐาน
                     await html5QrCode.start({ facingMode: "environment" }, config, onScan);
+                } catch (errFirst) {
+                    console.warn("facingMode failed, trying getCameras fallback...", errFirst);
+                    // ถ้าระบบบังคับ facingMode ไม่ได้ ให้หาทีละกล้องแล้วบังคับเปิด
+                    const cameras = await Html5Qrcode.getCameras();
+                    if (cameras && cameras.length > 0) {
+                        let cameraId = cameras[0].id;
+                        for (let c of cameras) {
+                            if (c.label.toLowerCase().includes('back') || c.label.toLowerCase().includes('environment') || c.label.toLowerCase().includes('หลัง')) {
+                                cameraId = c.id; break;
+                            }
+                        }
+                        await html5QrCode.start(cameraId, config, onScan);
+                    } else {
+                        throw new Error("No cameras found");
+                    }
                 }
                 
                 startBtn.classList.add('hidden'); 
@@ -831,11 +828,13 @@
                 console.error("Camera Start Error: ", err);
                 let errorMsg = "ไม่สามารถเปิดกล้องได้ กรุณาให้สิทธิ์การเข้าถึงกล้องในเบราว์เซอร์";
                 
-                const errStr = err.toString().toLowerCase();
+                const errStr = String(err).toLowerCase();
                 if (errStr.includes('notreadableerror') || errStr.includes('trackstarterror') || errStr.includes('in use')) {
                     errorMsg = "กล้องถูกใช้งานอยู่โดยโปรแกรมอื่น (เช่น Zoom, Meet, Line) กรุณาปิดการใช้กล้องในโปรแกรมเหล่านั้นก่อนครับ";
                 } else if (errStr.includes('notallowederror') || errStr.includes('permission denied')) {
                     errorMsg = "คุณได้ปฏิเสธการเข้าถึงกล้องไปแล้ว กรุณากดที่ไอคอนแม่กุญแจบน URL แล้วอนุญาตกล้องอีกครั้ง";
+                } else if (errStr.includes('overconstrainederror')) {
+                    errorMsg = "อุปกรณ์ไม่รองรับการตั้งค่ากล้อง กรุณาลองรีเฟรชหน้าเว็บใหม่อีกครั้ง";
                 }
                 
                 Swal.fire({ title: 'เกิดข้อผิดพลาด', html: `${errorMsg}<br><br>💡 หรือใช้ปืนบาร์โค้ด / กดปุ่ม <b>"อัปโหลดรูปภาพ"</b> แทน`, icon: 'warning' });
