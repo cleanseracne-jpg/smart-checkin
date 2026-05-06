@@ -923,13 +923,13 @@
                 stdClass: studentInfo ? studentInfo[4] : ""
             };
             
-            updateScanLogUI(studentId, value);
-            
-            // --- Instant UI Update ---
+            // 1. --- Instant UI & Memory Update (อัปเดตลงเครื่องเลย เพื่อกันบั๊กกล้องค้าง) ---
             const tempLogId = 'mock_' + Date.now();
             appData.attendance.push([tempLogId, date, new Date().toLocaleTimeString(), actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, value, currentUser.id]);
+            
+            updateScanLogUI(studentId, value);
 
-            // --- Background Sync ---
+            // 2. --- Background Sync (ส่งไป Google Sheets) ---
             try {
                 const res = await api.call('saveScanRecord', data);
             } catch(e) { console.error("Sync Failed", e); }
@@ -961,13 +961,15 @@
             };
             
             playSound('success');
-            updateScanLogUI(studentId, `+${points} คะแนน`);
-            
-            // --- Instant UI Update ---
+
+            // 1. --- Instant Memory Update (เพิ่มคะแนนลงระบบทันที เพื่อให้ตอนกดสรุปผลคะแนนจะโชว์เลย) ---
             const tempLogId = 'temp_' + Date.now();
             appData.scoreLogs.push([tempLogId, timestamp, actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, points, note, currentUser.id]);
 
-            // --- Background Sync ---
+            // 2. --- UI Update (แสดงในแถบด้านขวา) ---
+            updateScanLogUI(studentId, `+${points} คะแนน`);
+            
+            // 3. --- Background Sync (ส่งคะแนนไป Google Sheets) ---
             try {
                 const res = await api.call('saveScoreLog', data);
                 if(res.status === 'success') {
@@ -977,20 +979,26 @@
             } catch(e) { console.error("Sync Failed", e); }
         }
 
+        // ดัก Error ในฝั่งแสดงผล เพื่อไม่ให้โค้ดหลักหยุดทำงาน
         function updateScanLogUI(studentId, badgeText) {
-            const student = appData.students.find(s => s[0] == studentId);
-            const logUl = document.getElementById('scan-log');
-            if(logUl.innerHTML.includes('รอรับการสแกน')) logUl.innerHTML = '';
-            
-            const li = document.createElement('li');
-            li.className = "p-3 flex justify-between items-center bg-green-50 border-l-4 border-green-500 mb-1 rounded-r shadow-sm animate-[fadeIn_0.3s_ease-out]";
-            li.innerHTML = `<div><p class="font-bold text-sm">${student[3]}</p><p class="text-xs text-gray-500">ชั้น: ${student[4]} | เวลา: ${new Date().toLocaleTimeString('th-TH')}</p></div>
-                            <span class="font-bold text-md text-indigo-700 bg-white px-3 py-1 rounded-lg shadow-sm border border-indigo-100">${badgeText}</span>`;
-            logUl.prepend(li);
-            document.getElementById('scan-count').innerText = document.querySelectorAll('#scan-log li').length + " รายการ";
-            
-            setTimeout(() => document.getElementById('barcode-input').focus(), 300);
-            if(html5QrCode && html5QrCode.getState() === 2) html5QrCode.resume();
+            try {
+                const student = appData.students.find(s => s[0] == studentId);
+                const logUl = document.getElementById('scan-log');
+                if(logUl.innerHTML.includes('รอรับการสแกน')) logUl.innerHTML = '';
+                
+                const li = document.createElement('li');
+                li.className = "p-3 flex justify-between items-center bg-green-50 border-l-4 border-green-500 mb-1 rounded-r shadow-sm animate-[fadeIn_0.3s_ease-out]";
+                li.innerHTML = `<div><p class="font-bold text-sm">${student[3]}</p><p class="text-xs text-gray-500">ชั้น: ${student[4]} | เวลา: ${new Date().toLocaleTimeString('th-TH')}</p></div>
+                                <span class="font-bold text-md text-indigo-700 bg-white px-3 py-1 rounded-lg shadow-sm border border-indigo-100">${badgeText}</span>`;
+                logUl.prepend(li);
+                document.getElementById('scan-count').innerText = document.querySelectorAll('#scan-log li').length + " รายการ";
+                
+                setTimeout(() => document.getElementById('barcode-input').focus(), 300);
+                
+                // ไม่ต้องสั่ง resume() แล้ว เพราะไม่ได้ใช้ pause() แล้ว
+            } catch (error) {
+                console.error("UI Log Error: ", error);
+            }
         }
 
         function setCheckView(view) {
@@ -1007,7 +1015,7 @@
                 document.getElementById('btn-view-card').classList.add('bg-white', 'shadow-sm');
                 document.getElementById('btn-view-table').classList.replace('text-indigo-600', 'text-gray-500');
                 document.getElementById('btn-view-table').classList.remove('bg-white', 'shadow-sm');
-                document.getElementById('chk-table-view').add('hidden');
+                document.getElementById('chk-table-view').classList.add('hidden'); // Fix toggle bug here
                 document.getElementById('chk-card-view').classList.remove('hidden');
             }
             loadBulkTable();
