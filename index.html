@@ -773,59 +773,43 @@
             startBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> กำลังเตรียมกล้อง...';
             startBtn.disabled = true;
             try {
-                // เอาคำสั่ง getUserMedia ที่แย่งกล้องออก ให้ Html5Qrcode จัดการเอง
+                // 1. นำการขอสิทธิ์เบื้องต้นกลับมา เพื่อกระตุ้นให้เบราว์เซอร์ยอมรับการทำงานของกล้อง
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                stream.getTracks().forEach(track => track.stop()); // ปิดทันทีเพื่อส่งสิทธิ์ต่อให้สแกนเนอร์
+                
                 if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
                 
-                // ขอสิทธิ์กล้องและดึงรายชื่อกล้อง
-                const cameras = await Html5Qrcode.getCameras();
-                if (cameras && cameras.length > 0) {
-                    let cameraId = cameras[0].id;
-                    // หากล้องหลัง (ถ้ามี)
-                    for (let c of cameras) {
-                        if (c.label.toLowerCase().includes('back') || c.label.toLowerCase().includes('environment') || c.label.toLowerCase().includes('หลัง')) {
-                            cameraId = c.id; break;
-                        }
+                const config = { 
+                    fps: 30, 
+                    disableFlip: false, 
+                    qrbox: function(viewfinderWidth, viewfinderHeight) {
+                        let minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
+                        let qrboxSize = Math.floor(minEdgeSize * 0.85); 
+                        return { width: qrboxSize, height: qrboxSize };
                     }
-                    
-                    const config = { 
-                        fps: 30, 
-                        disableFlip: false, 
-                        qrbox: function(viewfinderWidth, viewfinderHeight) {
-                            let minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
-                            let qrboxSize = Math.floor(minEdgeSize * 0.85); 
-                            return { width: qrboxSize, height: qrboxSize };
-                        }
-                    };
-                    
-                    const onScan = async (decodedText) => {
-                        if(isScanningProcess) return;
-                        isScanningProcess = true;
-                        try {
-                            await processScan(decodedText);
-                        } catch (e) {
-                            console.error("Scan processing error:", e);
-                        }
-                        setTimeout(() => { isScanningProcess = false; }, 1000); 
-                    };
-                    
+                };
+                
+                const onScan = async (decodedText) => {
+                    if(isScanningProcess) return;
+                    isScanningProcess = true;
                     try {
-                        // ลองเปิดกล้องแบบ HD
-                        await html5QrCode.start({ deviceId: { exact: cameraId }, width: { ideal: 1280 }, height: { ideal: 720 } }, config, onScan);
-                    } catch (err1) {
-                        console.warn("HD camera failed, trying fallback...", err1);
-                        // ถ้าเครื่องไม่รับ HD ให้รันกล้องโหมดธรรมดา
-                        await html5QrCode.start(cameraId, config, onScan);
+                        await processScan(decodedText);
+                    } catch (e) {
+                        console.error("Scan processing error:", e);
                     }
-                    
-                    startBtn.classList.add('hidden'); document.getElementById('camera-stop-btn').classList.remove('hidden');
-                } else {
-                    throw new Error("No cameras found");
-                }
+                    setTimeout(() => { isScanningProcess = false; }, 1000); 
+                };
+                
+                // 2. ใช้ facingMode: "environment" เสถียรที่สุดสำหรับทั้งมือถือและคอมพิวเตอร์
+                await html5QrCode.start({ facingMode: "environment" }, config, onScan);
+                
+                startBtn.classList.add('hidden'); 
+                document.getElementById('camera-stop-btn').classList.remove('hidden');
+
             } catch (err) {
                 console.error("Camera Start Error: ", err);
                 let errorMsg = "ไม่สามารถเปิดกล้องได้ กรุณาให้สิทธิ์การเข้าถึงกล้องในเบราว์เซอร์";
                 
-                // ดักจับ Error เฉพาะเจาะจง
                 const errStr = err.toString().toLowerCase();
                 if (errStr.includes('notreadableerror') || errStr.includes('trackstarterror') || errStr.includes('in use')) {
                     errorMsg = "กล้องถูกใช้งานอยู่โดยโปรแกรมอื่น (เช่น Zoom, Meet, Line) กรุณาปิดการใช้กล้องในโปรแกรมเหล่านั้นก่อนครับ";
@@ -835,7 +819,8 @@
                 
                 Swal.fire({ title: 'เกิดข้อผิดพลาด', html: `${errorMsg}<br><br>💡 หรือใช้ปืนบาร์โค้ด / กดปุ่ม <b>"อัปโหลดรูปภาพ"</b> แทน`, icon: 'warning' });
             } finally {
-                startBtn.disabled = false; if(!startBtn.classList.contains('hidden')) startBtn.innerHTML = `<i class="fas fa-video mr-1"></i> เปิดกล้องสด`;
+                startBtn.disabled = false; 
+                if(!startBtn.classList.contains('hidden')) startBtn.innerHTML = `<i class="fas fa-video mr-1"></i> เปิดกล้องสด`;
             }
         }
 
