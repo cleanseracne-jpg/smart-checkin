@@ -19,6 +19,7 @@
         body { 
             font-family: 'Prompt', sans-serif; 
             background-color: #f3f4f6; 
+            /* คืนค่าภาพพื้นหลังกลับเป็นอันเดิม */
             background-image: url('https://i.postimg.cc/50j0qFYV/Gemini-Generated-Image-(1).png');
             background-size: cover;
             background-position: center;
@@ -65,7 +66,8 @@
     <div id="auth-screen" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div class="bg-white/90 rounded-2xl shadow-2xl w-full max-w-md p-8 glass">
             <div class="text-center mb-8">
-                <i class="fas fa-graduation-cap text-5xl text-indigo-600 mb-3"></i>
+                <!-- เปลี่ยนโลโก้หน้า Login เป็นรูปภาพที่ระบุ -->
+                <img src="https://i.postimg.cc/j2jHbQXy/Gemini-Generated-Image-2ur14x2ur14x2ur1.png" alt="Web Logo" class="w-24 h-24 mx-auto mb-4 rounded-2xl shadow-md object-cover">
                 <h1 class="text-2xl font-bold text-gray-800">ระบบเช็คชื่ออัจฉริยะ</h1>
                 <p class="text-sm text-gray-500" id="auth-subtitle">ลงชื่อเข้าใช้เพื่อจัดการห้องเรียนของคุณ</p>
             </div>
@@ -100,9 +102,9 @@
         <!-- Header -->
         <header class="bg-white/80 backdrop-blur-md shadow-sm z-10 px-4 py-3 flex justify-between items-center no-print border-b border-white/20">
             <div class="flex items-center gap-3">
-                <div id="head-logo-container" class="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xl overflow-hidden">
-                    <!-- ล็อกให้เป็นไอคอนครูตลอดเวลา ถอนระบบสลับรูปภาพออก 100% -->
-                    <i class="fas fa-chalkboard-teacher"></i>
+                <div id="head-logo-container" class="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-white font-bold text-xl overflow-hidden shadow-sm">
+                    <!-- เปลี่ยนโลโก้มุมซ้ายบนเป็นรูปภาพที่ระบุ -->
+                    <img src="https://i.postimg.cc/j2jHbQXy/Gemini-Generated-Image-2ur14x2ur14x2ur1.png" alt="Web Logo" class="w-full h-full object-cover">
                 </div>
                 <div>
                     <h1 class="font-bold text-lg leading-tight text-gray-800" id="head-school-name">โรงเรียน</h1>
@@ -666,8 +668,6 @@
             document.getElementById('drop-name').innerText = (currentUser && currentUser.name) ? currentUser.name : 'ครูผู้สอน';
             document.getElementById('drop-email').innerText = (currentUser && currentUser.email) ? currentUser.email : 'Teacher Account';
             
-            // ลบส่วนที่สั่งแสดงโลโก้มุมซ้ายบนออก 100% แล้วครับ
-            
             showLoader("กำลังซิงค์ข้อมูลจาก Google Sheets...");
             try {
                 appData = await api.call('getAppData');
@@ -746,7 +746,6 @@
                 const res = await api.call('saveUserLogo', currentUser.id, selectedLogoBase64); 
                 if (res.status === 'success') {
                     currentUser.logo = res.logo; localStorage.setItem('att_user', JSON.stringify(currentUser));
-                    // ลบคำสั่งอัปเดตโลโก้มุมซ้ายบนตรงนี้ออกเรียบร้อยแล้ว
                     Swal.fire('สำเร็จ', 'บันทึกโลโก้โรงเรียนเรียบร้อยแล้ว (โลโก้จะไปแสดงที่บัตรนักเรียน)', 'success');
                 }
             } catch(e) {}
@@ -775,14 +774,18 @@
             startBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> กำลังเตรียมกล้อง...';
             startBtn.disabled = true;
             try {
+                // เคลียร์ Instance เก่าทิ้งถ้ามีค้างอยู่
                 if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
                 
+                // คงความเร็วในการสแกนไว้ แต่เอาข้อจำกัด Hardware ที่มีปัญหาออก
                 const config = { 
-                    fps: 30, 
+                    fps: 30, // 30 เฟรม/วินาที สแกนติดไว
                     disableFlip: false, 
+                    // กรองเฉพาะ QR Code และ Code128 ทำให้ซีพียูทำงานน้อยลงและอ่านเร็วขึ้น
                     formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE, Html5QrcodeSupportedFormats.CODE_128 ],
                     qrbox: function(viewfinderWidth, viewfinderHeight) {
                         let minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
+                        // กรอบสแกน 85% กว้างเต็มตา
                         let qrboxSize = Math.floor(minEdgeSize * 0.85); 
                         return { width: qrboxSize, height: qrboxSize };
                     }
@@ -799,10 +802,12 @@
                     setTimeout(() => { isScanningProcess = false; }, 800); 
                 };
                 
+                // ใช้ facingMode: "environment" เรียบง่ายและปลอดภัยที่สุด เปิดกล้องหลังอัตโนมัติ
                 try {
                     await html5QrCode.start({ facingMode: "environment" }, config, onScan);
                 } catch (errFirst) {
                     console.warn("facingMode failed, trying getCameras fallback...", errFirst);
+                    // ถ้าระบบบังคับ facingMode ไม่ได้ ให้หาทีละกล้องแล้วบังคับเปิด
                     const cameras = await Html5Qrcode.getCameras();
                     if (cameras && cameras.length > 0) {
                         let cameraId = cameras[0].id;
