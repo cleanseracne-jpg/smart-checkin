@@ -544,17 +544,19 @@
 
         // ==========================================
         // ฟังก์ชันแปลงลิงก์ Google Drive ให้ดูภาพได้ตรงๆ (Direct Link)
+        // แก้ไขให้รองรับนโยบายความปลอดภัยใหม่ของ Google Drive
         // ==========================================
         function getDirectImageUrl(url) {
             if (!url) return '';
             url = url.trim();
-            // ตรวจสอบว่าเป็นลิงก์จาก Google Drive หรือไม่
+            // รองรับรูปแบบลิงก์หลากหลายของ Google Drive (ทั้งแบบ /file/d/ และ /uc?id=)
             const driveRegex = /(?:https?:\/\/)?(?:drive\.google\.com\/(?:file\/d\/|open\?id=)|docs\.google\.com\/uc\?id=)([a-zA-Z0-9_-]+)/;
             const match = url.match(driveRegex);
             if (match && match[1]) {
-                return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+                // ใช้ lh3.googleusercontent.com แทน uc?export=view เพื่อหลีกเลี่ยงการถูกบล็อก (CORS/403)
+                return `https://lh3.googleusercontent.com/d/${match[1]}`;
             }
-            return url; // หากไม่ใช่ ให้แสดงลิงก์เดิมกลับไป
+            return url; // หากไม่ใช่ลิงก์ Google Drive ให้ใช้งานลิงก์เดิมปกติ
         }
 
         // ==========================================
@@ -1568,7 +1570,7 @@
                     const canvas = document.createElement('canvas'); box.appendChild(canvas);
                     JsBarcode(canvas, s[2], { format: "CODE128", width: 1.5, height: 35, displayValue: true, fontSize: 10, margin: 0 });
                 } else {
-                    new QRCode(box, { text: s[2], width: 50, height: 50, colorcolorDark : "#000000", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.L });
+                    new QRCode(box, { text: s[2], width: 50, height: 50, colorDark : "#000000", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.L });
                     const codeLabel = document.createElement('div'); codeLabel.className = "text-[8px] mt-1 text-center font-mono"; codeLabel.innerText = s[2];
                     box.classList.add('flex-col'); box.appendChild(codeLabel);
                 }
