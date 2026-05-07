@@ -46,7 +46,13 @@
         #reader { width: 100%; min-height: 200px; background-color: #ffffff; text-align: center; border: none !important; }
         #reader video { border-radius: 0.75rem; width: 100% !important; max-height: 350px; object-fit: contain; }
 
+        /* แก้ปัญหาแถบสีไม่ปริ้นท์ออกมา */
         @media print {
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
             body * { visibility: hidden; }
             #print-area, #print-area * { visibility: visible; }
             #print-area { position: absolute; left: 0; top: 0; width: 100%; }
@@ -1545,13 +1551,14 @@
                 : '';
 
             students.forEach((s, idx) => {
-                const card = document.createElement('div'); card.className = "border border-gray-300 rounded-xl overflow-hidden flex flex-col bg-white"; card.style.height = "240px";
+                // เพิ่มความสูงการ์ดจาก 240px เป็น 260px เพื่อรองรับรูปที่ใหญ่ขึ้น
+                const card = document.createElement('div'); card.className = "border border-gray-300 rounded-xl overflow-hidden flex flex-col bg-white"; card.style.height = "260px";
                 
                 // ดึงและแปลง URL รูปภาพนักเรียน
                 const rawImgUrl = s[5] ? s[5].trim() : '';
                 const avatarHtml = rawImgUrl 
-                    ? `<img src="${getDirectImageUrl(rawImgUrl)}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<i class=\\'fas fa-user text-3xl text-gray-400\\'></i>'">`
-                    : `<i class="fas fa-user text-3xl text-gray-400"></i>`;
+                    ? `<img src="${getDirectImageUrl(rawImgUrl)}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<i class=\\'fas fa-user text-4xl text-gray-400\\'></i>'">`
+                    : `<i class="fas fa-user text-4xl text-gray-400"></i>`; // ขยายไอคอนกรณีไม่มีรูปเป็น 4xl
 
                 card.innerHTML = `
                     <div class="py-1.5 px-2 flex justify-center items-center gap-2 text-white font-bold text-xs" style="background-color: ${color};">
@@ -1559,11 +1566,14 @@
                         <span class="truncate">${title}</span>
                     </div>
                     <div class="flex-1 flex flex-col items-center justify-center p-2 text-center">
-                        <div class="w-14 h-14 bg-gray-100 rounded-full mb-2 flex items-center justify-center text-gray-400 border-2 border-dashed border-gray-300 overflow-hidden">
+                        <!-- ขยายกรอบรูปจาก w-14 h-14 เป็น w-20 h-20 (ประมาณ 80px) และเพิ่ม margin-bottom -->
+                        <div class="w-20 h-20 bg-gray-100 rounded-full mb-3 flex items-center justify-center text-gray-400 border-2 border-dashed border-gray-300 overflow-hidden shadow-sm">
                              ${avatarHtml}
                         </div>
-                        <p class="font-bold text-sm leading-tight text-gray-800">${s[3]}</p><p class="text-xs text-gray-500 mt-1">ห้อง ${s[4]} | เลขที่ ${s[1]}</p>
-                    </div><div class="bg-gray-50 border-t p-2 flex justify-center items-center h-16 w-full overflow-hidden" id="codebox-${idx}"></div>`;
+                        <p class="font-bold text-sm leading-tight text-gray-800">${s[3]}</p>
+                        <p class="text-xs text-gray-500 mt-1">ห้อง ${s[4]} | เลขที่ ${s[1]}</p>
+                    </div>
+                    <div class="bg-gray-50 border-t p-2 flex justify-center items-center h-16 w-full overflow-hidden" id="codebox-${idx}"></div>`;
                 grid.appendChild(card);
                 const box = document.getElementById(`codebox-${idx}`);
                 if (type === 'barcode') {
