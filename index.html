@@ -901,10 +901,20 @@
             const isDaily = actInfo && actInfo[1] === 'รายวัน';
             const maxScore = actInfo ? actInfo[4] : 100;
 
-            let htmlContent = `<div class="text-left mb-4">
-                <p class="text-sm text-gray-500">รหัส: ${student[2]} | ชั้น: <span class="font-bold text-indigo-600">${student[4]}</span></p>
-                <h3 class="text-xl font-bold">${student[1]}. ${student[3]}</h3>
-            </div>`;
+            // ดึงและแปลง URL รูปภาพนักเรียนเพื่อมาแสดงผลใน Popup เวลาสแกน
+            const rawImgUrl = student[5] ? student[5].trim() : '';
+            const imgUrl = rawImgUrl ? getDirectImageUrl(rawImgUrl) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${student[3]}&backgroundColor=e2e8f0`;
+
+            let htmlContent = `
+                <div class="flex flex-col items-center mb-4">
+                    <div class="w-24 h-24 bg-gray-100 rounded-full mb-3 flex items-center justify-center border-4 border-indigo-100 overflow-hidden shadow-sm">
+                        <img src="${imgUrl}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/avataaars/svg?seed=${student[3]}&backgroundColor=e2e8f0'">
+                    </div>
+                    <div class="text-center">
+                        <p class="text-sm text-gray-500">รหัส: ${student[2]} | ชั้น: <span class="font-bold text-indigo-600">${student[4]}</span></p>
+                        <h3 class="text-xl font-bold">${student[1]}. ${student[3]}</h3>
+                    </div>
+                </div>`;
 
             if (isDaily) {
                 htmlContent += `
@@ -1558,7 +1568,7 @@
                     const canvas = document.createElement('canvas'); box.appendChild(canvas);
                     JsBarcode(canvas, s[2], { format: "CODE128", width: 1.5, height: 35, displayValue: true, fontSize: 10, margin: 0 });
                 } else {
-                    new QRCode(box, { text: s[2], width: 50, height: 50, colorDark : "#000000", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.L });
+                    new QRCode(box, { text: s[2], width: 50, height: 50, colorcolorDark : "#000000", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.L });
                     const codeLabel = document.createElement('div'); codeLabel.className = "text-[8px] mt-1 text-center font-mono"; codeLabel.innerText = s[2];
                     box.classList.add('flex-col'); box.appendChild(codeLabel);
                 }
