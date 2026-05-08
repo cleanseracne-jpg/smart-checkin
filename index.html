@@ -168,13 +168,20 @@
                     <h2 class="text-2xl font-bold mb-4 flex items-center gap-2 text-white drop-shadow-md"><i class="fas fa-qrcode"></i> โหมดสแกนรับงาน / เช็คชื่อ</h2>
                     
                     <div class="bg-white/90 backdrop-blur p-4 rounded-2xl shadow-sm border border-white/50 mb-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
+                        <div class="md:col-span-1">
                             <label class="block text-xs font-medium text-gray-500 mb-1">วันที่</label>
-                            <input type="date" id="scan-date" class="w-full px-3 py-2 border rounded-lg bg-gray-50 text-sm">
+                            <input type="date" id="scan-date" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-white/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         </div>
-                        <div class="md:col-span-2">
-                            <label class="block text-xs font-medium text-gray-500 mb-1">เลือกกิจกรรม / ชิ้นงาน ที่ต้องการสแกน</label>
-                            <select id="scan-activity" class="w-full px-3 py-2 border rounded-lg bg-gray-50 text-sm font-semibold text-indigo-700"></select>
+                        <div class="md:col-span-1">
+                            <label class="block text-xs font-medium text-gray-500 mb-1">เลือกวิชา</label>
+                            <select id="scan-subject" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-white/50 text-sm font-semibold text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" onchange="updateActivityDropdown('scan')"></select>
+                        </div>
+                        <div class="md:col-span-1">
+                            <label class="flex justify-between items-center text-xs font-medium text-gray-500 mb-1">
+                                <span>เลือกชิ้นงาน / กิจกรรม</span>
+                                <span id="scan-act-info"></span>
+                            </label>
+                            <select id="scan-activity" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-white/50 text-sm font-semibold text-indigo-700 disabled:opacity-50 disabled:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" disabled onchange="showActivityInfo('scan')"></select>
                         </div>
                     </div>
 
@@ -229,9 +236,16 @@
                     </div>
                     
                     <div class="bg-white/90 backdrop-blur p-4 rounded-2xl shadow-sm border border-white/50 mb-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <div class="col-span-2 md:col-span-1"><label class="block text-xs text-gray-500 mb-1">วันที่</label><input type="date" id="chk-date" class="w-full px-3 py-1.5 border rounded-lg text-sm"></div>
-                        <div class="col-span-2 md:col-span-1"><label class="block text-xs text-gray-500 mb-1">ห้องเรียน</label><select id="chk-class" class="w-full px-3 py-1.5 border rounded-lg text-sm" onchange="loadBulkTable()"></select></div>
-                        <div class="col-span-2 md:col-span-2"><label class="block text-xs text-gray-500 mb-1">วิชา/กิจกรรม</label><select id="chk-activity" class="w-full px-3 py-1.5 border rounded-lg text-sm text-indigo-600 font-bold" onchange="loadBulkTable()"></select></div>
+                        <div class="col-span-2 md:col-span-1"><label class="block text-xs text-gray-500 mb-1">วันที่</label><input type="date" id="chk-date" class="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"></div>
+                        <div class="col-span-2 md:col-span-1"><label class="block text-xs text-gray-500 mb-1">ห้องเรียน</label><select id="chk-class" class="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" onchange="loadBulkTable()"></select></div>
+                        <div class="col-span-2 md:col-span-1"><label class="block text-xs text-gray-500 mb-1">เลือกวิชา</label><select id="chk-subject" class="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-indigo-600 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500" onchange="updateActivityDropdown('chk')"></select></div>
+                        <div class="col-span-2 md:col-span-1">
+                            <label class="flex justify-between items-center text-xs text-gray-500 mb-1">
+                                <span>ชิ้นงาน/กิจกรรม</span>
+                                <span id="chk-act-info"></span>
+                            </label>
+                            <select id="chk-activity" class="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-indigo-600 font-bold disabled:opacity-50 disabled:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" disabled onchange="showActivityInfo('chk')"></select>
+                        </div>
                     </div>
 
                     <div id="chk-table-view" class="bg-white/90 backdrop-blur rounded-2xl shadow-sm border border-white/50 overflow-hidden">
@@ -394,9 +408,18 @@
                             </div>
                             
                             <!-- ช่องค้นหาโหมดคะแนน -->
-                            <div class="md:col-span-2" id="filter-score-wrap">
-                                <label class="block text-xs text-gray-500 mb-1">วิชา/ชิ้นงาน (คะแนน)</label>
-                                <select id="sum-activity" class="w-full px-3 py-2 border border-gray-200 bg-white/50 rounded-lg text-sm font-bold text-indigo-700" onchange="triggerReportRender()"></select>
+                            <div class="md:col-span-2 grid grid-cols-2 gap-2" id="filter-score-wrap">
+                                <div>
+                                    <label class="block text-xs text-gray-500 mb-1">เลือกวิชา</label>
+                                    <select id="sum-subject" class="w-full px-3 py-2 border border-gray-200 bg-white/50 rounded-lg text-sm font-bold text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" onchange="updateActivityDropdown('sum')"></select>
+                                </div>
+                                <div>
+                                    <label class="flex justify-between items-center text-xs text-gray-500 mb-1">
+                                        <span>ชิ้นงาน (คะแนน)</span>
+                                        <span id="sum-act-info"></span>
+                                    </label>
+                                    <select id="sum-activity" class="w-full px-3 py-2 border border-gray-200 bg-white/50 rounded-lg text-sm font-bold text-indigo-700 disabled:opacity-50 disabled:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" disabled onchange="showActivityInfo('sum')"></select>
+                                </div>
                             </div>
 
                             <!-- ช่องค้นหาโหมดเวลาเรียน (Date Range) -->
@@ -631,7 +654,7 @@
         let selectedLogoBase64 = null;
         let isScanningProcess = false;
         let currentCheckView = 'table'; 
-        let currentReportMode = 'score'; // 'score' or 'attendance'
+        let currentReportMode = 'score'; 
 
         // ==========================================
         // ฟังก์ชันแปลงลิงก์ Google Drive ให้ดูภาพได้ตรงๆ (Direct Link)
@@ -675,7 +698,6 @@
             document.getElementById('scan-date').value = today;
             document.getElementById('chk-date').value = today;
             
-            // Set Default Date Range (1 Month back to Today)
             const lastMonth = new Date();
             lastMonth.setMonth(lastMonth.getMonth() - 1);
             document.getElementById('rep-start-date').value = lastMonth.toISOString().split('T')[0];
@@ -685,7 +707,6 @@
             else document.getElementById('auth-screen').classList.remove('hidden');
         };
 
-        // Keyboard Shortcut for Barcode
         document.addEventListener('keydown', function(e) {
             if (!document.getElementById('tab-scan').classList.contains('active')) return;
             if (Swal.isVisible()) return; 
@@ -719,7 +740,6 @@
             }
         }
 
-        // Auth System
         function toggleAuth() {
             document.getElementById('login-form').classList.toggle('hidden');
             document.getElementById('reg-form').classList.toggle('hidden');
@@ -779,13 +799,8 @@
             try {
                 appData = await api.call('getAppData');
                 
-                // 🧹 ระบบเครื่องดูดฝุ่น
-                if (appData.students) {
-                    appData.students = appData.students.filter(row => row && row.length > 3 && String(row[3]).trim() !== "");
-                }
-                if (appData.activities) {
-                    appData.activities = appData.activities.filter(row => row && row.length > 3 && String(row[3]).trim() !== "");
-                }
+                if (appData.students) appData.students = appData.students.filter(row => row && row.length > 3 && String(row[3]).trim() !== "");
+                if (appData.activities) appData.activities = appData.activities.filter(row => row && row.length > 3 && String(row[3]).trim() !== "");
                 if (!appData.scoreLogs) appData.scoreLogs = []; 
                 if (!appData.attendance) appData.attendance = []; 
 
@@ -817,7 +832,11 @@
             }
         }
 
+        // ==========================================
+        // 🚀 อัปเดต: ระบบ Dependent Dropdown (วิชา -> กิจกรรม)
+        // ==========================================
         function updateGlobalDropdowns() {
+            // ห้องเรียน
             const classes = [...new Set(appData.students.map(s => s[4]))].sort();
             const classOptions = '<option value="">-- เลือกห้องเรียน --</option>' + classes.map(c => `<option value="${c}">${c}</option>`).join('');
             document.getElementById('filter-class').innerHTML = '<option value="">ทุกห้องเรียน</option>' + classes.map(c => `<option value="${c}">${c}</option>`).join('');
@@ -826,16 +845,85 @@
             document.getElementById('rand-class').innerHTML = classOptions;
             document.getElementById('sum-class').innerHTML = classOptions;
 
-            const actOptions = '<option value="">-- เลือกกิจกรรม/ชิ้นงาน --</option>' + appData.activities.map(a => `<option value="${a[0]}" data-type="${a[1]}" data-max="${a[4]}">[${a[1]}] ${a[2]} - ${a[3]}</option>`).join('');
-            document.getElementById('scan-activity').innerHTML = actOptions;
-            document.getElementById('chk-activity').innerHTML = actOptions;
+            // ดึงชื่อ "วิชา" ทั้งหมดที่กรอกไว้มาเป็น Dropdown ที่ 1 (Subject)
+            const subjects = [...new Set(appData.activities.map(a => a[2] ? a[2].trim() : 'ไม่ระบุวิชา'))].sort();
+            const subjectOptions = '<option value="">-- เลือกวิชา --</option>' + subjects.map(s => `<option value="${s}">${s}</option>`).join('');
             
-            // Report Dropdown (Only show Subject for Score Mode)
-            const scoreActOptions = '<option value="">-- เลือกกิจกรรม/ชิ้นงาน --</option>' + appData.activities.filter(a => a[1] !== 'รายวัน').map(a => `<option value="${a[0]}" data-type="${a[1]}" data-max="${a[4]}">[${a[1]}] ${a[2]} - ${a[3]}</option>`).join('');
-            document.getElementById('sum-activity').innerHTML = scoreActOptions;
+            document.getElementById('scan-subject').innerHTML = subjectOptions;
+            document.getElementById('chk-subject').innerHTML = subjectOptions;
+            document.getElementById('sum-subject').innerHTML = subjectOptions;
+            
+            // สั่งล้างค่าช่อง "กิจกรรม" (Dropdown ที่ 2) ไว้ก่อน
+            resetActivityDropdown('scan');
+            resetActivityDropdown('chk');
+            resetActivityDropdown('sum');
         }
 
-        // Settings
+        function updateActivityDropdown(prefix) {
+            const subject = document.getElementById(`${prefix}-subject`).value;
+            const actSelect = document.getElementById(`${prefix}-activity`);
+            const infoSpan = document.getElementById(`${prefix}-act-info`);
+            
+            if (infoSpan) infoSpan.innerHTML = ''; // เคลียร์ป้ายกำกับ
+            
+            if (!subject) {
+                resetActivityDropdown(prefix);
+                if (prefix === 'chk') loadBulkTable();
+                if (prefix === 'sum') triggerReportRender();
+                return;
+            }
+
+            // กรองกิจกรรมเฉพาะของวิชาที่เลือก
+            let filteredActs = appData.activities.filter(a => (a[2] ? a[2].trim() : 'ไม่ระบุวิชา') === subject);
+            
+            // หน้าสรุปคะแนน ให้ซ่อนกิจกรรมประเภท 'รายวัน' ออก
+            if (prefix === 'sum' && currentReportMode === 'score') {
+                filteredActs = filteredActs.filter(a => a[1] !== 'รายวัน');
+            }
+
+            actSelect.innerHTML = '<option value="">-- เลือกชิ้นงาน/กิจกรรม --</option>' + filteredActs.map(a => `<option value="${a[0]}" data-type="${a[1]}" data-max="${a[4]}">[${a[1]}] ${a[3]}</option>`).join('');
+            actSelect.disabled = false;
+            actSelect.classList.remove('bg-gray-100');
+            
+            if (prefix === 'chk') loadBulkTable();
+            if (prefix === 'sum') triggerReportRender();
+        }
+
+        function resetActivityDropdown(prefix) {
+            const actSelect = document.getElementById(`${prefix}-activity`);
+            actSelect.innerHTML = '<option value="">-- กรุณาเลือกวิชาก่อน --</option>';
+            actSelect.disabled = true;
+            actSelect.classList.add('bg-gray-100');
+            const infoSpan = document.getElementById(`${prefix}-act-info`);
+            if (infoSpan) infoSpan.innerHTML = '';
+        }
+
+        function showActivityInfo(prefix) {
+            const actSelect = document.getElementById(`${prefix}-activity`);
+            const infoSpan = document.getElementById(`${prefix}-act-info`);
+            
+            if(infoSpan) {
+                const selectedOption = actSelect.options[actSelect.selectedIndex];
+                if(selectedOption && selectedOption.value) {
+                    const type = selectedOption.getAttribute('data-type');
+                    const max = selectedOption.getAttribute('data-max');
+                    // ใส่ป้ายสถานะหรือคะแนนเพื่อยืนยันให้ครูเห็น
+                    if(type === 'รายวัน') {
+                        infoSpan.innerHTML = `<span class="text-[10px] text-green-700 bg-green-100 px-1.5 py-0.5 rounded font-bold ml-1"><i class="fas fa-check-circle"></i> เช็คชื่อ</span>`;
+                    } else {
+                        infoSpan.innerHTML = `<span class="text-[10px] text-indigo-700 bg-indigo-100 px-1.5 py-0.5 rounded font-bold ml-1"><i class="fas fa-star"></i> คะแนนเต็ม ${max}</span>`;
+                    }
+                } else {
+                    infoSpan.innerHTML = '';
+                }
+            }
+            
+            // รีเฟรชตารางถ้าอยู่หน้าเช็คหรือหน้าสรุป
+            if (prefix === 'chk') loadBulkTable();
+            if (prefix === 'sum') triggerReportRender();
+        }
+
+        // Settings Modal
         function openSettingsModal() { 
             document.getElementById('modal-settings').classList.remove('hidden');
             document.getElementById('set-teacher-name').innerText = "ครู" + currentUser.name;
@@ -961,7 +1049,7 @@
         async function processScan(code) {
             const codeStr = String(code).trim();
             const actId = document.getElementById('scan-activity').value;
-            if(!actId) { playSound('error'); return Swal.fire('แจ้งเตือน', 'กรุณาเลือก กิจกรรม/ชิ้นงาน ก่อนสแกน', 'warning'); }
+            if(!actId) { playSound('error'); return Swal.fire('แจ้งเตือน', 'กรุณาเลือก ชิ้นงาน/กิจกรรม ก่อนสแกน', 'warning'); }
             
             const student = appData.students.find(s => String(s[2]).trim() === codeStr);
             if(!student) { playSound('error'); return Swal.fire('ไม่พบข้อมูล', `ไม่มีนักเรียนรหัส ${codeStr} ในระบบ`, 'error'); }
@@ -993,7 +1081,7 @@
                         <button onclick="submitDaily('${student[0]}', 'ลา')" class="swal2-confirm bg-orange-500 text-white rounded p-3 font-bold hover:bg-orange-600">ลา</button>
                         <button onclick="submitDaily('${student[0]}', 'ขาด')" class="swal2-confirm bg-red-500 text-white rounded p-3 font-bold hover:bg-red-600">ขาด</button>
                     </div>`;
-                Swal.fire({ title: 'เช็คชื่อรายวัน', html: htmlContent, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'ยกเลิก' });
+                Swal.fire({ title: 'เช็คชื่อ', html: htmlContent, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'ยกเลิก' });
             } else {
                 let studentLogs = [];
                 for(let l of appData.scoreLogs) { 
@@ -1103,8 +1191,8 @@
             const cardView = document.getElementById('chk-card-view');
             
             if(!cClass || !cActId) {
-                tbody.innerHTML = '<tr><td colspan="3" class="py-8 text-center text-gray-500">กรุณาเลือกห้องเรียนและกิจกรรม</td></tr>';
-                cardView.innerHTML = '<div class="col-span-full py-8 text-center text-gray-500 bg-white/90 rounded-2xl border border-white/50">กรุณาเลือกห้องเรียนและกิจกรรม</div>';
+                tbody.innerHTML = '<tr><td colspan="3" class="py-8 text-center text-gray-500">กรุณาเลือกวิชาและกิจกรรม</td></tr>';
+                cardView.innerHTML = '<div class="col-span-full py-8 text-center text-gray-500 bg-white/90 rounded-2xl border border-white/50">กรุณาเลือกวิชาและกิจกรรม</div>';
                 document.getElementById('chk-bulk-actions').style.display = 'none'; return;
             }
 
@@ -1227,7 +1315,7 @@
         function importExcel(e) { /* Existing code */ }
         
         // ------------------------------------------
-        // อัปเดต: ระบบกิจกรรม (เพิ่มปุ่มแก้ไข + Modal)
+        // ระบบกิจกรรม (เพิ่มปุ่มแก้ไข + Modal)
         // ------------------------------------------
         function renderActivities() {
             const dUl = document.getElementById('list-daily'); const sUl = document.getElementById('list-subject');
@@ -1251,7 +1339,6 @@
 
         function toggleActScore() { document.getElementById('div-act-score').style.display = document.getElementById('m-act-type').value === 'วิชา' ? 'block' : 'none'; }
         
-        // Modal โหมดเพิ่มใหม่
         function openActivityModal() { 
             document.getElementById('modal-activity-title').innerText = 'เพิ่มโครงสร้างใหม่';
             document.getElementById('m-act-id').value = '';
@@ -1263,7 +1350,6 @@
             document.getElementById('modal-activity').classList.remove('hidden'); 
         }
 
-        // Modal โหมดแก้ไข
         function editActivityPrompt(id) {
             const act = appData.activities.find(a => a[0] === id);
             if (!act) return;
@@ -1279,7 +1365,6 @@
             document.getElementById('modal-activity').classList.remove('hidden');
         }
 
-        // ฟังก์ชันเดียวรองรับทั้งการ Add และ Update
         async function saveActivity() {
             const actId = document.getElementById('m-act-id').value;
             const d = { 
@@ -1294,9 +1379,7 @@
             showLoader(actId ? "กำลังบันทึกการแก้ไข..." : "บันทึกลง Sheet..."); 
             try {
                 if (actId) {
-                    // โหมดแก้ไข (Update)
                     await api.call('updateActivity', actId, d);
-                    // อัปเดตข้อมูลในหน่วยความจำทันทีเพื่อให้หน้าเว็บรีเฟรชเร็ว
                     const actIndex = appData.activities.findIndex(a => a[0] === actId);
                     if (actIndex !== -1) {
                         appData.activities[actIndex][1] = d.type;
@@ -1306,7 +1389,6 @@
                     }
                     Swal.fire({ title: 'สำเร็จ', text: 'แก้ไขข้อมูลสำเร็จ', icon: 'success', timer: 1000, showConfirmButton: false, position: 'top-end', toast: true });
                 } else {
-                    // โหมดเพิ่มใหม่ (Add)
                     const res = await api.call('saveActivity', d);
                     const newId = (res && res.id) ? res.id : 'mock_act_'+Math.random();
                     appData.activities.push([newId, d.type, d.code, d.name, d.maxScore]);
@@ -1386,6 +1468,7 @@
                 document.getElementById('sum-stats-att').style.display = 'none';
                 document.getElementById('txt-export-btn').innerHTML = '<i class="fas fa-file-excel"></i> Excel';
                 document.getElementById('btn-export-rep').className = "flex-1 bg-green-600 text-white font-bold px-3 py-2 rounded-lg hover:bg-green-700 transition";
+                updateActivityDropdown('sum'); 
             } else {
                 document.getElementById('btn-mode-att').className = "flex-1 md:flex-none px-4 py-2 rounded-lg bg-white shadow-sm text-sm font-bold text-indigo-600 transition";
                 document.getElementById('btn-mode-score').className = "flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-indigo-600 transition";
@@ -1420,7 +1503,7 @@
             document.getElementById('print-report-title').innerText = "รายงานสรุปคะแนนวิชาเรียน";
 
             if(!cClass || !cActId) {
-                tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-gray-400">กรุณาเลือกห้องเรียนและวิชาเพื่อดูสรุป</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-gray-400">กรุณาเลือกวิชาและชิ้นงานเพื่อดูสรุป</td></tr>';
                 document.getElementById('sum-stats-score').style.display = 'none'; return;
             }
 
