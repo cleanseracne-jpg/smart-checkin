@@ -64,7 +64,6 @@
             
             .glass { background: white !important; border: none !important; box-shadow: none !important; }
             
-            /* บังคับสีพื้นหลังของกล่องสถิติใน PDF ให้ออกมาชัดเจน */
             .bg-blue-600 { background-color: #2563eb !important; color: white !important; }
             .bg-green-600 { background-color: #16a34a !important; color: white !important; }
             .bg-red-600 { background-color: #dc2626 !important; color: white !important; }
@@ -453,12 +452,12 @@
                                 <h3 class="text-4xl font-bold" id="stat-att-total">0</h3>
                             </div>
                             <div class="bg-green-600 p-4 rounded-xl shadow-md flex flex-col justify-center items-center text-white print:bg-green-600 print:text-white print:border-none">
-                                <p class="text-sm font-bold mb-1">จำนวนวันมาเรียนทั้งหมด</p>
+                                <p class="text-sm font-bold mb-1">จำนวนวันเปิดเรียนจริง (วัน)</p>
                                 <h3 class="text-4xl font-bold" id="stat-att-present">0</h3>
                             </div>
                             <div class="bg-red-600 p-4 rounded-xl shadow-md flex flex-col justify-center items-center text-white print:bg-red-600 print:text-white print:border-none">
-                                <p class="text-sm font-bold mb-1">จำนวนวันที่ขาดเรียนทั้งหมด</p>
-                                <h3 class="text-4xl font-bold" id="stat-att-absent">0</h3>
+                                <p class="text-sm font-bold mb-1">อัตราขาดเรียนเฉลี่ย</p>
+                                <h3 class="text-4xl font-bold" id="stat-att-absent">0%</h3>
                             </div>
                         </div>
 
@@ -780,13 +779,12 @@
             try {
                 appData = await api.call('getAppData');
                 
-                // 🧹 ป้องกันบั๊กแถวว่างจาก Google Sheets
+                // 🧹 ระบบเครื่องดูดฝุ่น: ป้องกันบั๊กแถวว่างจาก Google Sheets ที่มีแค่ ID 
                 if (appData.students) {
                     appData.students = appData.students.filter(row => row && row.length > 3 && String(row[3]).trim() !== "");
                 }
                 if (appData.activities) {
-                    // เช็คว่ามีประเภทกิจกรรม (index 1) หรือไม่ เพื่อกรองแถวขยะทิ้ง
-                    appData.activities = appData.activities.filter(row => row && row.length > 1 && String(row[1]).trim() !== "");
+                    appData.activities = appData.activities.filter(row => row && row.length > 3 && String(row[3]).trim() !== "");
                 }
                 if (!appData.scoreLogs) appData.scoreLogs = []; 
                 if (!appData.attendance) appData.attendance = []; 
@@ -998,8 +996,16 @@
                     </div>`;
                 Swal.fire({ title: 'เช็คชื่อรายวัน', html: htmlContent, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'ยกเลิก' });
             } else {
+                let studentLogs = [];
+                // --- Smart Match System --- ป้องกันกรณีเด็กลบแล้วสร้างใหม่
+                for(let l of appData.scoreLogs) { 
+                    if(l[2] === actId && (l[4] === student[0] || (l[5] == student[1] && l[7] === student[4]))) {
+                        studentLogs.push(l); 
+                    }
+                } 
+                
                 let sumScore = 0;
-                for(let log of appData.scoreLogs) { if(log[2] === actId && (log[4] === student[0] || (log[5] == student[1] && log[7] === student[4]))) sumScore += parseFloat(log[8]||0); } 
+                for(let log of studentLogs) { sumScore += parseFloat(log[8]||0); } 
 
                 htmlContent += `
                     <div class="mb-3 text-left bg-blue-50 p-3 rounded-xl border border-blue-100 flex justify-between items-center">
@@ -1190,7 +1196,7 @@
             } catch(e) { console.error("Bulk sync error", e); }
         }
 
-        // Student Database & Cards & Randomizer logic... (Kept identical as previous)
+        // Student Database & Cards & Randomizer logic... 
         function renderStudentTable() {
             const filterClass = document.getElementById('filter-class').value;
             const search = document.getElementById('search-student').value.toLowerCase();
@@ -1394,7 +1400,7 @@
         }
 
         // ==========================================
-        // 🔥 ไฮไลท์ฟีเจอร์: สรุปเวลาเรียนเชิงลึก + Auto Absent
+        // 🔥 สรุปเวลาเรียนเชิงลึก + Unique Dates + Auto Absent
         // ==========================================
         function renderAttendanceReport() {
             const cClass = document.getElementById('sum-class').value;
@@ -1422,32 +1428,39 @@
             const end = new Date(endDateStr).setHours(23,59,59,999);
             const students = appData.students.filter(s => s[4] === cClass).sort((a,b) => parseInt(a[1]) - parseInt(b[1]));
 
-            // 1. หาว่าในช่วงวันที่เลือก มีการเช็คชื่อของห้องนี้วันไหนบ้าง (สกัดเป็นวันที่เปิดเรียน)
+            // 1. หาว่าในช่วงวันที่เลือก มีการเช็คชื่อของห้องนี้วันไหนบ้าง (สกัดเป็นวันที่เปิดเรียน - Unique Dates)
             let schoolDaysSet = new Set();
-            let relevantLogs = [];
+            let relevantLogsMap = new Map(); // key = studentId_date (ใช้ป้องกันสแกนซ้ำวันเดิม)
 
             appData.attendance.forEach(att => {
-                // เช็คว่าเป็นข้อมูลของห้องที่เลือกไหม
                 const std = appData.students.find(s => s[0] === att[5] || (s[1] == att[6] && s[4] === att[8]));
                 if(std && std[4] === cClass) {
                     const attDateStr = att[1]; // yyyy-mm-dd
                     const attDate = new Date(attDateStr).getTime();
+                    
                     if(attDate >= start && attDate <= end) {
                         schoolDaysSet.add(attDateStr);
-                        relevantLogs.push({ date: attDateStr, studentId: std[0], status: att[9] });
+                        
+                        // ระบบกรองสแกนซ้ำ: ถ้านักเรียนสแกนหลายรอบในวันเดียว ให้ยึดสถานะที่ดีที่สุด (มา > สาย > ลา > ขาด)
+                        const key = std[0] + "_" + attDateStr;
+                        const statusWeights = { 'มา': 4, 'สาย': 3, 'ลา': 2, 'ขาด': 1 };
+                        
+                        if (!relevantLogsMap.has(key) || statusWeights[att[9]] > statusWeights[relevantLogsMap.get(key).status]) {
+                            relevantLogsMap.set(key, { date: attDateStr, studentId: std[0], status: att[9] });
+                        }
                     }
                 }
             });
 
-            const schoolDays = Array.from(schoolDaysSet).sort(); // วันที่มีการเรียนการสอน (อ้างอิงจากประวัติ)
+            const schoolDays = Array.from(schoolDaysSet).sort(); // วันเปิดเรียน (ไม่ซ้ำ)
+            const relevantLogs = Array.from(relevantLogsMap.values()); // ข้อมูลเช็คชื่อกรองซ้ำแล้ว
 
             if(schoolDays.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-red-400 font-bold">ไม่พบประวัติการเช็คชื่อในช่วงเวลาที่เลือก</td></tr>';
                 document.getElementById('sum-stats-att').style.display = 'none'; return;
             }
 
-            let grandTotalPresent = 0;
-            let grandTotalAbsent = 0;
+            let grandTotalAbsent = 0; // ยอดรวมขาดเรียนทั้งหมด (เพื่อนับเปอร์เซ็นต์)
 
             // 2. ลูปนักเรียนแต่ละคน และตรวจจับวันขาดเรียนแบบ Auto
             const html = students.map(s => {
@@ -1456,7 +1469,6 @@
                 let absentDateList = [];
 
                 schoolDays.forEach(day => {
-                    // หาสถานะของเด็กคนนี้ในวันนั้นๆ
                     const log = relevantLogs.find(l => l.date === day && l.studentId === s[0]);
                     
                     if (log) {
@@ -1469,20 +1481,18 @@
                             absentDateList.push(formatDateShort(day) + "(ลา)");
                         }
                     } else {
-                        // 🤖 [Auto-Absent Logic] วันนี้มีสอน แต่เด็กไม่มี log = ขาดเรียนอัตโนมัติ!
+                        // 🤖 [Auto-Absent Logic] วันนี้มีเปิดเรียน แต่เด็กไม่มีรายชื่อสแกน = ขาดเรียน!
                         absentCount++;
                         absentDateList.push(`<span class="font-bold text-red-500 print:text-red-600">${formatDateShort(day)}</span>`);
                     }
                 });
 
-                grandTotalPresent += presentCount;
                 grandTotalAbsent += absentCount;
 
                 const bgClass = absentCount > 0 ? 'bg-red-50/30' : 'bg-white';
-                
                 const presentDisplay = presentCount > 0 ? `<span class="font-bold text-green-600">${presentCount}</span>` : `<span class="text-gray-300">-</span>`;
                 const absentDisplay = absentCount > 0 ? `<span class="font-bold text-red-500">${absentCount}</span>` : `<span class="text-gray-300">-</span>`;
-                const absentDatesDisplay = absentCount > 0 ? absentDateList.join(', ') : `<span class="text-green-500 font-bold print:text-gray-800"><i class="fas fa-check-circle"></i> มาครบ</span>`;
+                const absentDatesDisplay = absentCount > 0 ? absentDateList.join(', ') : `<span class="text-green-500 font-bold print:text-green-600"><i class="fas fa-check-circle"></i> มาครบ</span>`;
 
                 return `<tr class="${bgClass} border-b border-gray-100 print:border-gray-300">
                     <td class="py-3 px-4 text-center font-bold text-gray-700">${s[1]}</td>
@@ -1493,11 +1503,24 @@
                 </tr>`;
             }).join('');
 
-            tbody.innerHTML = html;
+            // แถวสรุปด้านล่างตาราง
+            const summaryRow = `<tr class="bg-gray-100 font-bold print:bg-gray-200">
+                <td colspan="5" class="py-3 px-4 text-right text-indigo-700 print:text-gray-800">
+                    * อ้างอิงจากวันที่มีการเปิดเรียนจริงทั้งหมด ${schoolDays.length} วัน
+                </td>
+            </tr>`;
+
+            tbody.innerHTML = html + summaryRow;
+
+            // 3. อัปเดตตัวเลขในกล่อง Header
             document.getElementById('sum-stats-att').style.display = 'grid';
             document.getElementById('stat-att-total').innerText = students.length;
-            document.getElementById('stat-att-present').innerText = grandTotalPresent;
-            document.getElementById('stat-att-absent').innerText = grandTotalAbsent;
+            document.getElementById('stat-att-present').innerText = schoolDays.length; // จำนวนวันเปิดเรียนจริง (วัน)
+            
+            // คำนวณเปอร์เซ็นต์ขาดเรียนเฉลี่ยของห้อง
+            let avgAbsencePercent = ((grandTotalAbsent / (students.length * schoolDays.length)) * 100).toFixed(1);
+            if (isNaN(avgAbsencePercent)) avgAbsencePercent = 0;
+            document.getElementById('stat-att-absent').innerText = avgAbsencePercent + "%";
         }
 
         // Helper date format
