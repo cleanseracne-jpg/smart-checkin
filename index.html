@@ -1334,8 +1334,6 @@
 
         // ตรวจสอบฟังก์ชัน openCardScorePopup ให้แน่ใจว่ารับค่าถูก
         function openCardScorePopup(studentId, studentName, isDaily) {
-            console.log("Popup called for:", studentName, isDaily); // เอาไว้ดูใน Console (F12) ได้ว่าคลิกติดไหม
-            
             const actId = document.getElementById('chk-activity').value;
             const studentInfo = appData.students.find(s => s[0] === studentId);
 
@@ -1344,41 +1342,132 @@
                     title: `เช็คชื่อ: ${studentName}`,
                     html: `
                         <div class="grid grid-cols-2 gap-2 mt-4">
-                            <button onclick="submitCardDaily('${studentId}', 'มา')" class="bg-green-500 text-white rounded-xl p-3 font-bold hover:bg-green-600 transition shadow">มาเรียน</button>
-                            <button onclick="submitCardDaily('${studentId}', 'สาย')" class="bg-yellow-500 text-white rounded-xl p-3 font-bold hover:bg-yellow-600 transition shadow">สาย</button>
-                            <button onclick="submitCardDaily('${studentId}', 'ลา')" class="bg-orange-500 text-white rounded-xl p-3 font-bold hover:bg-orange-600 transition shadow">ลา</button>
-                            <button onclick="submitCardDaily('${studentId}', 'ขาด')" class="bg-red-500 text-white rounded-xl p-3 font-bold hover:bg-red-600 transition shadow">ขาด</button>
+                            <button onclick="submitCardDaily('${studentId}', 'มา')" class="bg-green-500 text-white rounded-xl p-3 font-bold hover:bg-green-600">มาเรียน</button>
+                            <button onclick="submitCardDaily('${studentId}', 'สาย')" class="bg-yellow-500 text-white rounded-xl p-3 font-bold hover:bg-yellow-600">สาย</button>
+                            <button onclick="submitCardDaily('${studentId}', 'ลา')" class="bg-orange-500 text-white rounded-xl p-3 font-bold hover:bg-orange-600">ลา</button>
+                            <button onclick="submitCardDaily('${studentId}', 'ขาด')" class="bg-red-500 text-white rounded-xl p-3 font-bold hover:bg-red-600">ขาด</button>
                         </div>
                     `,
                     showConfirmButton: false, showCancelButton: true, cancelButtonText: 'ยกเลิก'
                 });
             } else {
-                let sumScore = 0;
-                for(let log of appData.scoreLogs) { 
-                    if(log[2] === actId && (log[4] === studentId || (studentInfo && log[5] == studentInfo[1] && log[7] === studentInfo[4]))) {
-                        sumScore += parseFloat(log[8]||0); 
-                    }
+                renderScorePopupContent(studentId, studentName, actId);
+            }
+        }
+
+        // ฟังก์ชันใหม่ แยกการเรนเดอร์ Popup คะแนน เพื่อให้รีเฟรชตัวเองได้โดยไม่ต้องปิด
+        function renderScorePopupContent(studentId, studentName, actId) {
+            const studentInfo = appData.students.find(s => s[0] === studentId);
+            let studentLogs = [];
+            
+            // ดึงประวัติและคำนวณคะแนนรวมใหม่ทุกครั้ง
+            for(let log of appData.scoreLogs) { 
+                if(log[2] === actId && (log[4] === studentId || (studentInfo && log[5] == studentInfo[1] && log[7] === studentInfo[4]))) {
+                    studentLogs.push(log); 
                 }
+            }
+            
+            // เรียงจากล่าสุดไปเก่า
+            studentLogs.sort((a,b) => new Date(b[1]) - new Date(a[1]));
+            
+            let sumScore = 0;
+            for(let log of studentLogs) { sumScore += parseFloat(log[8]||0); } 
+
+            // สร้าง HTML ประวัติ
+            let historyHtml = '';
+            if (studentLogs.length > 0) {
+                historyHtml = `<div class="mt-4 text-left border-t border-gray-200 pt-3 max-h-40 overflow-y-auto">
+                    <p class="text-xs font-bold text-gray-500 mb-2">ประวัติการได้คะแนน</p>`;
                 
-                Swal.fire({
-                    title: `ให้คะแนน: ${studentName}`,
-                    html: `
-                        <div class="mb-3 text-left bg-blue-50 p-3 rounded-xl border border-blue-100 flex justify-between items-center">
-                            <p class="text-sm font-bold text-blue-800">คะแนนสะสมปัจจุบัน:</p>
-                            <p class="text-2xl font-bold text-blue-600">${sumScore}</p>
-                        </div>
-                        <div class="flex justify-center gap-2 mb-3">
-                            <button onclick="document.getElementById('card-score-input').value=1" class="flex-1 bg-green-100 text-green-700 py-2 rounded-lg font-bold hover:bg-green-200 transition">+1</button>
-                            <button onclick="document.getElementById('card-score-input').value=2" class="flex-1 bg-green-100 text-green-700 py-2 rounded-lg font-bold hover:bg-green-200 transition">+2</button>
-                            <button onclick="document.getElementById('card-score-input').value=5" class="flex-1 bg-blue-100 text-blue-700 py-2 rounded-lg font-bold hover:bg-blue-200 transition">+5</button>
-                            <button onclick="document.getElementById('card-score-input').value=-1" class="flex-1 bg-red-100 text-red-700 py-2 rounded-lg font-bold hover:bg-red-200 transition">-1</button>
-                        </div>
-                        <input type="number" id="card-score-input" placeholder="ระบุคะแนน (+ หรือ -)" class="w-full text-center border-2 border-indigo-300 rounded-xl p-3 text-2xl font-bold outline-none focus:border-indigo-500 mb-3" autofocus onkeypress="if(event.key==='Enter') document.getElementById('card-btn-save').click()">
-                        <input type="text" id="card-score-note" placeholder="หมายเหตุ (เช่น ตอบคำถาม)" class="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:border-indigo-500 text-sm">
-                        <button id="card-btn-save" onclick="submitCardScore('${studentId}')" class="w-full mt-4 bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 shadow-md transition">บันทึกคะแนน</button>
-                    `,
-                    showConfirmButton: false, showCancelButton: true, cancelButtonText: 'ยกเลิก', didOpen: () => { setTimeout(()=>document.getElementById('card-score-input').focus(), 100); }
+                studentLogs.forEach(log => {
+                    historyHtml += `
+                        <div class="flex justify-between items-center bg-gray-50 p-2 rounded-lg mb-1 border border-gray-100">
+                            <div>
+                                <p class="text-xs text-gray-600">${log[1].split(' ')[1] || log[1]} <span class="font-bold text-indigo-600">${parseFloat(log[8]) > 0 ? '+'+log[8] : log[8]}</span></p>
+                                ${log[9] ? `<p class="text-[10px] text-gray-400 truncate w-32">${log[9]}</p>` : ''}
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="editInlineScore('${log[0]}', '${log[8]}', '${studentId}', '${studentName}', '${actId}')" class="text-blue-500 hover:text-blue-700 p-1"><i class="fas fa-edit text-xs"></i></button>
+                                <button onclick="deleteInlineScore('${log[0]}', '${studentId}', '${studentName}', '${actId}')" class="text-red-500 hover:text-red-700 p-1"><i class="fas fa-trash text-xs"></i></button>
+                            </div>
+                        </div>`;
                 });
+                historyHtml += `</div>`;
+            } else {
+                historyHtml = `<div class="mt-4 text-center border-t border-gray-200 pt-3"><p class="text-xs text-gray-400">ยังไม่มีประวัติคะแนน</p></div>`;
+            }
+
+            const htmlContent = `
+                <div class="mb-3 text-left bg-blue-50 p-3 rounded-xl border border-blue-100 flex justify-between items-center shadow-inner">
+                    <p class="text-sm font-bold text-blue-800">คะแนนสะสมปัจจุบัน:</p>
+                    <p class="text-2xl font-bold text-blue-600" id="popup-total-score">${sumScore}</p>
+                </div>
+                <div class="text-left bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
+                    <div class="flex justify-center gap-2 mb-3">
+                        <button onclick="document.getElementById('card-score-input').value=1" class="flex-1 bg-green-50 text-green-700 py-2 rounded-lg font-bold hover:bg-green-100 border border-green-100 transition">+1</button>
+                        <button onclick="document.getElementById('card-score-input').value=2" class="flex-1 bg-green-50 text-green-700 py-2 rounded-lg font-bold hover:bg-green-100 border border-green-100 transition">+2</button>
+                        <button onclick="document.getElementById('card-score-input').value=5" class="flex-1 bg-blue-50 text-blue-700 py-2 rounded-lg font-bold hover:bg-blue-100 border border-blue-100 transition">+5</button>
+                        <button onclick="document.getElementById('card-score-input').value=-1" class="flex-1 bg-red-50 text-red-700 py-2 rounded-lg font-bold hover:bg-red-100 border border-red-100 transition">-1</button>
+                    </div>
+                    <label class="block text-sm font-bold text-gray-700">ระบุคะแนน (+ หรือ -)</label>
+                    <input type="number" id="card-score-input" placeholder="0" class="w-full text-center border-2 border-indigo-200 rounded-xl p-3 text-2xl font-bold outline-none focus:border-indigo-500 mb-3 shadow-inner bg-gray-50" autofocus onkeypress="if(event.key==='Enter') document.getElementById('card-btn-save').click()">
+                    <label class="block text-sm font-bold text-gray-700 mt-1">หมายเหตุ (ถ้ามี)</label>
+                    <input type="text" id="card-score-note" placeholder="เช่น ตอบคำถาม" class="w-full px-3 py-2 border border-gray-200 bg-gray-50 rounded-lg outline-none focus:border-indigo-500 text-sm">
+                </div>
+                <button id="card-btn-save" onclick="submitCardScore('${studentId}', '${studentName}')" class="w-full mt-4 bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 shadow-lg transition transform hover:-translate-y-0.5">บันทึกคะแนน</button>
+                ${historyHtml}
+            `;
+            
+            Swal.fire({ 
+                title: `ให้คะแนน: ${studentName}`, 
+                html: htmlContent, 
+                showConfirmButton: false, 
+                showCancelButton: true, 
+                cancelButtonText: 'ปิดหน้าต่าง',
+                didOpen: () => { setTimeout(()=>document.getElementById('card-score-input').focus(), 100); }
+            });
+        }
+
+        // --- ฟังก์ชันช่วยเหลือ (Helper Functions) สำหรับ Edit/Delete ใน Popup ---
+        async function editInlineScore(logId, currentPoints, sId, sName, actId) {
+            // ป้องกัน Modal ซ้อน Modal
+            const currentModal = Swal.getPopup();
+            const currentHtml = currentModal.innerHTML;
+            
+            const { value: newPoints } = await Swal.fire({ 
+                title: 'แก้ไขคะแนน', 
+                input: 'number', 
+                inputValue: currentPoints, 
+                showCancelButton: true, 
+                confirmButtonText: 'บันทึก' 
+            });
+            
+            if (newPoints && newPoints !== currentPoints) {
+                // อัปเดต Memory (Optimistic UI)
+                for(let l of appData.scoreLogs) { if(l[0] === logId) { l[8] = newPoints; break; } }
+                
+                loadBulkTable(); // รีเฟรชตารางหลังบ้าน
+                renderScorePopupContent(sId, sName, actId); // รีเฟรช Popup ทันที
+                
+                try { await api.call('updateScoreLog', logId, newPoints); } catch(e) { console.error("Sync Failed", e); }
+            } else {
+                // ถ้ากดยกเลิก ให้วาด Popup กลับมาเหมือนเดิม
+                renderScorePopupContent(sId, sName, actId);
+            }
+        }
+
+        async function deleteInlineScore(logId, sId, sName, actId) {
+            const res = await Swal.fire({ title: 'ลบประวัตินี้?', text: "คะแนนจะถูกหักออกทันที", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33' });
+            if(res.isConfirmed) {
+                // อัปเดต Memory
+                appData.scoreLogs = appData.scoreLogs.filter(l => l[0] !== logId);
+                
+                loadBulkTable(); // รีเฟรชตารางหลังบ้าน
+                renderScorePopupContent(sId, sName, actId); // รีเฟรช Popup ทันที
+
+                try { await api.call('deleteScoreLog', logId); } catch(e) { console.error("Sync Failed", e); }
+            } else {
+                renderScorePopupContent(sId, sName, actId);
             }
         }
 
@@ -1418,11 +1507,11 @@
             } catch(e) { console.error("Sync Failed", e); }
         }
 
-        async function submitCardScore(studentId) {
+        // อัปเดตฟังก์ชันบันทึก ให้รีเฟรช Popup แทนที่จะปิดทิ้ง
+        async function submitCardScore(studentId, studentName) {
             const points = document.getElementById('card-score-input').value;
             const note = document.getElementById('card-score-note').value;
             if(points === "") return Swal.showValidationMessage('กรุณากรอกคะแนน');
-            Swal.close();
             
             const actId = document.getElementById('chk-activity').value;
             const timestamp = new Date().toLocaleString('th-TH');
@@ -1445,14 +1534,20 @@
             
             playSound('success');
             
-            // --- Instant UI Update ---
+            // 1. --- Instant UI Update (Memory) ---
             const tempLogId = 'temp_' + Date.now();
             appData.scoreLogs.push([tempLogId, timestamp, actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, points, note, currentUser.id]);
-            loadBulkTable(); // รีเฟรชการ์ดทันที ตัวเลขเด้งเลย
             
-            Swal.fire({ title: 'สำเร็จ', text: `เพิ่ม ${points} คะแนน เรียบร้อย`, icon: 'success', timer: 1000, showConfirmButton: false, position: 'top-end', toast: true });
+            // 2. อัปเดต UI พื้นหลัง
+            loadBulkTable(); 
+            
+            // 3. สั่งวาด Popup ใหม่ (จะได้โชว์ประวัติและยอดรวมใหม่ทันที โดยไม่โดนปิด)
+            renderScorePopupContent(studentId, studentName, actId);
 
-            // --- Background Sync ---
+            // แจ้งเตือนเงียบๆ แบบ Toast
+            Swal.fire({ title: 'สำเร็จ', text: `เพิ่ม ${points} คะแนน เรียบร้อย`, icon: 'success', timer: 1500, showConfirmButton: false, position: 'top-end', toast: true });
+
+            // 4. --- Background Sync ---
             try {
                 const res = await api.call('saveScoreLog', data);
                 if(res.status === 'success') {
