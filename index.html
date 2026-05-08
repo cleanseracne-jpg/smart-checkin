@@ -405,7 +405,9 @@
 
                             <div class="flex items-end gap-2 md:col-span-1">
                                 <button onclick="triggerReportRender()" class="flex-1 bg-indigo-100 text-indigo-700 font-bold px-3 py-2 rounded-lg hover:bg-indigo-200 transition"><i class="fas fa-search"></i> ค้นหา</button>
-                                <button onclick="handleReportExport()" class="flex-1 bg-green-600 text-white font-bold px-3 py-2 rounded-lg hover:bg-green-700 transition" id="btn-export-rep" title="Export/Print"><i class="fas fa-file-excel"></i> Excel</button>
+                                <button onclick="handleReportExport()" class="flex-1 bg-green-600 text-white font-bold px-3 py-2 rounded-lg hover:bg-green-700 transition" id="btn-export-rep" title="Export/Print">
+                                    <span id="txt-export-btn"><i class="fas fa-file-excel"></i> Excel</span>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -439,19 +441,19 @@
                             <div class="bg-white/90 p-4 rounded-xl border border-gray-200 shadow-sm text-center"><p class="text-xs text-gray-500 font-bold">คะแนนเต็มอ้างอิง</p><h3 class="text-3xl font-bold text-purple-600" id="stat-sc-max">0</h3></div>
                         </div>
 
-                        <!-- 2. Stats Cards (โหมดเวลาเรียน - แบบรูปภาพ 3 กล่อง) -->
+                        <!-- 2. Stats Cards (โหมดเวลาเรียน - แบบรูปภาพ 3 กล่องสีสด) -->
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4" id="sum-stats-att" style="display:none;">
-                            <div class="bg-blue-50 p-4 rounded-xl border border-blue-200 shadow-sm flex flex-col justify-center items-center">
-                                <p class="text-sm text-blue-800 font-bold mb-1">ทั้งหมด (คน)</p>
-                                <h3 class="text-4xl font-bold text-blue-600" id="stat-att-total">0</h3>
+                            <div class="bg-blue-600 p-4 rounded-xl shadow-md flex flex-col justify-center items-center text-white">
+                                <p class="text-sm font-bold mb-1">ทั้งหมด (คน)</p>
+                                <h3 class="text-4xl font-bold" id="stat-att-total">0</h3>
                             </div>
-                            <div class="bg-green-50 p-4 rounded-xl border border-green-200 shadow-sm flex flex-col justify-center items-center">
-                                <p class="text-sm text-green-800 font-bold mb-1">มาเรียนสะสม (รวม)</p>
-                                <h3 class="text-4xl font-bold text-green-600" id="stat-att-present">0</h3>
+                            <div class="bg-green-600 p-4 rounded-xl shadow-md flex flex-col justify-center items-center text-white">
+                                <p class="text-sm font-bold mb-1">มาเรียนสะสม (รวมครั้ง)</p>
+                                <h3 class="text-4xl font-bold" id="stat-att-present">0</h3>
                             </div>
-                            <div class="bg-red-50 p-4 rounded-xl border border-red-200 shadow-sm flex flex-col justify-center items-center">
-                                <p class="text-sm text-red-800 font-bold mb-1">ขาดเรียนสะสม (รวม)</p>
-                                <h3 class="text-4xl font-bold text-red-600" id="stat-att-absent">0</h3>
+                            <div class="bg-red-600 p-4 rounded-xl shadow-md flex flex-col justify-center items-center text-white">
+                                <p class="text-sm font-bold mb-1">ยังไม่ส่ง/ขาด (รวมครั้ง)</p>
+                                <h3 class="text-4xl font-bold" id="stat-att-absent">0</h3>
                             </div>
                         </div>
 
@@ -772,8 +774,20 @@
             showLoader("กำลังซิงค์ข้อมูลจาก Google Sheets...");
             try {
                 appData = await api.call('getAppData');
-                if(!appData.scoreLogs) appData.scoreLogs = []; 
-                updateGlobalDropdowns(); renderStudentTable(); renderActivities(); 
+                
+                // 🧹 ป้องกันบั๊กแถวว่างจาก Google Sheets (ที่มีแต่รหัส ID จาก onEdit) ทำให้เมนูและกิจกรรมหาย
+                if (appData.students) {
+                    appData.students = appData.students.filter(row => row.length > 3 && String(row[3]).trim() !== "");
+                }
+                if (appData.activities) {
+                    appData.activities = appData.activities.filter(row => row.length > 3 && String(row[3]).trim() !== "");
+                }
+                if (!appData.scoreLogs) appData.scoreLogs = []; 
+                if (!appData.attendance) appData.attendance = []; 
+
+                updateGlobalDropdowns(); 
+                renderStudentTable(); 
+                renderActivities(); 
                 switchTab('tab-scan');
             } catch (error) { console.error(error); }
             hideLoader();
@@ -788,6 +802,7 @@
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
             
+            // สั่งให้รีเฟรชข้อมูลอัตโนมัติเมื่อกดเข้า Tab ต่างๆ (ไม่ต้องกด F5)
             if(tabId === 'tab-check') loadBulkTable();
             if(tabId === 'tab-summary') triggerReportRender();
             if(tabId === 'tab-students') renderStudentTable();
@@ -1200,11 +1215,42 @@
         async function clearAllStudentsConfirm() { /* Existing code */ }
         function downloadTemplate() { /* Existing code */ }
         function importExcel(e) { /* Existing code */ }
-        function renderActivities() { /* Existing code */ }
-        function toggleActScore() { /* Existing code */ }
-        function openActivityModal() { /* Existing code */ }
-        async function saveActivity() { /* Existing code */ }
-        async function delActivity(id) { /* Existing code */ }
+        
+        function renderActivities() {
+            const dUl = document.getElementById('list-daily'); const sUl = document.getElementById('list-subject');
+            dUl.innerHTML = ''; sUl.innerHTML = '';
+            
+            if (appData.activities && appData.activities.length > 0) {
+                appData.activities.forEach(a => {
+                    const li = `<li class="py-2 px-3 flex justify-between items-center group"><div class="flex items-center gap-2"><span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded font-mono">${a[2]}</span><span class="font-medium text-sm">${a[3]}</span></div>
+                    <div class="flex gap-2 items-center opacity-0 group-hover:opacity-100 transition"><span class="text-xs text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">${a[4]} คะแนน</span><button onclick="delActivity('${a[0]}')" class="text-red-400 hover:text-red-600"><i class="fas fa-times-circle"></i></button></div></li>`;
+                    if(a[1] === 'รายวัน') dUl.innerHTML += li; else sUl.innerHTML += li;
+                });
+            }
+            
+            if(dUl.innerHTML === '') dUl.innerHTML = '<li class="p-3 text-center text-gray-400 text-sm">ยังไม่มีกิจกรรม</li>';
+            if(sUl.innerHTML === '') sUl.innerHTML = '<li class="p-3 text-center text-gray-400 text-sm">ยังไม่มีชิ้นงาน</li>';
+        }
+
+        function toggleActScore() { document.getElementById('div-act-score').style.display = document.getElementById('m-act-type').value === 'วิชา' ? 'block' : 'none'; }
+        function openActivityModal() { document.getElementById('m-act-code').value=''; document.getElementById('m-act-name').value=''; toggleActScore(); document.getElementById('modal-activity').classList.remove('hidden'); }
+        async function saveActivity() {
+            const d = { type: document.getElementById('m-act-type').value, code: document.getElementById('m-act-code').value, name: document.getElementById('m-act-name').value, maxScore: document.getElementById('m-act-type').value==='รายวัน'? 0 : document.getElementById('m-act-score').value };
+            showLoader("บันทึกลง Sheet..."); 
+            try {
+                await api.call('saveActivity', d);
+                appData.activities.push(['mock_act_'+Math.random(), d.type, d.code, d.name, d.maxScore]);
+                updateGlobalDropdowns(); renderActivities(); closeModal('modal-activity');
+            } catch(e) {}
+            hideLoader();
+        }
+        async function delActivity(id) { 
+            try {
+                await api.call('deleteActivity', id); 
+                appData.activities = appData.activities.filter(a => a[0] !== id); 
+                updateGlobalDropdowns(); renderActivities(); 
+            } catch(e) {}
+        }
         
         function generateCards() {
             const cClass = document.getElementById('card-class').value;
@@ -1256,6 +1302,8 @@
                 document.getElementById('filter-att-wrap').classList.add('hidden');
                 document.getElementById('sum-stats-score').style.display = 'grid';
                 document.getElementById('sum-stats-att').style.display = 'none';
+                document.getElementById('txt-export-btn').innerHTML = '<i class="fas fa-file-excel"></i> Excel';
+                document.getElementById('btn-export-rep').className = "flex-1 bg-green-600 text-white font-bold px-3 py-2 rounded-lg hover:bg-green-700 transition";
             } else {
                 document.getElementById('btn-mode-att').className = "flex-1 md:flex-none px-4 py-2 rounded-lg bg-white shadow-sm text-sm font-bold text-indigo-600 transition";
                 document.getElementById('btn-mode-score').className = "flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-indigo-600 transition";
@@ -1263,6 +1311,8 @@
                 document.getElementById('filter-score-wrap').classList.add('hidden');
                 document.getElementById('sum-stats-att').style.display = 'grid';
                 document.getElementById('sum-stats-score').style.display = 'none';
+                document.getElementById('txt-export-btn').innerHTML = '<i class="fas fa-print"></i> พิมพ์ PDF';
+                document.getElementById('btn-export-rep').className = "flex-1 bg-red-500 text-white font-bold px-3 py-2 rounded-lg hover:bg-red-600 transition";
             }
             triggerReportRender();
         }
