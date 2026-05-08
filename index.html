@@ -63,6 +63,11 @@
             .print-flex { display: flex !important; }
             
             .glass { background: white !important; border: none !important; box-shadow: none !important; }
+            
+            /* บังคับสีพื้นหลังของกล่องสถิติใน PDF ให้ออกมาชัดเจน */
+            .bg-blue-600 { background-color: #2563eb !important; color: white !important; }
+            .bg-green-600 { background-color: #16a34a !important; color: white !important; }
+            .bg-red-600 { background-color: #dc2626 !important; color: white !important; }
         }
     </style>
 </head>
@@ -443,16 +448,16 @@
 
                         <!-- 2. Stats Cards (โหมดเวลาเรียน - แบบรูปภาพ 3 กล่องสีสด) -->
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4" id="sum-stats-att" style="display:none;">
-                            <div class="bg-blue-600 p-4 rounded-xl shadow-md flex flex-col justify-center items-center text-white">
+                            <div class="bg-blue-600 p-4 rounded-xl shadow-md flex flex-col justify-center items-center text-white print:bg-blue-600 print:text-white print:border-none">
                                 <p class="text-sm font-bold mb-1">ทั้งหมด (คน)</p>
                                 <h3 class="text-4xl font-bold" id="stat-att-total">0</h3>
                             </div>
-                            <div class="bg-green-600 p-4 rounded-xl shadow-md flex flex-col justify-center items-center text-white">
-                                <p class="text-sm font-bold mb-1">มาเรียนสะสม (รวมครั้ง)</p>
+                            <div class="bg-green-600 p-4 rounded-xl shadow-md flex flex-col justify-center items-center text-white print:bg-green-600 print:text-white print:border-none">
+                                <p class="text-sm font-bold mb-1">จำนวนวันมาเรียนทั้งหมด</p>
                                 <h3 class="text-4xl font-bold" id="stat-att-present">0</h3>
                             </div>
-                            <div class="bg-red-600 p-4 rounded-xl shadow-md flex flex-col justify-center items-center text-white">
-                                <p class="text-sm font-bold mb-1">ยังไม่ส่ง/ขาด (รวมครั้ง)</p>
+                            <div class="bg-red-600 p-4 rounded-xl shadow-md flex flex-col justify-center items-center text-white print:bg-red-600 print:text-white print:border-none">
+                                <p class="text-sm font-bold mb-1">จำนวนวันที่ขาดเรียนทั้งหมด</p>
                                 <h3 class="text-4xl font-bold" id="stat-att-absent">0</h3>
                             </div>
                         </div>
@@ -775,12 +780,13 @@
             try {
                 appData = await api.call('getAppData');
                 
-                // 🧹 ป้องกันบั๊กแถวว่างจาก Google Sheets (ที่มีแต่รหัส ID จาก onEdit) ทำให้เมนูและกิจกรรมหาย
+                // 🧹 ป้องกันบั๊กแถวว่างจาก Google Sheets
                 if (appData.students) {
-                    appData.students = appData.students.filter(row => row.length > 3 && String(row[3]).trim() !== "");
+                    appData.students = appData.students.filter(row => row && row.length > 3 && String(row[3]).trim() !== "");
                 }
                 if (appData.activities) {
-                    appData.activities = appData.activities.filter(row => row.length > 3 && String(row[3]).trim() !== "");
+                    // เช็คว่ามีประเภทกิจกรรม (index 1) หรือไม่ เพื่อกรองแถวขยะทิ้ง
+                    appData.activities = appData.activities.filter(row => row && row.length > 1 && String(row[1]).trim() !== "");
                 }
                 if (!appData.scoreLogs) appData.scoreLogs = []; 
                 if (!appData.attendance) appData.attendance = []; 
@@ -802,7 +808,7 @@
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
             
-            // สั่งให้รีเฟรชข้อมูลอัตโนมัติเมื่อกดเข้า Tab ต่างๆ (ไม่ต้องกด F5)
+            // สั่งให้รีเฟรชข้อมูลอัตโนมัติเมื่อกดเข้า Tab ต่างๆ
             if(tabId === 'tab-check') loadBulkTable();
             if(tabId === 'tab-summary') triggerReportRender();
             if(tabId === 'tab-students') renderStudentTable();
@@ -1400,8 +1406,8 @@
             thead.innerHTML = `<tr>
                 <th class="py-3 px-4 w-12 text-center">เลขที่</th>
                 <th class="py-3 px-4 w-48">ชื่อ - สกุล</th>
-                <th class="py-3 px-4 w-24 text-center text-green-700 print:text-gray-800">มาเรียน (ครั้ง)</th>
-                <th class="py-3 px-4 w-24 text-center text-red-700 print:text-gray-800">ขาดเรียน (ครั้ง)</th>
+                <th class="py-3 px-4 w-32 text-center text-green-700 print:text-green-700">จำนวนวันมาเรียนทั้งหมด</th>
+                <th class="py-3 px-4 w-32 text-center text-red-700 print:text-red-700">จำนวนวันที่ขาดเรียนทั้งหมด</th>
                 <th class="py-3 px-4 text-gray-500">วันที่ขาดเรียน</th>
             </tr>`;
             
@@ -1460,14 +1466,12 @@
                             absentCount++;
                             absentDateList.push(formatDateShort(day));
                         } else if (log.status === 'ลา') {
-                            // ลา ถือเป็นอีกเคส แต่ในบริบทนี้จะโชว์ว่าไม่ได้ขาด แต่ไม่ได้นับมาเรียน 
-                            // *หากต้องการให้ 'ลา' เป็นขาด ให้ปรับตรงนี้
                             absentDateList.push(formatDateShort(day) + "(ลา)");
                         }
                     } else {
                         // 🤖 [Auto-Absent Logic] วันนี้มีสอน แต่เด็กไม่มี log = ขาดเรียนอัตโนมัติ!
                         absentCount++;
-                        absentDateList.push(`<span class="font-bold text-red-500 print:text-gray-800">${formatDateShort(day)}</span>`);
+                        absentDateList.push(`<span class="font-bold text-red-500 print:text-red-600">${formatDateShort(day)}</span>`);
                     }
                 });
 
@@ -1475,16 +1479,17 @@
                 grandTotalAbsent += absentCount;
 
                 const bgClass = absentCount > 0 ? 'bg-red-50/30' : 'bg-white';
-                const statusBadge = absentCount > 0 
-                    ? `<span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold shadow-sm print:border print:border-gray-300 print:bg-transparent print:text-gray-800">${absentCount}</span>`
-                    : `<span class="text-gray-300">-</span>`;
+                
+                const presentDisplay = presentCount > 0 ? `<span class="font-bold text-green-600">${presentCount}</span>` : `<span class="text-gray-300">-</span>`;
+                const absentDisplay = absentCount > 0 ? `<span class="font-bold text-red-500">${absentCount}</span>` : `<span class="text-gray-300">-</span>`;
+                const absentDatesDisplay = absentCount > 0 ? absentDateList.join(', ') : `<span class="text-green-500 font-bold print:text-gray-800"><i class="fas fa-check-circle"></i> มาครบ</span>`;
 
                 return `<tr class="${bgClass} border-b border-gray-100 print:border-gray-300">
                     <td class="py-3 px-4 text-center font-bold text-gray-700">${s[1]}</td>
                     <td class="py-3 px-4 font-medium text-gray-900">${s[3]}</td>
-                    <td class="py-3 px-4 text-center font-bold text-green-600 print:text-gray-800">${presentCount > 0 ? presentCount : '-'}</td>
-                    <td class="py-3 px-4 text-center">${statusBadge}</td>
-                    <td class="py-3 px-4 text-xs text-gray-600 leading-relaxed">${absentDateList.length > 0 ? absentDateList.join(', ') : '<span class="text-green-500 print:text-gray-800"><i class="fas fa-check-circle"></i> มาครบ</span>'}</td>
+                    <td class="py-3 px-4 text-center">${presentDisplay}</td>
+                    <td class="py-3 px-4 text-center">${absentDisplay}</td>
+                    <td class="py-3 px-4 text-xs text-gray-600 leading-relaxed">${absentDatesDisplay}</td>
                 </tr>`;
             }).join('');
 
