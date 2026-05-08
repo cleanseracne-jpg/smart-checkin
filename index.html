@@ -236,7 +236,8 @@
                     </div>
                     
                     <div class="bg-white/90 backdrop-blur p-4 rounded-2xl shadow-sm border border-white/50 mb-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <div class="col-span-2 md:col-span-1"><label class="block text-xs text-gray-500 mb-1">วันที่</label><input type="date" id="chk-date" class="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"></div>
+                        <!-- อัปเดต: เพิ่ม onchange="loadBulkTable()" เพื่อให้เมื่อเปลี่ยนวันที่ ตาราง/การ์ดจะดึงสถานะใหม่มาโชว์ทันที -->
+                        <div class="col-span-2 md:col-span-1"><label class="block text-xs text-gray-500 mb-1">วันที่</label><input type="date" id="chk-date" class="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" onchange="loadBulkTable()"></div>
                         <div class="col-span-2 md:col-span-1"><label class="block text-xs text-gray-500 mb-1">ห้องเรียน</label><select id="chk-class" class="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" onchange="loadBulkTable()"></select></div>
                         <div class="col-span-2 md:col-span-1"><label class="block text-xs text-gray-500 mb-1">เลือกวิชา</label><select id="chk-subject" class="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-indigo-600 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500" onchange="updateActivityDropdown('chk')"></select></div>
                         <div class="col-span-2 md:col-span-1">
@@ -799,8 +800,13 @@
             try {
                 appData = await api.call('getAppData');
                 
-                if (appData.students) appData.students = appData.students.filter(row => row && row.length > 3 && String(row[3]).trim() !== "");
-                if (appData.activities) appData.activities = appData.activities.filter(row => row && row.length > 3 && String(row[3]).trim() !== "");
+                // 🧹 ระบบเครื่องดูดฝุ่น
+                if (appData.students) {
+                    appData.students = appData.students.filter(row => row && row.length > 3 && String(row[3]).trim() !== "");
+                }
+                if (appData.activities) {
+                    appData.activities = appData.activities.filter(row => row && row.length > 3 && String(row[3]).trim() !== "");
+                }
                 if (!appData.scoreLogs) appData.scoreLogs = []; 
                 if (!appData.attendance) appData.attendance = []; 
 
@@ -907,7 +913,6 @@
                 if(selectedOption && selectedOption.value) {
                     const type = selectedOption.getAttribute('data-type');
                     const max = selectedOption.getAttribute('data-max');
-                    // ใส่ป้ายสถานะหรือคะแนนเพื่อยืนยันให้ครูเห็น
                     if(type === 'รายวัน') {
                         infoSpan.innerHTML = `<span class="text-[10px] text-green-700 bg-green-100 px-1.5 py-0.5 rounded font-bold ml-1"><i class="fas fa-check-circle"></i> เช็คชื่อ</span>`;
                     } else {
@@ -1081,7 +1086,7 @@
                         <button onclick="submitDaily('${student[0]}', 'ลา')" class="swal2-confirm bg-orange-500 text-white rounded p-3 font-bold hover:bg-orange-600">ลา</button>
                         <button onclick="submitDaily('${student[0]}', 'ขาด')" class="swal2-confirm bg-red-500 text-white rounded p-3 font-bold hover:bg-red-600">ขาด</button>
                     </div>`;
-                Swal.fire({ title: 'เช็คชื่อ', html: htmlContent, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'ยกเลิก' });
+                Swal.fire({ title: 'เช็คชื่อรายวัน', html: htmlContent, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'ยกเลิก' });
             } else {
                 let studentLogs = [];
                 for(let l of appData.scoreLogs) { 
@@ -1184,9 +1189,11 @@
             loadBulkTable();
         }
 
+        // 🚀 อัปเดต: ให้แสดงสถานะลงในการ์ดแบบ Real-time ตามความต้องการ
         function loadBulkTable() {
             const cClass = document.getElementById('chk-class').value;
             const cActId = document.getElementById('chk-activity').value;
+            const cDate = document.getElementById('chk-date').value; // สำคัญ: ดึงวันที่มาเช็ค
             const tbody = document.getElementById('chk-tbody');
             const cardView = document.getElementById('chk-card-view');
             
@@ -1210,20 +1217,54 @@
 
             const filteredStudents = appData.students.filter(s => s[4] === cClass).sort((a,b) => parseInt(a[1]) - parseInt(b[1]));
             
+            // 🚀 อัปเดต Table View ให้แสดงสถานะเช็คชื่อล่าสุด
             tbody.innerHTML = filteredStudents.map(s => {
+                let currentVal = '';
+                if (isDaily) {
+                    const attLogs = appData.attendance.filter(att => att[1] === cDate && att[3] === cActId && (att[5] === s[0] || (att[6] == s[1] && att[8] === s[4])));
+                    if (attLogs.length > 0) currentVal = attLogs[attLogs.length - 1][9];
+                }
+
                 let inputHtml = isDaily ? 
-                    `<select class="bulk-input w-full px-2 py-1.5 border border-gray-200 rounded bg-white text-sm focus:ring-2 outline-none shadow-sm" data-sid="${s[0]}"><option value="">-- เลือก --</option><option value="มา">มา</option><option value="สาย">สาย</option><option value="ลา">ลา</option><option value="ขาด">ขาด</option></select>` : 
+                    `<select class="bulk-input w-full px-2 py-1.5 border border-gray-200 rounded bg-white text-sm focus:ring-2 outline-none shadow-sm" data-sid="${s[0]}">
+                        <option value="" ${currentVal === '' ? 'selected' : ''}>-- เลือก --</option>
+                        <option value="มา" ${currentVal === 'มา' ? 'selected' : ''}>มา</option>
+                        <option value="สาย" ${currentVal === 'สาย' ? 'selected' : ''}>สาย</option>
+                        <option value="ลา" ${currentVal === 'ลา' ? 'selected' : ''}>ลา</option>
+                        <option value="ขาด" ${currentVal === 'ขาด' ? 'selected' : ''}>ขาด</option>
+                    </select>` : 
                     `<input type="number" class="bulk-input w-full px-2 py-1.5 border border-gray-200 rounded bg-white text-center font-bold text-indigo-700 outline-none focus:ring-2 shadow-sm" data-sid="${s[0]}" placeholder="คะแนน">`;
                 return `<tr class="hover:bg-gray-50/50"><td class="py-2 px-4 text-center font-bold text-gray-600">${s[1]}</td><td class="py-2 px-4 font-medium text-gray-800">${s[3]}</td><td class="py-2 px-4">${inputHtml}</td></tr>`;
             }).join('');
 
+            // 🚀 อัปเดต Card View ให้แสดงสถานะเช็คชื่อล่าสุด
             cardView.innerHTML = filteredStudents.map(s => {
-                let sumScore = 0;
-                for(let log of appData.scoreLogs) { if(log[2] === cActId && (log[4] === s[0] || (log[5] == s[1] && log[7] === s[4]))) sumScore += parseFloat(log[8]||0); }
+                let scoreDisplay = '';
+
+                if (isDaily) {
+                    let currentVal = '';
+                    const attLogs = appData.attendance.filter(att => att[1] === cDate && att[3] === cActId && (att[5] === s[0] || (att[6] == s[1] && att[8] === s[4])));
+                    if (attLogs.length > 0) currentVal = attLogs[attLogs.length - 1][9];
+
+                    if (currentVal === 'มา') {
+                        scoreDisplay = `<div class="mt-2 bg-green-100 text-green-700 font-bold text-sm rounded-xl py-1 shadow-sm border border-green-200"><i class="fas fa-check-circle"></i> มาเรียน</div>`;
+                    } else if (currentVal === 'สาย') {
+                        scoreDisplay = `<div class="mt-2 bg-yellow-100 text-yellow-700 font-bold text-sm rounded-xl py-1 shadow-sm border border-yellow-200"><i class="fas fa-clock"></i> สาย</div>`;
+                    } else if (currentVal === 'ลา') {
+                        scoreDisplay = `<div class="mt-2 bg-orange-100 text-orange-700 font-bold text-sm rounded-xl py-1 shadow-sm border border-orange-200"><i class="fas fa-envelope"></i> ลา</div>`;
+                    } else if (currentVal === 'ขาด') {
+                        scoreDisplay = `<div class="mt-2 bg-red-100 text-red-700 font-bold text-sm rounded-xl py-1 shadow-sm border border-red-200"><i class="fas fa-times-circle"></i> ขาด</div>`;
+                    } else {
+                        scoreDisplay = `<div class="mt-2 bg-gray-100 text-gray-500 font-bold text-sm rounded-xl py-1 shadow-sm border border-gray-200">ยังไม่เช็ค</div>`;
+                    }
+                } else {
+                    let sumScore = 0;
+                    for(let log of appData.scoreLogs) { if(log[2] === cActId && (log[4] === s[0] || (log[5] == s[1] && log[7] === s[4]))) sumScore += parseFloat(log[8]||0); }
+                    scoreDisplay = `<div class="mt-2 bg-blue-50 text-blue-700 font-bold text-sm rounded-xl py-1 shadow-sm border border-blue-100">${sumScore} คะแนน</div>`;
+                }
                 
                 const rawImgUrl = s[5] ? s[5].trim() : '';
                 const imgUrl = rawImgUrl ? getDirectImageUrl(rawImgUrl) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${s[3]}&backgroundColor=e2e8f0`;
-                const scoreDisplay = isDaily ? '-' : `${sumScore} คะแนน`;
                 
                 return `
                 <div onclick="openCardScorePopup('${s[0]}', '${s[3]}', ${isDaily})" class="bg-white/90 backdrop-blur rounded-2xl shadow-sm border border-gray-200 overflow-hidden cursor-pointer hover:shadow-lg hover:-translate-y-1 transition transform duration-200">
@@ -1235,7 +1276,7 @@
                     </div>
                     <div class="p-3 text-center bg-white">
                         <p class="font-bold text-sm text-gray-800 line-clamp-1">${s[3]}</p>
-                        ${isDaily ? '' : `<div class="mt-2 bg-green-50 text-green-700 font-bold text-sm rounded-xl py-1 shadow-sm border border-green-100">${scoreDisplay}</div>`}
+                        ${scoreDisplay}
                     </div>
                 </div>`;
             }).join('');
