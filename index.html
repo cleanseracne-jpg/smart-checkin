@@ -468,7 +468,7 @@
                             <div class="bg-white/90 p-4 rounded-xl border border-gray-200 shadow-sm text-center"><p class="text-xs text-gray-500 font-bold">คะแนนเต็มอ้างอิง</p><h3 class="text-3xl font-bold text-purple-600" id="stat-sc-max">0</h3></div>
                         </div>
 
-                        <!-- 2. Stats Cards (โหมดเวลาเรียน) -->
+                        <!-- 2. Stats Cards (โหมดเวลาเรียน - แบบรูปภาพ 3 กล่องสีสด) -->
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4" id="sum-stats-att" style="display:none;">
                             <div class="bg-blue-600 p-4 rounded-xl shadow-md flex flex-col justify-center items-center text-white print:bg-blue-600 print:text-white print:border-none">
                                 <p class="text-sm font-bold mb-1">ทั้งหมด (คน)</p>
@@ -1065,12 +1065,12 @@
             const maxScore = actInfo ? actInfo[4] : 100;
 
             const rawImgUrl = student[5] ? student[5].trim() : '';
-            const imgUrl = rawImgUrl ? getDirectImageUrl(rawImgUrl) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${student[3]}&backgroundColor=e2e8f0`;
+            const imgUrl = rawImgUrl ? getDirectImageUrl(rawImgUrl) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(student[3])}&backgroundColor=e2e8f0`;
 
             let htmlContent = `
                 <div class="flex flex-col items-center mb-4">
                     <div class="w-24 h-24 bg-gray-100 rounded-full mb-3 flex items-center justify-center border-4 border-indigo-100 overflow-hidden shadow-sm">
-                        <img src="${imgUrl}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/avataaars/svg?seed=${student[3]}&backgroundColor=e2e8f0'">
+                        <img src="${imgUrl}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(student[3])}&backgroundColor=e2e8f0'">
                     </div>
                     <div class="text-center">
                         <p class="text-sm text-gray-500">รหัส: ${student[2]} | ชั้น: <span class="font-bold text-indigo-600">${student[4]}</span></p>
@@ -1180,13 +1180,11 @@
             if (view === 'table') {
                 document.getElementById('btn-view-table').className = "px-4 py-2 rounded-lg bg-white shadow-sm text-sm font-bold text-indigo-600 transition";
                 document.getElementById('btn-view-card').className = "px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-indigo-600 transition";
-                document.getElementById('chk-table-view').classList.remove('hidden'); 
-                document.getElementById('chk-card-view').classList.add('hidden');
+                document.getElementById('chk-table-view').classList.remove('hidden'); document.getElementById('chk-card-view').classList.add('hidden');
             } else {
                 document.getElementById('btn-view-card').className = "px-4 py-2 rounded-lg bg-white shadow-sm text-sm font-bold text-indigo-600 transition";
                 document.getElementById('btn-view-table').className = "px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-indigo-600 transition";
-                document.getElementById('chk-table-view').classList.add('hidden'); 
-                document.getElementById('chk-card-view').classList.remove('hidden');
+                document.getElementById('chk-table-view').classList.add('hidden'); document.getElementById('chk-card-view').classList.remove('hidden');
             }
             loadBulkTable();
         }
@@ -1218,7 +1216,7 @@
 
             const filteredStudents = appData.students.filter(s => s[4] === cClass).sort((a,b) => parseInt(a[1]) - parseInt(b[1]));
             
-            // อัปเดตตาราง
+            // 1. อัปเดต Table View 
             tbody.innerHTML = filteredStudents.map(s => {
                 let currentVal = '';
                 if (isDaily) {
@@ -1238,7 +1236,7 @@
                 return `<tr class="hover:bg-gray-50/50"><td class="py-2 px-4 text-center font-bold text-gray-600">${s[1]}</td><td class="py-2 px-4 font-medium text-gray-800">${s[3]}</td><td class="py-2 px-4">${inputHtml}</td></tr>`;
             }).join('');
 
-            // อัปเดตการ์ด
+            // 2. อัปเดต Card View - แก้ปัญหาการกดไม่ติด + ปรับสไตล์ให้สวยงาม
             cardView.innerHTML = filteredStudents.map(s => {
                 let scoreDisplay = '';
 
@@ -1247,37 +1245,45 @@
                     const attLogs = appData.attendance.filter(att => att[1] === cDate && att[3] === cActId && (att[5] === s[0] || (att[6] == s[1] && att[8] === s[4])));
                     if (attLogs.length > 0) currentVal = attLogs[attLogs.length - 1][9];
 
+                    // เปลี่ยนป้ายสถานะเป็นทรงแคปซูล ให้ตรงกับภาพตัวอย่าง
                     if (currentVal === 'มา') {
-                        scoreDisplay = `<div class="mt-2 bg-green-100 text-green-700 font-bold text-sm rounded-full py-1 shadow-sm border border-green-200 w-full"><i class="fas fa-check-circle"></i> มาเรียน</div>`;
+                        scoreDisplay = `<div class="mt-2 text-green-600 font-bold text-sm bg-green-50 rounded-full py-1.5 shadow-sm border border-green-100 w-[90%]">มาเรียน</div>`;
                     } else if (currentVal === 'สาย') {
-                        scoreDisplay = `<div class="mt-2 bg-yellow-100 text-yellow-700 font-bold text-sm rounded-full py-1 shadow-sm border border-yellow-200 w-full"><i class="fas fa-clock"></i> สาย</div>`;
+                        scoreDisplay = `<div class="mt-2 text-yellow-600 font-bold text-sm bg-yellow-50 rounded-full py-1.5 shadow-sm border border-yellow-100 w-[90%]">สาย</div>`;
                     } else if (currentVal === 'ลา') {
-                        scoreDisplay = `<div class="mt-2 bg-orange-100 text-orange-700 font-bold text-sm rounded-full py-1 shadow-sm border border-orange-200 w-full"><i class="fas fa-envelope"></i> ลา</div>`;
+                        scoreDisplay = `<div class="mt-2 text-orange-600 font-bold text-sm bg-orange-50 rounded-full py-1.5 shadow-sm border border-orange-100 w-[90%]">ลา</div>`;
                     } else if (currentVal === 'ขาด') {
-                        scoreDisplay = `<div class="mt-2 bg-red-100 text-red-700 font-bold text-sm rounded-full py-1 shadow-sm border border-red-200 w-full"><i class="fas fa-times-circle"></i> ขาด</div>`;
+                        scoreDisplay = `<div class="mt-2 text-red-600 font-bold text-sm bg-red-50 rounded-full py-1.5 shadow-sm border border-red-100 w-[90%]">ขาด</div>`;
                     } else {
-                        scoreDisplay = `<div class="mt-2 bg-gray-100 text-gray-500 font-bold text-sm rounded-full py-1 shadow-sm border border-gray-200 w-full">ยังไม่เช็ค</div>`;
+                        scoreDisplay = `<div class="mt-2 text-indigo-600 font-bold text-sm bg-indigo-50 rounded-full py-1.5 shadow-sm border border-indigo-100 w-[90%]">ยังไม่เช็ค</div>`;
                     }
                 } else {
                     let sumScore = 0;
                     for(let log of appData.scoreLogs) { if(log[2] === cActId && (log[4] === s[0] || (log[5] == s[1] && log[7] === s[4]))) sumScore += parseFloat(log[8]||0); }
-                    scoreDisplay = `<div class="mt-2 bg-blue-50 text-blue-700 font-bold text-sm rounded-full py-1 shadow-sm border border-blue-100 w-full">${sumScore} คะแนน</div>`;
+                    scoreDisplay = `<div class="mt-2 text-indigo-600 font-bold text-sm bg-indigo-50 rounded-full py-1.5 shadow-sm border border-indigo-100 mx-auto w-[90%]">${sumScore} คะแนน</div>`;
                 }
                 
                 const rawImgUrl = s[5] ? s[5].trim() : '';
-                const imgUrl = rawImgUrl ? getDirectImageUrl(rawImgUrl) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${s[3]}&backgroundColor=e2e8f0`;
+                // สำคัญมาก: ใส่ encodeURIComponent ที่ชื่อเด็ก เพื่อไม่ให้ภาพอวตาร์พังถ้าชื่อมีเว้นวรรค
+                const imgUrl = rawImgUrl ? getDirectImageUrl(rawImgUrl) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(s[3])}&backgroundColor=e2e8f0`;
                 
-                // แก้ไขการส่งพารามิเตอร์ isDaily เข้าไปให้ถูกต้องเป็น boolean string 
+                // สำคัญมาก 2: แปลง String ลบเครื่องหมายคำพูดเดี่ยวออก ป้องกัน JS Syntax Error ตอนกดบัตร
+                const safeName = s[3] ? s[3].replace(/'/g, "\\'") : "ไม่มีชื่อ";
+                const dailyFlag = isDaily ? 'true' : 'false'; // สั่งเป็น string boolean ชัดเจน
+
+                // ปรับเปลี่ยนสไตล์ของการ์ด ให้ส่วนบนมีสีพาสเทล ครึ่งล่างสีขาวเหมือนภาพตัวอย่าง
                 return `
-                <div onclick="openCardScorePopup('${s[0]}', '${s[3]}', ${isDaily})" class="bg-white/90 backdrop-blur rounded-2xl shadow-sm border border-gray-200 overflow-hidden cursor-pointer hover:shadow-lg hover:-translate-y-1 transition transform duration-200">
-                    <div class="h-32 bg-gradient-to-br from-indigo-100 to-purple-50 relative overflow-hidden flex justify-center items-center p-2">
-                        <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center border-4 border-white overflow-hidden shadow-md">
-                            <img src="${imgUrl}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/avataaars/svg?seed=${s[3]}&backgroundColor=e2e8f0'">
+                <div onclick="openCardScorePopup('${s[0]}', '${safeName}', ${dailyFlag})" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer hover:shadow-md hover:-translate-y-1 transition transform duration-200 pb-3">
+                    <div class="h-28 bg-indigo-50/50 relative overflow-hidden flex justify-center items-center">
+                        <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center border-4 border-white overflow-hidden shadow-sm z-10">
+                            <img src="${imgUrl}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(s[3])}&backgroundColor=e2e8f0'">
                         </div>
-                        <div class="absolute bottom-2 right-2"><span class="text-white font-bold text-[10px] bg-indigo-600/90 px-2 py-1 rounded-lg shadow-sm">เลขที่ ${s[1]}</span></div>
+                        <div class="absolute bottom-2 right-2 z-20">
+                            <span class="text-white font-bold text-[10px] bg-indigo-500 px-2 py-0.5 rounded-md shadow-sm">เลขที่ ${s[1]}</span>
+                        </div>
                     </div>
-                    <div class="p-3 text-center bg-white flex flex-col items-center">
-                        <p class="font-bold text-sm text-gray-800 line-clamp-1 w-full">${s[3]}</p>
+                    <div class="p-2 text-center bg-white flex flex-col items-center">
+                        <p class="font-bold text-sm text-gray-800 line-clamp-1 w-full px-1">${s[3]}</p>
                         ${scoreDisplay}
                     </div>
                 </div>`;
@@ -1289,6 +1295,7 @@
             if(val === '') return;
             document.querySelectorAll('.bulk-input').forEach(el => el.value = val);
         }
+
         function bulkMark(val) { document.querySelectorAll('.bulk-input').forEach(el => el.value = val === '0' ? '' : val); }
 
         async function saveBulkData() {
@@ -1325,18 +1332,151 @@
             } catch(e) { console.error("Bulk sync error", e); }
         }
 
-        // Student Database & Cards & Randomizer logic... 
+        // ตรวจสอบฟังก์ชัน openCardScorePopup ให้แน่ใจว่ารับค่าถูก
+        function openCardScorePopup(studentId, studentName, isDaily) {
+            console.log("Popup called for:", studentName, isDaily); // เอาไว้ดูใน Console (F12) ได้ว่าคลิกติดไหม
+            
+            const actId = document.getElementById('chk-activity').value;
+            const studentInfo = appData.students.find(s => s[0] === studentId);
+
+            if (isDaily) {
+                Swal.fire({
+                    title: `เช็คชื่อ: ${studentName}`,
+                    html: `
+                        <div class="grid grid-cols-2 gap-2 mt-4">
+                            <button onclick="submitCardDaily('${studentId}', 'มา')" class="bg-green-500 text-white rounded-xl p-3 font-bold hover:bg-green-600 transition shadow">มาเรียน</button>
+                            <button onclick="submitCardDaily('${studentId}', 'สาย')" class="bg-yellow-500 text-white rounded-xl p-3 font-bold hover:bg-yellow-600 transition shadow">สาย</button>
+                            <button onclick="submitCardDaily('${studentId}', 'ลา')" class="bg-orange-500 text-white rounded-xl p-3 font-bold hover:bg-orange-600 transition shadow">ลา</button>
+                            <button onclick="submitCardDaily('${studentId}', 'ขาด')" class="bg-red-500 text-white rounded-xl p-3 font-bold hover:bg-red-600 transition shadow">ขาด</button>
+                        </div>
+                    `,
+                    showConfirmButton: false, showCancelButton: true, cancelButtonText: 'ยกเลิก'
+                });
+            } else {
+                let sumScore = 0;
+                for(let log of appData.scoreLogs) { 
+                    if(log[2] === actId && (log[4] === studentId || (studentInfo && log[5] == studentInfo[1] && log[7] === studentInfo[4]))) {
+                        sumScore += parseFloat(log[8]||0); 
+                    }
+                }
+                
+                Swal.fire({
+                    title: `ให้คะแนน: ${studentName}`,
+                    html: `
+                        <div class="mb-3 text-left bg-blue-50 p-3 rounded-xl border border-blue-100 flex justify-between items-center">
+                            <p class="text-sm font-bold text-blue-800">คะแนนสะสมปัจจุบัน:</p>
+                            <p class="text-2xl font-bold text-blue-600">${sumScore}</p>
+                        </div>
+                        <div class="flex justify-center gap-2 mb-3">
+                            <button onclick="document.getElementById('card-score-input').value=1" class="flex-1 bg-green-100 text-green-700 py-2 rounded-lg font-bold hover:bg-green-200 transition">+1</button>
+                            <button onclick="document.getElementById('card-score-input').value=2" class="flex-1 bg-green-100 text-green-700 py-2 rounded-lg font-bold hover:bg-green-200 transition">+2</button>
+                            <button onclick="document.getElementById('card-score-input').value=5" class="flex-1 bg-blue-100 text-blue-700 py-2 rounded-lg font-bold hover:bg-blue-200 transition">+5</button>
+                            <button onclick="document.getElementById('card-score-input').value=-1" class="flex-1 bg-red-100 text-red-700 py-2 rounded-lg font-bold hover:bg-red-200 transition">-1</button>
+                        </div>
+                        <input type="number" id="card-score-input" placeholder="ระบุคะแนน (+ หรือ -)" class="w-full text-center border-2 border-indigo-300 rounded-xl p-3 text-2xl font-bold outline-none focus:border-indigo-500 mb-3" autofocus onkeypress="if(event.key==='Enter') document.getElementById('card-btn-save').click()">
+                        <input type="text" id="card-score-note" placeholder="หมายเหตุ (เช่น ตอบคำถาม)" class="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:border-indigo-500 text-sm">
+                        <button id="card-btn-save" onclick="submitCardScore('${studentId}')" class="w-full mt-4 bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 shadow-md transition">บันทึกคะแนน</button>
+                    `,
+                    showConfirmButton: false, showCancelButton: true, cancelButtonText: 'ยกเลิก', didOpen: () => { setTimeout(()=>document.getElementById('card-score-input').focus(), 100); }
+                });
+            }
+        }
+
+        async function submitCardDaily(studentId, value) {
+            Swal.close();
+            const actId = document.getElementById('chk-activity').value;
+            const date = document.getElementById('chk-date').value;
+            
+            const actInfo = appData.activities.find(a => a[0] === actId);
+            const studentInfo = appData.students.find(s => s[0] === studentId);
+
+            const data = { 
+                studentId, 
+                activityId: actId, 
+                date, 
+                value, 
+                userId: currentUser.id,
+                actName: actInfo ? `[${actInfo[2]}] ${actInfo[3]}` : "",
+                stdNum: studentInfo ? studentInfo[1] : "",
+                stdName: studentInfo ? studentInfo[3] : "",
+                stdClass: studentInfo ? studentInfo[4] : ""
+            };
+
+            playSound('success');
+
+            // --- Instant UI Update ---
+            const tempLogId = 'mock_' + Date.now();
+            appData.attendance.push([tempLogId, date, new Date().toLocaleTimeString(), actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, value, currentUser.id]);
+            loadBulkTable(); // รีเฟรชทันที
+            
+            // ใช้ Toast alert เพื่อไม่ให้กวนการใช้งาน
+            Swal.fire({ title: 'สำเร็จ', text: `บันทึกสถานะ ${value} เรียบร้อย`, icon: 'success', timer: 1000, showConfirmButton: false, position: 'top-end', toast: true });
+
+            // --- Background Sync ---
+            try {
+                await api.call('saveScanRecord', data);
+            } catch(e) { console.error("Sync Failed", e); }
+        }
+
+        async function submitCardScore(studentId) {
+            const points = document.getElementById('card-score-input').value;
+            const note = document.getElementById('card-score-note').value;
+            if(points === "") return Swal.showValidationMessage('กรุณากรอกคะแนน');
+            Swal.close();
+            
+            const actId = document.getElementById('chk-activity').value;
+            const timestamp = new Date().toLocaleString('th-TH');
+            
+            const actInfo = appData.activities.find(a => a[0] === actId);
+            const studentInfo = appData.students.find(s => s[0] === studentId);
+
+            const data = { 
+                studentId, 
+                activityId: actId, 
+                points, 
+                note, 
+                timestamp, 
+                userId: currentUser.id,
+                actName: actInfo ? `[${actInfo[2]}] ${actInfo[3]}` : "",
+                stdNum: studentInfo ? studentInfo[1] : "",
+                stdName: studentInfo ? studentInfo[3] : "",
+                stdClass: studentInfo ? studentInfo[4] : ""
+            };
+            
+            playSound('success');
+            
+            // --- Instant UI Update ---
+            const tempLogId = 'temp_' + Date.now();
+            appData.scoreLogs.push([tempLogId, timestamp, actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, points, note, currentUser.id]);
+            loadBulkTable(); // รีเฟรชการ์ดทันที ตัวเลขเด้งเลย
+            
+            Swal.fire({ title: 'สำเร็จ', text: `เพิ่ม ${points} คะแนน เรียบร้อย`, icon: 'success', timer: 1000, showConfirmButton: false, position: 'top-end', toast: true });
+
+            // --- Background Sync ---
+            try {
+                const res = await api.call('saveScoreLog', data);
+                if(res.status === 'success') {
+                    const log = appData.scoreLogs.find(l => l[0] === tempLogId);
+                    if(log) log[0] = res.logId;
+                }
+            } catch(e) { console.error("Sync Failed", e); }
+        }
+
+        // =====================================
+        // TAB 3: STUDENTS & HISTORY LOG
+        // =====================================
         function renderStudentTable() {
             const filterClass = document.getElementById('filter-class').value;
             const search = document.getElementById('search-student').value.toLowerCase();
             let data = appData.students;
+            
             if(filterClass) data = data.filter(s => s[4] === filterClass);
             if(search) data = data.filter(s => s[3].toLowerCase().includes(search) || s[2].includes(search));
             data.sort((a,b) => a[4].localeCompare(b[4]) || parseInt(a[1]) - parseInt(b[1]));
 
             document.getElementById('std-tbody').innerHTML = data.map(s => `
-                <tr class="hover:bg-gray-50/50 group border-b border-gray-100/50">
-                    <td class="py-2 px-4 font-bold text-indigo-600">${s[4]}</td><td class="py-2 px-4 text-center">${s[1]}</td><td class="py-2 px-4 font-mono text-xs text-gray-500">${s[2]}</td><td class="py-2 px-4 font-medium text-gray-800">${s[3]}</td>
+                <tr class="hover:bg-gray-50 group border-b border-gray-100">
+                    <td class="py-2 px-4 font-bold text-indigo-600">${s[4]}</td><td class="py-2 px-4 text-center">${s[1]}</td><td class="py-2 px-4 font-mono text-xs text-gray-500">${s[2]}</td><td class="py-2 px-4 font-medium">${s[3]}</td>
                     <td class="py-2 px-4 text-center">
                         <div class="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition">
                             <button onclick="viewStudentHistory('${s[0]}', '${s[3]}')" class="text-blue-600 hover:text-white hover:bg-blue-600 bg-blue-50 px-2 py-1 rounded text-xs transition"><i class="fas fa-history mr-1"></i>ประวัติ</button>
@@ -1344,22 +1484,152 @@
                         </div>
                     </td>
                 </tr>
-            `).join('') || '<tr><td colspan="5" class="py-8 text-center text-gray-500">ไม่มีข้อมูลนักเรียน</td></tr>';
+            `).join('') || '<tr><td colspan="5" class="py-8 text-center text-gray-400">ไม่มีข้อมูลนักเรียน</td></tr>';
         }
 
-        function viewStudentHistory(studentId, studentName) { /* Existing code */ }
-        async function editScoreLog(logId, currentPoints, sId, sName) { /* Existing code */ }
-        async function deleteScoreLog(logId, sId, sName) { /* Existing code */ }
-        function openStudentModal() { document.getElementById('modal-student').classList.remove('hidden'); }
-        async function saveStudent() { /* Existing code */ }
-        async function delStudent(id) { /* Existing code */ }
-        async function clearAllStudentsConfirm() { /* Existing code */ }
-        function downloadTemplate() { /* Existing code */ }
-        function importExcel(e) { /* Existing code */ }
-        
-        // ------------------------------------------
-        // ระบบกิจกรรม (เพิ่มปุ่มแก้ไข + Modal)
-        // ------------------------------------------
+        function viewStudentHistory(studentId, studentName) {
+            document.getElementById('hist-title').innerHTML = `<i class="fas fa-history text-blue-500 mr-2"></i> ประวัติคะแนน: ${studentName}`;
+            
+            const s = appData.students.find(st => st[0] === studentId);
+            let sLogs = [];
+            // --- Smart Match System ---
+            for(let l of appData.scoreLogs) { 
+                if(l[4] === studentId || (s && l[5] == s[1] && l[7] === s[4])) {
+                    sLogs.push(l); 
+                }
+            } 
+            sLogs.sort((a,b) => new Date(b[1]) - new Date(a[1])); 
+            
+            const histBody = document.getElementById('hist-body');
+            
+            if (sLogs.length === 0) {
+                histBody.innerHTML = `<div class="p-8 text-center text-gray-400">ยังไม่มีประวัติการได้คะแนน</div>`;
+            } else {
+                let html = '<div class="space-y-3">';
+                sLogs.forEach(log => {
+                    let actName = log[3] || "วิชาที่ไม่รู้จัก"; 
+                    
+                    html += `
+                        <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
+                            <div>
+                                <p class="text-xs text-gray-500"><i class="far fa-clock"></i> ${log[1]}</p>
+                                <p class="font-bold text-sm text-gray-800">${actName} <span class="text-xs font-normal text-gray-500">(${log[9] || 'ไม่มีหมายเหตุ'})</span></p>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded">${parseFloat(log[8]) > 0 ? '+'+log[8] : log[8]}</span>
+                                <div class="flex flex-col gap-1">
+                                    <button onclick="editScoreLog('${log[0]}', '${log[8]}', '${studentId}', '${studentName}')" class="text-xs text-blue-500 hover:underline"><i class="fas fa-edit"></i> แก้ไข</button>
+                                    <button onclick="deleteScoreLog('${log[0]}', '${studentId}', '${studentName}')" class="text-xs text-red-500 hover:underline"><i class="fas fa-trash"></i> ลบ</button>
+                                </div>
+                            </div>
+                        </div>`;
+                });
+                html += '</div>';
+                histBody.innerHTML = html;
+            }
+            document.getElementById('modal-history').classList.remove('hidden');
+        }
+
+        async function editScoreLog(logId, currentPoints, sId, sName) {
+            const { value: newPoints } = await Swal.fire({ title: 'แก้ไขคะแนน', input: 'number', inputValue: currentPoints, showCancelButton: true, confirmButtonText: 'บันทึก' });
+            if (newPoints && newPoints !== currentPoints) {
+                
+                // Optimistic UI
+                for(let l of appData.scoreLogs) { if(l[0] === logId) { l[8] = newPoints; break; } }
+                viewStudentHistory(sId, sName); 
+                loadBulkTable(); 
+
+                try {
+                    await api.call('updateScoreLog', logId, newPoints);
+                } catch(e) { console.error("Sync Failed", e); }
+            }
+        }
+
+        async function deleteScoreLog(logId, sId, sName) {
+            const res = await Swal.fire({ title: 'ลบรายการนี้?', text: "คะแนนจะถูกหักออก", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33' });
+            if(res.isConfirmed) {
+
+                // Optimistic UI
+                appData.scoreLogs = appData.scoreLogs.filter(l => l[0] !== logId);
+                viewStudentHistory(sId, sName);
+                loadBulkTable();
+
+                try {
+                    await api.call('deleteScoreLog', logId);
+                } catch(e) { console.error("Sync Failed", e); }
+            }
+        }
+
+        function openStudentModal() {
+            document.getElementById('m-std-class').value = document.getElementById('filter-class').value || '';
+            document.getElementById('m-std-num').value = ''; document.getElementById('m-std-code').value = ''; document.getElementById('m-std-name').value = ''; document.getElementById('m-std-img').value = '';
+            document.getElementById('modal-student').classList.remove('hidden');
+        }
+        async function saveStudent() { 
+            const d = { 
+                className: document.getElementById('m-std-class').value.trim(), 
+                number: document.getElementById('m-std-num').value, 
+                code: document.getElementById('m-std-code').value.trim(), 
+                name: document.getElementById('m-std-name').value.trim(),
+                imageUrl: document.getElementById('m-std-img').value.trim()
+            };
+            if(!d.className || !d.name || !d.code) return Swal.fire('เตือน', 'กรอกข้อมูลสำคัญให้ครบ (ห้อง, รหัส, ชื่อ)', 'warning');
+            showLoader("บันทึกลง Sheet..."); 
+            try {
+                await api.call('saveStudent', d);
+                appData.students.push(['mock_new_id', d.number, d.code, d.name, d.className, d.imageUrl]);
+                updateGlobalDropdowns(); renderStudentTable(); closeModal('modal-student'); 
+            } catch(e) {}
+            hideLoader();
+        }
+        async function delStudent(id) { 
+            const res = await Swal.fire({ title: 'ลบข้อมูล?', text: "ไม่สามารถกู้คืนได้", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33' });
+            if(res.isConfirmed) {
+                showLoader("กำลังลบ..."); 
+                try {
+                    await api.call('deleteStudent', id);
+                    appData.students = appData.students.filter(s => s[0] !== id);
+                    updateGlobalDropdowns(); renderStudentTable(); 
+                } catch(e) {}
+                hideLoader();
+            }
+        }
+        async function clearAllStudentsConfirm() { 
+            const res = await Swal.fire({ title: 'ล้างข้อมูลโรงเรียน?', text: "ลบนักเรียนทั้งหมด ทิ้งจริงๆ นะ?", icon: 'error', showCancelButton: true, confirmButtonColor: '#d33' });
+            if(res.isConfirmed) {
+                showLoader("กำลังล้าง..."); 
+                try {
+                    await api.call('clearAllStudents');
+                    appData.students = []; updateGlobalDropdowns(); renderStudentTable(); 
+                } catch(e) {}
+                hideLoader();
+            }
+        }
+        function downloadTemplate() { 
+            const ws = XLSX.utils.aoa_to_sheet([["เลขที่", "รหัสประจำตัว", "ชื่อ-สกุล", "ชั้นเรียน", "รูปลิงก์ URL (ไม่บังคับ)"], [1, "12345", "เด็กชายใจดี เรียนเก่ง", "ป.1/1", "https://..."]]);
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Template"); XLSX.writeFile(wb, "Student_Template.xlsx");
+        }
+        function importExcel(e) { 
+            const file = e.target.files[0]; if(!file) return;
+            const reader = new FileReader();
+            reader.onload = async (evt) => {
+                const wb = XLSX.read(evt.target.result, {type: 'binary'});
+                const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+                const formatted = data.map(r => ({ number: r['เลขที่'], code: String(r['รหัสประจำตัว']), name: r['ชื่อ-สกุล'], className: String(r['ชั้นเรียน']), imageUrl: String(r['รูปลิงก์ URL (ไม่บังคับ)'] || '') })).filter(r => r.name && r.className);
+                if(formatted.length > 0) {
+                    showLoader("กำลังนำเข้าสู่ Sheet..."); 
+                    try {
+                        await api.call('importStudentsExcel', formatted);
+                        formatted.forEach(f => appData.students.push(['mock_'+Math.random(), f.number, f.code, f.name, f.className, f.imageUrl]));
+                        updateGlobalDropdowns(); renderStudentTable(); Swal.fire('สำเร็จ', `นำเข้า ${formatted.length} รายการ`, 'success');
+                    } catch(e) {}
+                    hideLoader(); 
+                }
+            };
+            reader.readAsBinaryString(file); e.target.value = ''; 
+        }
+
+        // --- TAB 4: ACTIVITIES ---
         function renderActivities() {
             const dUl = document.getElementById('list-daily'); const sUl = document.getElementById('list-subject');
             dUl.innerHTML = ''; sUl.innerHTML = '';
@@ -1743,43 +2013,63 @@
             let totalMaxScore = 0;
 
             appData.activities.forEach(act => {
-                headerRow1.push(`[${act[2]}] ${act[3]}`);
+                headerRow1.push(`[${act[2]}] ${act[3]}`); // ชื่อวิชา/กิจกรรม
                 if (act[1] === 'วิชา') {
                     const max = parseFloat(act[4]) || 0;
-                    headerRow2.push(max); totalMaxScore += max;
-                } else { headerRow2.push("นับจำนวนครั้ง"); }
+                    headerRow2.push(max);
+                    totalMaxScore += max;
+                } else {
+                    headerRow2.push("นับจำนวนครั้ง");
+                }
             });
-            headerRow1.push("คะแนนรวมทั้งหมด"); headerRow2.push(totalMaxScore);
-            const aoa = [headerRow1, headerRow2]; 
 
+            headerRow1.push("คะแนนรวมทั้งหมด");
+            headerRow2.push(totalMaxScore);
+
+            const aoa = [headerRow1, headerRow2]; // Array of Arrays
+
+            // 3. เติมข้อมูลนักเรียนแต่ละคน (Data Rows)
             students.forEach(s => {
                 const row = [parseInt(s[1]) || s[1], s[2], s[3]];
                 let studentTotalScore = 0;
+
                 appData.activities.forEach(act => {
                     if (act[1] === 'รายวัน') {
                         let count = 0;
                         for(let att of appData.attendance) { 
-                            if(att[3] === act[0] && (att[5] === s[0] || (att[6] == s[1] && att[8] === s[4]))) { if(att[9] === 'มา' || att[9] === 'สาย') count++; }
+                            if(att[3] === act[0] && (att[5] === s[0] || (att[6] == s[1] && att[8] === s[4]))) {
+                                if(att[9] === 'มา' || att[9] === 'สาย') count++;
+                            }
                         }
-                        row.push(count); 
+                        row.push(count); // ใส่เป็นตัวเลข (Number)
                     } else {
                         let score = 0;
                         for(let log of appData.scoreLogs) { 
-                            if(log[2] === act[0] && (log[4] === s[0] || (log[5] == s[1] && log[7] === s[4]))) { score += parseFloat(log[8]||0); }
+                            if(log[2] === act[0] && (log[4] === s[0] || (log[5] == s[1] && log[7] === s[4]))) {
+                                score += parseFloat(log[8]||0); 
+                            }
                         }
-                        row.push(score); studentTotalScore += score;
+                        row.push(score); // ใส่เป็นตัวเลข (Number) ป้องกัน Excel แปลงเป็นวันที่
+                        studentTotalScore += score;
                     }
                 });
-                row.push(studentTotalScore); aoa.push(row);
+
+                row.push(studentTotalScore); // คะแนนรวม
+                aoa.push(row);
             });
 
+            // 4. แปลงข้อมูลเป็น Excel Worksheet และปรับขนาดความกว้างของคอลัมน์ให้สวยงาม
             const ws = XLSX.utils.aoa_to_sheet(aoa);
+            
             const wscols = [{wch: 8}, {wch: 15}, {wch: 25}];
             appData.activities.forEach(() => wscols.push({wch: 20}));
-            wscols.push({wch: 18}); ws['!cols'] = wscols;
+            wscols.push({wch: 18});
+            ws['!cols'] = wscols;
 
-            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "สรุปผล");
-            XLSX.writeFile(wb, `รายงานผล_${cClass}.xlsx`);
+            // 5. สร้างและบันทึกไฟล์
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "สรุปผลคะแนน");
+            XLSX.writeFile(wb, `รายงานสรุปผล_${cClass}.xlsx`);
         }
     </script>
 </body>
