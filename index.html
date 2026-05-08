@@ -989,46 +989,68 @@
             }
         }
 
-        // Camera System (Scanner)
+        // ==========================================
+        // 🚀 อัปเดต: ระบบกล้อง (Scanner) ปรับให้โฟกัสง่ายและเสถียรที่สุด
+        // ==========================================
         async function startCamera() {
             const startBtn = document.getElementById('camera-start-btn');
             startBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> กำลังเตรียมกล้อง...';
             startBtn.disabled = true;
             try {
                 if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
+                
+                // ปรับกลับมาใช้ 15 FPS เพื่อให้กล้องมีเวลาโฟกัสภาพ และไม่กิน CPU จนเครื่องค้าง
                 const config = { 
-                    fps: 30, 
+                    fps: 15, 
                     disableFlip: false, 
-                    formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE, Html5QrcodeSupportedFormats.CODE_128 ],
-                    qrbox: function(vw, vh) {
-                        return { width: Math.floor(Math.min(vw, vh) * 0.85), height: Math.floor(Math.min(vw, vh) * 0.85) };
-                    }
+                    qrbox: { width: 250, height: 250 } // ใช้กรอบขนาดมาตรฐานเพื่อให้ Auto-focus ทำงานได้ดีที่สุด
                 };
+                
                 const onScan = async (decodedText) => {
                     if(isScanningProcess) return;
                     isScanningProcess = true;
-                    try { await processScan(decodedText); } catch (e) { console.error(e); }
-                    setTimeout(() => { isScanningProcess = false; }, 800); 
+                    try {
+                        await processScan(decodedText);
+                    } catch (e) {
+                        console.error("Scan processing error:", e);
+                    }
+                    setTimeout(() => { isScanningProcess = false; }, 1000); 
                 };
                 
-                try { await html5QrCode.start({ facingMode: "environment" }, config, onScan); } 
-                catch (errFirst) {
+                try {
+                    await html5QrCode.start({ facingMode: "environment" }, config, onScan);
+                } catch (errFirst) {
+                    console.warn("facingMode failed, trying getCameras fallback...", errFirst);
                     const cameras = await Html5Qrcode.getCameras();
                     if (cameras && cameras.length > 0) {
                         let cameraId = cameras[0].id;
-                        for (let c of cameras) { if (c.label.toLowerCase().includes('back') || c.label.toLowerCase().includes('environment') || c.label.toLowerCase().includes('หลัง')) { cameraId = c.id; break; } }
+                        for (let c of cameras) {
+                            if (c.label.toLowerCase().includes('back') || c.label.toLowerCase().includes('environment') || c.label.toLowerCase().includes('หลัง')) {
+                                cameraId = c.id; break;
+                            }
+                        }
                         await html5QrCode.start(cameraId, config, onScan);
-                    } else throw new Error("No cameras found");
+                    } else {
+                        throw new Error("No cameras found");
+                    }
                 }
                 
-                startBtn.classList.add('hidden'); document.getElementById('camera-stop-btn').classList.remove('hidden');
+                startBtn.classList.add('hidden'); 
+                document.getElementById('camera-stop-btn').classList.remove('hidden');
+
             } catch (err) {
-                console.error(err);
-                let errStr = String(err).toLowerCase();
-                let errorMsg = errStr.includes('in use') ? "กล้องถูกใช้งานโดยโปรแกรมอื่นอยู่" : "กรุณาให้สิทธิ์กล้องในเบราว์เซอร์";
-                Swal.fire({ title: 'เกิดข้อผิดพลาด', html: `${errorMsg}<br><br>💡 หรือใช้ปืนยิงบาร์โค้ดแทน`, icon: 'warning' });
+                console.error("Camera Start Error: ", err);
+                let errorMsg = "ไม่สามารถเปิดกล้องได้ กรุณาให้สิทธิ์การเข้าถึงกล้องในเบราว์เซอร์";
+                const errStr = String(err).toLowerCase();
+                if (errStr.includes('notreadableerror') || errStr.includes('trackstarterror') || errStr.includes('in use')) {
+                    errorMsg = "กล้องถูกใช้งานอยู่โดยโปรแกรมอื่น (เช่น Zoom, Meet, Line) กรุณาปิดการใช้กล้องในโปรแกรมเหล่านั้นก่อนครับ";
+                } else if (errStr.includes('notallowederror') || errStr.includes('permission denied')) {
+                    errorMsg = "คุณได้ปฏิเสธการเข้าถึงกล้องไปแล้ว กรุณากดที่ไอคอนแม่กุญแจบน URL แล้วอนุญาตกล้องอีกครั้ง";
+                }
+                Swal.fire({ title: 'เกิดข้อผิดพลาด', html: `${errorMsg}<br><br>💡 หรือใช้ปืนบาร์โค้ด / กดปุ่ม <b>"อัปโหลดรูปภาพ"</b> แทน`, icon: 'warning' });
             } finally {
-                startBtn.disabled = false; if(!startBtn.classList.contains('hidden')) startBtn.innerHTML = `<i class="fas fa-video mr-1"></i> เปิดกล้องสด`;
+                startBtn.disabled = false; 
+                if(!startBtn.classList.contains('hidden')) startBtn.innerHTML = `<i class="fas fa-video mr-1"></i> เปิดกล้องสด`;
             }
         }
 
@@ -1046,37 +1068,31 @@
             } catch (err) { hideLoader(); e.target.value = ''; playSound('error'); Swal.fire('สแกนไม่สำเร็จ', 'ไม่พบ QR Code/Barcode', 'error'); }
         }
 
-        // 🚀 อัปเดต: ระบบดักจับและแปลงภาษาไทยกลับเป็นอังกฤษ (ป้องกันลืมเปลี่ยนภาษาคีย์บอร์ด)
+        // ระบบแปลงคีย์บอร์ดไทย -> อังกฤษ สำหรับปืนยิงบาร์โค้ด
         async function handleBarcodeInput(e) {
             if (e.key === 'Enter') { 
                 let code = e.target.value.trim(); 
                 e.target.value = ''; 
                 
                 if(code) {
-                    // ชุดข้อมูลแปลงตัวอักษรแป้นพิมพ์ไทย กลับเป็น แป้นพิมพ์อังกฤษ
                     const thaiToEngMap = {
                         'ๅ':'1', '/':'2', '-':'3', 'ภ':'4', 'ถ':'5', 'ุ':'6', 'ึ':'7', 'ค':'8', 'ต':'9', 'จ':'0',
                         'ข':'-', 'ช':'=', 'ๆ':'q', 'ไ':'w', 'ำ':'e', 'พ':'r', 'ะ':'t', 'ั':'y', 'ี':'u', 'ร':'i', 'น':'o', 'ย':'p', 'บ':'[', 'ล':']', 'ฃ':'\\',
                         'ห':'a', 'ก':'s', 'ด':'d', 'เ':'f', '้':'g', '่า':'h', 'า':'k', 'ส':'l', 'ว':';', 'ง':'\'',
                         'ผ':'z', 'ป':'x', 'แ':'c', 'อ':'v', 'ิ':'b', 'ื':'n', 'ท':'m', 'ม':',', 'ใ':'.', 'ฝ':'/',
-                        // ตัวพิมพ์ใหญ่ (Shift)
                         '+':'!', '๑':'@', '๒':'#', '๓':'$', '๔':'%', 'ู':'^', '฿':'&', '๕':'*', '๖':'(', '๗':')',
                         '๘':'_', '๙':'+', '๐':'Q', '"':'W', 'ฎ':'E', 'ฑ':'R', 'ธ':'T', 'ํ':'Y', '๊':'U', 'ณ':'I', 'ฯ':'O', 'ญ':'P', 'ฐ':'{', 'ฅ':'}', 'ฤ':'|',
-                        'ฆ':'A', 'ฏ':'S', 'โ':'D', 'ฌ':'F', '็':'G', '๋':'H', 'ษ':'K', 'ศ':'L', 'ซ':':', '.':'"',
-                        '(':'Z', ')':'X', 'ฉ':'C', 'ฮ':'V', 'ฺ':'B', '์':'N', '?':'M', 'ฒ':'<', 'ฬ':'>', 'ฦ':'?'
+                        'ฆ':'A', 'ฏ':'S', 'โ':'D', 'ฌ':'F', '็':'G', '๋':'H', 'ษ':'K', 'ศ':'L', 'ซ':':', '.':'"'
                     };
 
                     let engCode = "";
                     for (let i = 0; i < code.length; i++) {
-                        let char = code[i];
-                        // ถ้าตัวอักษรตรงกับแป้นไทย ให้แปลงเป็นอังกฤษ ถ้าไม่ตรง (เช่น เป็นตัวเลขอยู่แล้ว) ให้ใช้ตัวเดิม
-                        engCode += thaiToEngMap[char] || char; 
+                        engCode += thaiToEngMap[code[i]] || code[i]; 
                     }
                     
                     if(isScanningProcess) return; 
                     isScanningProcess = true;
                     try {
-                        // ส่งรหัสที่แปลงเป็นภาษาอังกฤษแล้วไปประมวลผล
                         await processScan(engCode);
                     } catch(err) { console.error(err); }
                     setTimeout(() => { isScanningProcess = false; }, 1000);
@@ -1084,10 +1100,13 @@
             }
         }
 
+        // ==========================================
+        // 🚀 อัปเดต: ระบบ Popup คะแนน (แก้บั๊กกด Enter ไม่ไป)
+        // ==========================================
         async function processScan(code) {
             const codeStr = String(code).trim();
             const actId = document.getElementById('scan-activity').value;
-            if(!actId) { playSound('error'); return Swal.fire('แจ้งเตือน', 'กรุณาเลือก ชิ้นงาน/กิจกรรม ก่อนสแกน', 'warning'); }
+            if(!actId) { playSound('error'); return Swal.fire('แจ้งเตือน', 'กรุณาเลือก กิจกรรม/ชิ้นงาน ก่อนสแกน', 'warning'); }
             
             const student = appData.students.find(s => String(s[2]).trim() === codeStr);
             if(!student) { playSound('error'); return Swal.fire('ไม่พบข้อมูล', `ไม่มีนักเรียนรหัส ${codeStr} ในระบบ`, 'error'); }
@@ -1095,262 +1114,148 @@
             playSound('success');
             let actInfo = appData.activities.find(a => a[0] === actId);
             const isDaily = actInfo && actInfo[1] === 'รายวัน';
-            
-            // ส่งไปเปิดหน้าต่างแบบเดียวกับหน้าการ์ดเลย จะได้โชว์ประวัติและแก้คะแนนได้
-            const safeName = student[3] ? student[3].replace(/'/g, "\\'") : "ไม่มีชื่อ";
-            openCardScorePopup(student[0], safeName, isDaily, 'scan');
-        }
+            const maxScore = actInfo ? actInfo[4] : 100;
 
-        // ==========================================
-        // 🚀 อัปเดต: ฟังก์ชันเปิด Popup แบบใหม่ แสดงประวัติ + แก้ไขได้ทันที
-        // ==========================================
-        function openCardScorePopup(studentId, studentName, isDaily, sourceTab = 'chk') {
-            const actId = document.getElementById(`${sourceTab}-activity`).value;
-            const studentInfo = appData.students.find(s => s[0] === studentId);
-            
-            // นำรูปมาแสดงใน Popup ด้วย
-            const rawImgUrl = studentInfo[5] ? studentInfo[5].trim() : '';
-            const imgUrl = rawImgUrl ? getDirectImageUrl(rawImgUrl) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(studentName)}&backgroundColor=e2e8f0`;
+            const rawImgUrl = student[5] ? student[5].trim() : '';
+            const imgUrl = rawImgUrl ? getDirectImageUrl(rawImgUrl) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(student[3])}&backgroundColor=e2e8f0`;
 
-            const headerHtml = `
+            let htmlContent = `
                 <div class="flex flex-col items-center mb-4">
-                    <div class="w-20 h-20 bg-gray-100 rounded-full mb-2 flex items-center justify-center border-4 border-indigo-100 overflow-hidden shadow-sm">
-                        <img src="${imgUrl}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(studentName)}&backgroundColor=e2e8f0'">
+                    <div class="w-24 h-24 bg-gray-100 rounded-full mb-3 flex items-center justify-center border-4 border-indigo-100 overflow-hidden shadow-sm">
+                        <img src="${imgUrl}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(student[3])}&backgroundColor=e2e8f0'">
                     </div>
                     <div class="text-center">
-                        <h3 class="text-xl font-bold text-gray-800">${studentName}</h3>
-                        <p class="text-xs text-gray-500">เลขที่ ${studentInfo[1]} | ห้อง ${studentInfo[4]}</p>
+                        <p class="text-sm text-gray-500">รหัส: ${student[2]} | ชั้น: <span class="font-bold text-indigo-600">${student[4]}</span></p>
+                        <h3 class="text-xl font-bold">${student[1]}. ${student[3]}</h3>
                     </div>
                 </div>`;
 
             if (isDaily) {
-                Swal.fire({
-                    html: `
-                        ${headerHtml}
-                        <div class="grid grid-cols-2 gap-2 mt-2">
-                            <button onclick="submitCardDaily('${studentId}', 'มา', '${sourceTab}')" class="bg-green-50 text-green-700 border border-green-200 rounded-xl p-3 font-bold hover:bg-green-100 transition shadow-sm">มาเรียน</button>
-                            <button onclick="submitCardDaily('${studentId}', 'สาย', '${sourceTab}')" class="bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-xl p-3 font-bold hover:bg-yellow-100 transition shadow-sm">สาย</button>
-                            <button onclick="submitCardDaily('${studentId}', 'ลา', '${sourceTab}')" class="bg-orange-50 text-orange-700 border border-orange-200 rounded-xl p-3 font-bold hover:bg-orange-100 transition shadow-sm">ลา</button>
-                            <button onclick="submitCardDaily('${studentId}', 'ขาด', '${sourceTab}')" class="bg-red-50 text-red-700 border border-red-200 rounded-xl p-3 font-bold hover:bg-red-100 transition shadow-sm">ขาด</button>
-                        </div>
-                    `,
-                    showConfirmButton: false, showCancelButton: true, cancelButtonText: 'ปิดหน้าต่าง'
-                });
+                htmlContent += `
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="submitDaily('${student[0]}', 'มา')" class="swal2-confirm bg-green-500 text-white rounded p-3 font-bold hover:bg-green-600">มาเรียน</button>
+                        <button onclick="submitDaily('${student[0]}', 'สาย')" class="swal2-confirm bg-yellow-500 text-white rounded p-3 font-bold hover:bg-yellow-600">สาย</button>
+                        <button onclick="submitDaily('${student[0]}', 'ลา')" class="swal2-confirm bg-orange-500 text-white rounded p-3 font-bold hover:bg-orange-600">ลา</button>
+                        <button onclick="submitDaily('${student[0]}', 'ขาด')" class="swal2-confirm bg-red-500 text-white rounded p-3 font-bold hover:bg-red-600">ขาด</button>
+                    </div>`;
+                Swal.fire({ title: 'เช็คชื่อรายวัน', html: htmlContent, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'ยกเลิก' });
             } else {
-                renderScorePopupContent(studentId, studentName, actId, sourceTab, headerHtml);
-            }
-        }
+                let studentLogs = [];
+                for(let l of appData.scoreLogs) { 
+                    if(l[2] === actId && (l[4] === student[0] || (l[5] == student[1] && l[7] === student[4]))) {
+                        studentLogs.push(l); 
+                    }
+                } 
+                studentLogs.sort((a,b) => new Date(b[1]) - new Date(a[1]));
+                let sumScore = 0;
+                for(let log of studentLogs) { sumScore += parseFloat(log[8]||0); } 
 
-        // ฟังก์ชันวาด Popup คะแนน (ถูกแยกออกมาเพื่อให้ Refresh ตัวเองได้ตอนแก้ไขคะแนน)
-        function renderScorePopupContent(studentId, studentName, actId, sourceTab, headerHtml) {
-            const studentInfo = appData.students.find(s => s[0] === studentId);
-            let studentLogs = [];
-            
-            // ดึงประวัติของเด็กคนนี้ในวิชาที่กำลังเลือก
-            for(let log of appData.scoreLogs) { 
-                if(log[2] === actId && (log[4] === studentId || (studentInfo && log[5] == studentInfo[1] && log[7] === studentInfo[4]))) {
-                    studentLogs.push(log); 
-                }
-            }
-            
-            // เรียงประวัติจากล่าสุดขึ้นก่อน
-            studentLogs.sort((a,b) => new Date(b[1]) - new Date(a[1]));
-            
-            let sumScore = 0;
-            for(let log of studentLogs) { sumScore += parseFloat(log[8]||0); } 
-
-            let historyHtml = '';
-            if (studentLogs.length > 0) {
-                historyHtml = `<div class="mt-4 text-left border-t border-gray-100 pt-3 max-h-40 overflow-y-auto pr-1">
-                    <p class="text-[11px] font-bold text-gray-400 mb-2 uppercase tracking-wide">ประวัติการได้คะแนนล่าสุด</p>`;
-                
-                studentLogs.forEach(log => {
-                    const timeOnly = log[1].split(' ')[1] || log[1];
-                    const pointNum = parseFloat(log[8]);
-                    const pointClass = pointNum > 0 ? 'text-green-600 bg-green-50 border-green-100' : 'text-red-600 bg-red-50 border-red-100';
-                    const pointSign = pointNum > 0 ? '+' : '';
-                    const safeSName = studentName ? studentName.replace(/'/g, "\\'") : "";
-                    
-                    historyHtml += `
-                        <div class="flex justify-between items-center bg-gray-50 p-2.5 rounded-lg mb-1.5 border border-gray-100">
-                            <div>
-                                <p class="text-xs text-gray-500 font-medium"><i class="far fa-clock mr-1"></i> ${timeOnly}</p>
-                                ${log[9] ? `<p class="text-[11px] text-gray-400 truncate w-32 mt-0.5">${log[9]}</p>` : ''}
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <span class="font-bold text-xs ${pointClass} border px-2 py-0.5 rounded-md">${pointSign}${log[8]}</span>
-                                <div class="flex flex-col gap-0.5">
-                                    <button onclick="editInlineScore('${log[0]}', '${log[8]}', '${studentId}', '${safeSName}', '${actId}', '${sourceTab}')" class="text-blue-400 hover:text-blue-600 bg-white shadow-sm border border-gray-100 rounded px-1 py-0.5" title="แก้ไข"><i class="fas fa-edit text-[10px]"></i></button>
-                                    <button onclick="deleteInlineScore('${log[0]}', '${studentId}', '${safeSName}', '${actId}', '${sourceTab}')" class="text-red-400 hover:text-red-600 bg-white shadow-sm border border-gray-100 rounded px-1 py-0.5" title="ลบ"><i class="fas fa-trash text-[10px]"></i></button>
+                let historyHtml = '';
+                if (studentLogs.length > 0) {
+                    historyHtml = `<div class="mt-4 text-left border-t border-gray-200 pt-3 max-h-32 overflow-y-auto pr-1">
+                        <p class="text-[11px] font-bold text-gray-400 mb-2 uppercase tracking-wide">ประวัติการได้คะแนน</p>`;
+                    studentLogs.forEach(log => {
+                        const pointNum = parseFloat(log[8]);
+                        const pointClass = pointNum > 0 ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50';
+                        const safeSName = student[3] ? student[3].replace(/'/g, "\\'") : "";
+                        historyHtml += `
+                            <div class="flex justify-between items-center bg-gray-50 p-2 rounded-lg mb-1 border border-gray-100">
+                                <div><p class="text-xs text-gray-500">${log[1].split(' ')[1] || log[1]}</p></div>
+                                <div class="flex gap-2 items-center">
+                                    <span class="font-bold text-xs px-2 py-0.5 rounded ${pointClass}">${pointNum > 0 ? '+'+log[8] : log[8]}</span>
+                                    <button onclick="editInlineScore('${log[0]}', '${log[8]}', '${student[0]}', '${safeSName}', '${actId}')" class="text-blue-400"><i class="fas fa-edit text-[10px]"></i></button>
+                                    <button onclick="deleteInlineScore('${log[0]}', '${student[0]}', '${safeSName}', '${actId}')" class="text-red-400"><i class="fas fa-trash text-[10px]"></i></button>
                                 </div>
-                            </div>
-                        </div>`;
-                });
-                historyHtml += `</div>`;
-            } else {
-                historyHtml = `<div class="mt-4 text-center border-t border-gray-100 pt-3"><p class="text-[11px] text-gray-400">ยังไม่มีประวัติคะแนนในชิ้นงานนี้</p></div>`;
-            }
+                            </div>`;
+                    });
+                    historyHtml += `</div>`;
+                }
 
-            // ถ้าไม่มี headerHtml ส่งมา (โดนสั่งรีเฟรชจากปุ่มลบ) ให้สร้างใหม่
-            if (!headerHtml) {
-                const rawImgUrl = studentInfo[5] ? studentInfo[5].trim() : '';
-                const imgUrl = rawImgUrl ? getDirectImageUrl(rawImgUrl) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(studentName)}&backgroundColor=e2e8f0`;
-                headerHtml = `
-                <div class="flex flex-col items-center mb-4">
-                    <div class="w-20 h-20 bg-gray-100 rounded-full mb-2 flex items-center justify-center border-4 border-indigo-100 overflow-hidden shadow-sm">
-                        <img src="${imgUrl}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(studentName)}&backgroundColor=e2e8f0'">
+                htmlContent += `
+                    <div class="mb-3 text-left bg-blue-50 p-3 rounded-xl border border-blue-100 flex justify-between items-center">
+                        <p class="text-sm font-bold text-blue-800">คะแนนสะสมปัจจุบัน:</p>
+                        <p class="text-2xl font-bold text-blue-600">${sumScore}</p>
                     </div>
-                    <div class="text-center">
-                        <h3 class="text-xl font-bold text-gray-800">${studentName}</h3>
-                        <p class="text-xs text-gray-500">เลขที่ ${studentInfo[1]} | ห้อง ${studentInfo[4]}</p>
+                    <div class="text-left bg-gray-50 p-3 rounded-xl border border-gray-200">
+                        <div class="flex justify-center gap-2 mb-3">
+                            <button onclick="Swal.getPopup().querySelector('#swal-score').value=1" class="flex-1 bg-green-100 text-green-700 py-2 rounded-lg font-bold hover:bg-green-200">+1</button>
+                            <button onclick="Swal.getPopup().querySelector('#swal-score').value=2" class="flex-1 bg-green-100 text-green-700 py-2 rounded-lg font-bold hover:bg-green-200">+2</button>
+                            <button onclick="Swal.getPopup().querySelector('#swal-score').value=5" class="flex-1 bg-blue-100 text-blue-700 py-2 rounded-lg font-bold hover:bg-blue-200">+5</button>
+                            <button onclick="Swal.getPopup().querySelector('#swal-score').value=-1" class="flex-1 bg-red-100 text-red-700 py-2 rounded-lg font-bold hover:bg-red-200">-1</button>
+                        </div>
+                        <label class="block text-sm font-bold text-gray-700">ระบุคะแนน (+ หรือ -)</label>
+                        <input type="number" id="swal-score" placeholder="0" class="w-full border-2 border-indigo-300 rounded-lg p-3 text-center text-2xl font-bold text-indigo-700 outline-none focus:border-indigo-500 mt-2" autofocus onkeypress="if(event.key==='Enter') submitScoreLog('${student[0]}')">
+                        <label class="block text-sm font-bold text-gray-700 mt-3">หมายเหตุ (ถ้ามี)</label>
+                        <input type="text" id="swal-note" placeholder="เช่น ตอบคำถามในห้อง" class="w-full border border-gray-300 rounded-lg p-2 text-sm outline-none focus:border-indigo-500 mt-1">
                     </div>
-                </div>`;
-            }
-
-            const htmlContent = `
-                ${headerHtml}
-                <div class="mb-3 text-left bg-gradient-to-r from-blue-50 to-indigo-50 p-3 rounded-xl border border-blue-100 flex justify-between items-center shadow-inner">
-                    <p class="text-sm font-bold text-blue-800">คะแนนสะสมปัจจุบัน:</p>
-                    <p class="text-3xl font-bold text-blue-600 drop-shadow-sm">${sumScore}</p>
-                </div>
-                <div class="text-left bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
-                    <div class="flex justify-center gap-2 mb-3">
-                        <button onclick="document.getElementById('card-score-input').value=1" class="flex-1 bg-green-50 text-green-700 py-1.5 rounded-lg font-bold hover:bg-green-100 border border-green-100 transition shadow-sm">+1</button>
-                        <button onclick="document.getElementById('card-score-input').value=2" class="flex-1 bg-green-50 text-green-700 py-1.5 rounded-lg font-bold hover:bg-green-100 border border-green-100 transition shadow-sm">+2</button>
-                        <button onclick="document.getElementById('card-score-input').value=5" class="flex-1 bg-blue-50 text-blue-700 py-1.5 rounded-lg font-bold hover:bg-blue-100 border border-blue-100 transition shadow-sm">+5</button>
-                        <button onclick="document.getElementById('card-score-input').value=-1" class="flex-1 bg-red-50 text-red-700 py-1.5 rounded-lg font-bold hover:bg-red-100 border border-red-100 transition shadow-sm">-1</button>
-                    </div>
-                    <input type="number" id="card-score-input" placeholder="ระบุคะแนน (+ หรือ -)" class="w-full text-center border-2 border-indigo-200 rounded-xl p-3 text-2xl font-bold outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 mb-3 shadow-inner bg-gray-50 transition" autofocus onkeypress="if(event.key==='Enter') document.getElementById('card-btn-save').click()">
-                    <input type="text" id="card-score-note" placeholder="หมายเหตุ (เช่น ตอบคำถาม)" class="w-full px-3 py-2 border border-gray-200 bg-gray-50 rounded-lg outline-none focus:border-indigo-500 focus:bg-white transition text-sm">
-                </div>
-                <button id="card-btn-save" onclick="submitCardScore('${studentId}', '${studentName}', '${sourceTab}')" class="w-full mt-4 bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 shadow-lg transition transform hover:-translate-y-0.5">บันทึกคะแนน</button>
-                ${historyHtml}
-            `;
-            
-            Swal.fire({ 
-                html: htmlContent, 
-                showConfirmButton: false, 
-                showCancelButton: true, 
-                cancelButtonText: 'ปิดหน้าต่าง',
-                didOpen: () => { setTimeout(()=>document.getElementById('card-score-input').focus(), 100); }
-            });
-        }
-
-        // ==========================================
-        // 🚀 ระบบ Inline Edit (ลบ/แก้ไขคะแนนใน Popup)
-        // ==========================================
-        async function editInlineScore(logId, currentPoints, sId, sName, actId, sourceTab) {
-            const { value: newPoints } = await Swal.fire({ 
-                title: 'แก้ไขคะแนน', 
-                input: 'number', 
-                inputValue: currentPoints, 
-                showCancelButton: true, 
-                confirmButtonText: 'บันทึก',
-                cancelButtonText: 'ยกเลิก'
-            });
-            
-            if (newPoints && newPoints !== currentPoints) {
-                // อัปเดต Memory (Optimistic UI)
-                for(let l of appData.scoreLogs) { if(l[0] === logId) { l[8] = newPoints; break; } }
+                    <button onclick="submitScoreLog('${student[0]}')" class="w-full mt-4 bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 shadow-md">บันทึกคะแนน</button>
+                    ${historyHtml}
+                `;
                 
-                // รีเฟรชตาราง/การ์ดพื้นหลังให้ตัวเลขเปลี่ยนตาม
-                if (sourceTab === 'chk') loadBulkTable();
-                if (sourceTab === 'scan') updateScanLogUI(sId, `แก้เป็น ${newPoints} คะแนน`);
-                
-                // วาดหน้าต่าง Popup กลับขึ้นมาใหม่
-                renderScorePopupContent(sId, sName, actId, sourceTab); 
-                
-                // ส่งข้อมูลไปอัปเดต Google Sheets
-                try { await api.call('updateScoreLog', logId, newPoints); } catch(e) { console.error("Sync Failed", e); }
-            } else {
-                renderScorePopupContent(sId, sName, actId, sourceTab);
+                Swal.fire({ title: 'ให้คะแนน', html: htmlContent, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'ยกเลิก', didOpen: () => { setTimeout(()=>document.getElementById('swal-score').focus(), 100); } });
             }
         }
 
-        async function deleteInlineScore(logId, sId, sName, actId, sourceTab) {
-            const res = await Swal.fire({ title: 'ลบประวัตินี้?', text: "คะแนนจะถูกหักออกทันที", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'ใช่, ลบเลย' });
-            if(res.isConfirmed) {
-                appData.scoreLogs = appData.scoreLogs.filter(l => l[0] !== logId);
-                
-                if (sourceTab === 'chk') loadBulkTable();
-                if (sourceTab === 'scan') updateScanLogUI(sId, `ลบคะแนนแล้ว`);
-
-                renderScorePopupContent(sId, sName, actId, sourceTab);
-                try { await api.call('deleteScoreLog', logId); } catch(e) { console.error("Sync Failed", e); }
-            } else {
-                renderScorePopupContent(sId, sName, actId, sourceTab);
-            }
-        }
-
-        async function submitCardDaily(studentId, value, sourceTab) {
+        async function submitDaily(studentId, value) {
             Swal.close();
-            const actId = document.getElementById(`${sourceTab}-activity`).value;
-            const date = document.getElementById(`${sourceTab}-date`).value;
-            
+            const actId = document.getElementById('scan-activity').value;
+            const date = document.getElementById('scan-date').value;
             const actInfo = appData.activities.find(a => a[0] === actId);
             const studentInfo = appData.students.find(s => s[0] === studentId);
-
-            const data = { 
-                studentId, activityId: actId, date, value, userId: currentUser.id,
-                actName: actInfo ? `[${actInfo[2]}] ${actInfo[3]}` : "",
-                stdNum: studentInfo ? studentInfo[1] : "", stdName: studentInfo ? studentInfo[3] : "", stdClass: studentInfo ? studentInfo[4] : ""
-            };
-
-            playSound('success');
-
+            
+            const data = { studentId, activityId: actId, date, value, userId: currentUser.id, actName: actInfo ? `[${actInfo[2]}] ${actInfo[3]}` : "", stdNum: studentInfo ? studentInfo[1] : "", stdName: studentInfo ? studentInfo[3] : "", stdClass: studentInfo ? studentInfo[4] : "" };
+            
             const tempLogId = 'mock_' + Date.now();
             appData.attendance.push([tempLogId, date, new Date().toLocaleTimeString(), actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, value, currentUser.id]);
             
-            if (sourceTab === 'chk') loadBulkTable();
-            if (sourceTab === 'scan') updateScanLogUI(studentId, value);
-            
-            Swal.fire({ title: 'สำเร็จ', text: `บันทึกสถานะ ${value} เรียบร้อย`, icon: 'success', timer: 1000, showConfirmButton: false, position: 'top-end', toast: true });
-
+            updateScanLogUI(studentId, value);
             try { await api.call('saveScanRecord', data); } catch(e) { console.error("Sync Failed", e); }
         }
 
-        async function submitCardScore(studentId, studentName, sourceTab) {
-            const points = document.getElementById('card-score-input').value;
-            const note = document.getElementById('card-score-note').value;
+        async function submitScoreLog(studentId) {
+            // ดึงค่าจาก Popup ที่เปิดอยู่จริงๆ เพื่อป้องกันการดึงค่ากล่องเปล่าๆ ที่ซ่อนอยู่
+            const popup = Swal.getPopup();
+            if(!popup) return;
+            const points = popup.querySelector('#swal-score').value;
+            const note = popup.querySelector('#swal-note').value;
+            
             if(points === "") return Swal.showValidationMessage('กรุณากรอกคะแนน');
-            
-            const actId = document.getElementById(`${sourceTab}-activity`).value;
+            Swal.close();
+
+            const actId = document.getElementById('scan-activity').value;
             const timestamp = new Date().toLocaleString('th-TH');
-            
             const actInfo = appData.activities.find(a => a[0] === actId);
             const studentInfo = appData.students.find(s => s[0] === studentId);
 
-            const data = { 
-                studentId, activityId: actId, points, note, timestamp, userId: currentUser.id,
-                actName: actInfo ? `[${actInfo[2]}] ${actInfo[3]}` : "",
-                stdNum: studentInfo ? studentInfo[1] : "", stdName: studentInfo ? studentInfo[3] : "", stdClass: studentInfo ? studentInfo[4] : ""
-            };
-            
+            const data = { studentId, activityId: actId, points, note, timestamp, userId: currentUser.id, actName: actInfo ? `[${actInfo[2]}] ${actInfo[3]}` : "", stdNum: studentInfo ? studentInfo[1] : "", stdName: studentInfo ? studentInfo[3] : "", stdClass: studentInfo ? studentInfo[4] : "" };
             playSound('success');
-            
-            // 1. เพิ่มลง Memory
+
             const tempLogId = 'temp_' + Date.now();
             appData.scoreLogs.push([tempLogId, timestamp, actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, points, note, currentUser.id]);
+            updateScanLogUI(studentId, `+${points} คะแนน`);
             
-            // 2. อัปเดตพื้นหลัง
-            if (sourceTab === 'chk') loadBulkTable();
-            if (sourceTab === 'scan') updateScanLogUI(studentId, `+${points} คะแนน`);
-            
-            // 3. วาด Popup ใหม่
-            renderScorePopupContent(studentId, studentName, actId, sourceTab);
-            
-            Swal.fire({ title: 'สำเร็จ', text: `เพิ่ม ${points} คะแนน เรียบร้อย`, icon: 'success', timer: 1500, showConfirmButton: false, position: 'top-end', toast: true });
-
             try {
                 const res = await api.call('saveScoreLog', data);
-                if(res.status === 'success') {
-                    const log = appData.scoreLogs.find(l => l[0] === tempLogId);
-                    if(log) log[0] = res.logId;
-                }
+                if(res.status === 'success') { const log = appData.scoreLogs.find(l => l[0] === tempLogId); if(log) log[0] = res.logId; }
             } catch(e) { console.error("Sync Failed", e); }
         }
 
-        // Check Group
+        function updateScanLogUI(studentId, badgeText) {
+            try {
+                const student = appData.students.find(s => s[0] == studentId);
+                const logUl = document.getElementById('scan-log');
+                if(logUl.innerHTML.includes('รอรับการสแกน')) logUl.innerHTML = '';
+                
+                const li = document.createElement('li');
+                li.className = "p-3 flex justify-between items-center bg-green-50 border-l-4 border-green-500 mb-1 rounded-r shadow-sm animate-[fadeIn_0.3s_ease-out]";
+                li.innerHTML = `<div><p class="font-bold text-sm">${student[3]}</p><p class="text-xs text-gray-500">ชั้น: ${student[4]} | เวลา: ${new Date().toLocaleTimeString('th-TH')}</p></div>
+                                <span class="font-bold text-md text-indigo-700 bg-white px-3 py-1 rounded-lg shadow-sm border border-indigo-100">${badgeText}</span>`;
+                logUl.prepend(li);
+                document.getElementById('scan-count').innerText = document.querySelectorAll('#scan-log li').length + " รายการ";
+                setTimeout(() => document.getElementById('barcode-input').focus(), 300);
+            } catch (error) { console.error("UI Log Error: ", error); }
+        }
+
         function setCheckView(view) {
             currentCheckView = view;
             if (view === 'table') {
