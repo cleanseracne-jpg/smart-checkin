@@ -445,7 +445,7 @@
                             <div class="bg-white/90 p-4 rounded-xl border border-gray-200 shadow-sm text-center"><p class="text-xs text-gray-500 font-bold">คะแนนเต็มอ้างอิง</p><h3 class="text-3xl font-bold text-purple-600" id="stat-sc-max">0</h3></div>
                         </div>
 
-                        <!-- 2. Stats Cards (โหมดเวลาเรียน - แบบรูปภาพ 3 กล่องสีสด) -->
+                        <!-- 2. Stats Cards (โหมดเวลาเรียน) -->
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4" id="sum-stats-att" style="display:none;">
                             <div class="bg-blue-600 p-4 rounded-xl shadow-md flex flex-col justify-center items-center text-white print:bg-blue-600 print:text-white print:border-none">
                                 <p class="text-sm font-bold mb-1">ทั้งหมด (คน)</p>
@@ -581,10 +581,11 @@
         </div>
     </div>
 
-    <!-- Modal: Add Activity -->
+    <!-- Modal: Add/Edit Activity -->
     <div id="modal-activity" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex justify-center items-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl">
-            <h3 class="text-lg font-bold mb-4">เพิ่มโครงสร้างใหม่</h3>
+            <h3 id="modal-activity-title" class="text-lg font-bold mb-4">เพิ่มโครงสร้างใหม่</h3>
+            <input type="hidden" id="m-act-id" value="">
             <div class="space-y-3">
                 <div><label class="block text-xs font-medium text-gray-700">ประเภท</label>
                     <select id="m-act-type" class="w-full px-3 py-2 border rounded-lg outline-none" onchange="toggleActScore()">
@@ -694,7 +695,6 @@
             if(document.activeElement !== barcodeInput) barcodeInput.focus();
         });
 
-        // Sound System
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playSound(type) {
             if(audioCtx.state === 'suspended') audioCtx.resume();
@@ -779,7 +779,7 @@
             try {
                 appData = await api.call('getAppData');
                 
-                // 🧹 ระบบเครื่องดูดฝุ่น: ป้องกันบั๊กแถวว่างจาก Google Sheets ที่มีแค่ ID 
+                // 🧹 ระบบเครื่องดูดฝุ่น
                 if (appData.students) {
                     appData.students = appData.students.filter(row => row && row.length > 3 && String(row[3]).trim() !== "");
                 }
@@ -806,7 +806,6 @@
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
             
-            // สั่งให้รีเฟรชข้อมูลอัตโนมัติเมื่อกดเข้า Tab ต่างๆ
             if(tabId === 'tab-check') loadBulkTable();
             if(tabId === 'tab-summary') triggerReportRender();
             if(tabId === 'tab-students') renderStudentTable();
@@ -997,7 +996,6 @@
                 Swal.fire({ title: 'เช็คชื่อรายวัน', html: htmlContent, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'ยกเลิก' });
             } else {
                 let studentLogs = [];
-                // --- Smart Match System --- ป้องกันกรณีเด็กลบแล้วสร้างใหม่
                 for(let l of appData.scoreLogs) { 
                     if(l[2] === actId && (l[4] === student[0] || (l[5] == student[1] && l[7] === student[4]))) {
                         studentLogs.push(l); 
@@ -1228,6 +1226,9 @@
         function downloadTemplate() { /* Existing code */ }
         function importExcel(e) { /* Existing code */ }
         
+        // ------------------------------------------
+        // อัปเดต: ระบบกิจกรรม (เพิ่มปุ่มแก้ไข + Modal)
+        // ------------------------------------------
         function renderActivities() {
             const dUl = document.getElementById('list-daily'); const sUl = document.getElementById('list-subject');
             dUl.innerHTML = ''; sUl.innerHTML = '';
@@ -1235,7 +1236,11 @@
             if (appData.activities && appData.activities.length > 0) {
                 appData.activities.forEach(a => {
                     const li = `<li class="py-2 px-3 flex justify-between items-center group"><div class="flex items-center gap-2"><span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded font-mono">${a[2]}</span><span class="font-medium text-sm">${a[3]}</span></div>
-                    <div class="flex gap-2 items-center opacity-0 group-hover:opacity-100 transition"><span class="text-xs text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">${a[4]} คะแนน</span><button onclick="delActivity('${a[0]}')" class="text-red-400 hover:text-red-600"><i class="fas fa-times-circle"></i></button></div></li>`;
+                    <div class="flex gap-2 items-center opacity-0 group-hover:opacity-100 transition">
+                        <span class="text-xs text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">${a[4]} คะแนน</span>
+                        <button onclick="editActivityPrompt('${a[0]}')" class="text-blue-500 hover:text-blue-700 transition px-1" title="แก้ไข"><i class="fas fa-edit"></i></button>
+                        <button onclick="delActivity('${a[0]}')" class="text-red-400 hover:text-red-600 transition px-1" title="ลบ"><i class="fas fa-times-circle"></i></button>
+                    </div></li>`;
                     if(a[1] === 'รายวัน') dUl.innerHTML += li; else sUl.innerHTML += li;
                 });
             }
@@ -1245,23 +1250,88 @@
         }
 
         function toggleActScore() { document.getElementById('div-act-score').style.display = document.getElementById('m-act-type').value === 'วิชา' ? 'block' : 'none'; }
-        function openActivityModal() { document.getElementById('m-act-code').value=''; document.getElementById('m-act-name').value=''; toggleActScore(); document.getElementById('modal-activity').classList.remove('hidden'); }
+        
+        // Modal โหมดเพิ่มใหม่
+        function openActivityModal() { 
+            document.getElementById('modal-activity-title').innerText = 'เพิ่มโครงสร้างใหม่';
+            document.getElementById('m-act-id').value = '';
+            document.getElementById('m-act-code').value = ''; 
+            document.getElementById('m-act-name').value = ''; 
+            document.getElementById('m-act-score').value = 10;
+            document.getElementById('m-act-type').value = 'รายวัน';
+            toggleActScore(); 
+            document.getElementById('modal-activity').classList.remove('hidden'); 
+        }
+
+        // Modal โหมดแก้ไข
+        function editActivityPrompt(id) {
+            const act = appData.activities.find(a => a[0] === id);
+            if (!act) return;
+
+            document.getElementById('modal-activity-title').innerText = 'แก้ไขกิจกรรม / ชิ้นงาน';
+            document.getElementById('m-act-id').value = id;
+            document.getElementById('m-act-type').value = act[1];
+            document.getElementById('m-act-code').value = act[2];
+            document.getElementById('m-act-name').value = act[3];
+            document.getElementById('m-act-score').value = act[4] || 10;
+            
+            toggleActScore();
+            document.getElementById('modal-activity').classList.remove('hidden');
+        }
+
+        // ฟังก์ชันเดียวรองรับทั้งการ Add และ Update
         async function saveActivity() {
-            const d = { type: document.getElementById('m-act-type').value, code: document.getElementById('m-act-code').value, name: document.getElementById('m-act-name').value, maxScore: document.getElementById('m-act-type').value==='รายวัน'? 0 : document.getElementById('m-act-score').value };
-            showLoader("บันทึกลง Sheet..."); 
+            const actId = document.getElementById('m-act-id').value;
+            const d = { 
+                type: document.getElementById('m-act-type').value, 
+                code: document.getElementById('m-act-code').value, 
+                name: document.getElementById('m-act-name').value, 
+                maxScore: document.getElementById('m-act-type').value === 'รายวัน' ? 0 : document.getElementById('m-act-score').value 
+            };
+            
+            if (!d.code || !d.name) return Swal.fire('เตือน', 'กรุณากรอกข้อมูล วิชา และ เรื่อง ให้ครบถ้วน', 'warning');
+
+            showLoader(actId ? "กำลังบันทึกการแก้ไข..." : "บันทึกลง Sheet..."); 
             try {
-                await api.call('saveActivity', d);
-                appData.activities.push(['mock_act_'+Math.random(), d.type, d.code, d.name, d.maxScore]);
-                updateGlobalDropdowns(); renderActivities(); closeModal('modal-activity');
-            } catch(e) {}
+                if (actId) {
+                    // โหมดแก้ไข (Update)
+                    await api.call('updateActivity', actId, d);
+                    // อัปเดตข้อมูลในหน่วยความจำทันทีเพื่อให้หน้าเว็บรีเฟรชเร็ว
+                    const actIndex = appData.activities.findIndex(a => a[0] === actId);
+                    if (actIndex !== -1) {
+                        appData.activities[actIndex][1] = d.type;
+                        appData.activities[actIndex][2] = d.code;
+                        appData.activities[actIndex][3] = d.name;
+                        appData.activities[actIndex][4] = d.maxScore;
+                    }
+                    Swal.fire({ title: 'สำเร็จ', text: 'แก้ไขข้อมูลสำเร็จ', icon: 'success', timer: 1000, showConfirmButton: false, position: 'top-end', toast: true });
+                } else {
+                    // โหมดเพิ่มใหม่ (Add)
+                    const res = await api.call('saveActivity', d);
+                    const newId = (res && res.id) ? res.id : 'mock_act_'+Math.random();
+                    appData.activities.push([newId, d.type, d.code, d.name, d.maxScore]);
+                }
+                
+                updateGlobalDropdowns(); 
+                renderActivities(); 
+                closeModal('modal-activity');
+            } catch(e) {
+                console.error(e);
+            }
             hideLoader();
         }
+
         async function delActivity(id) { 
-            try {
-                await api.call('deleteActivity', id); 
-                appData.activities = appData.activities.filter(a => a[0] !== id); 
-                updateGlobalDropdowns(); renderActivities(); 
-            } catch(e) {}
+            const res = await Swal.fire({ title: 'ลบกิจกรรมนี้?', text: "ไม่สามารถกู้คืนได้", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33' });
+            if(res.isConfirmed) {
+                showLoader("กำลังลบ...");
+                try {
+                    await api.call('deleteActivity', id); 
+                    appData.activities = appData.activities.filter(a => a[0] !== id); 
+                    updateGlobalDropdowns(); renderActivities(); 
+                } catch(e) {}
+                hideLoader();
+            }
         }
         
         function generateCards() {
