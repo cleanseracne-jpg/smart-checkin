@@ -1189,11 +1189,10 @@
             loadBulkTable();
         }
 
-        // 🚀 อัปเดต: ให้แสดงสถานะลงในการ์ดแบบ Real-time ตามความต้องการ
         function loadBulkTable() {
             const cClass = document.getElementById('chk-class').value;
             const cActId = document.getElementById('chk-activity').value;
-            const cDate = document.getElementById('chk-date').value; // สำคัญ: ดึงวันที่มาเช็ค
+            const cDate = document.getElementById('chk-date').value;
             const tbody = document.getElementById('chk-tbody');
             const cardView = document.getElementById('chk-card-view');
             
@@ -1217,7 +1216,7 @@
 
             const filteredStudents = appData.students.filter(s => s[4] === cClass).sort((a,b) => parseInt(a[1]) - parseInt(b[1]));
             
-            // 🚀 อัปเดต Table View ให้แสดงสถานะเช็คชื่อล่าสุด
+            // อัปเดต Table View ให้แสดงสถานะเช็คชื่อล่าสุด
             tbody.innerHTML = filteredStudents.map(s => {
                 let currentVal = '';
                 if (isDaily) {
@@ -1237,7 +1236,7 @@
                 return `<tr class="hover:bg-gray-50/50"><td class="py-2 px-4 text-center font-bold text-gray-600">${s[1]}</td><td class="py-2 px-4 font-medium text-gray-800">${s[3]}</td><td class="py-2 px-4">${inputHtml}</td></tr>`;
             }).join('');
 
-            // 🚀 อัปเดต Card View ให้แสดงสถานะเช็คชื่อล่าสุด
+            // อัปเดต Card View ให้แสดงสถานะเช็คชื่อล่าสุดแบบ Real-time
             cardView.innerHTML = filteredStudents.map(s => {
                 let scoreDisplay = '';
 
