@@ -236,7 +236,6 @@
                     </div>
                     
                     <div class="bg-white/90 backdrop-blur p-4 rounded-2xl shadow-sm border border-white/50 mb-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <!-- อัปเดต: เพิ่ม onchange="loadBulkTable()" เพื่อให้เมื่อเปลี่ยนวันที่ ตาราง/การ์ดจะดึงสถานะใหม่มาโชว์ทันที -->
                         <div class="col-span-2 md:col-span-1"><label class="block text-xs text-gray-500 mb-1">วันที่</label><input type="date" id="chk-date" class="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" onchange="loadBulkTable()"></div>
                         <div class="col-span-2 md:col-span-1"><label class="block text-xs text-gray-500 mb-1">ห้องเรียน</label><select id="chk-class" class="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" onchange="loadBulkTable()"></select></div>
                         <div class="col-span-2 md:col-span-1"><label class="block text-xs text-gray-500 mb-1">เลือกวิชา</label><select id="chk-subject" class="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-indigo-600 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500" onchange="updateActivityDropdown('chk')"></select></div>
@@ -741,6 +740,7 @@
             }
         }
 
+        // Auth System
         function toggleAuth() {
             document.getElementById('login-form').classList.toggle('hidden');
             document.getElementById('reg-form').classList.toggle('hidden');
@@ -1192,7 +1192,7 @@
         function loadBulkTable() {
             const cClass = document.getElementById('chk-class').value;
             const cActId = document.getElementById('chk-activity').value;
-            const cDate = document.getElementById('chk-date').value;
+            const cDate = document.getElementById('chk-date').value; // สำคัญ: ดึงวันที่มาเช็ค
             const tbody = document.getElementById('chk-tbody');
             const cardView = document.getElementById('chk-card-view');
             
@@ -1216,7 +1216,6 @@
 
             const filteredStudents = appData.students.filter(s => s[4] === cClass).sort((a,b) => parseInt(a[1]) - parseInt(b[1]));
             
-            // อัปเดต Table View ให้แสดงสถานะเช็คชื่อล่าสุด
             tbody.innerHTML = filteredStudents.map(s => {
                 let currentVal = '';
                 if (isDaily) {
@@ -1236,7 +1235,7 @@
                 return `<tr class="hover:bg-gray-50/50"><td class="py-2 px-4 text-center font-bold text-gray-600">${s[1]}</td><td class="py-2 px-4 font-medium text-gray-800">${s[3]}</td><td class="py-2 px-4">${inputHtml}</td></tr>`;
             }).join('');
 
-            // อัปเดต Card View ให้แสดงสถานะเช็คชื่อล่าสุดแบบ Real-time
+            // 🚀 อัปเดต Card View ให้แสดงสถานะเช็คชื่อและคะแนนล่าสุด
             cardView.innerHTML = filteredStudents.map(s => {
                 let scoreDisplay = '';
 
