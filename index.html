@@ -1046,28 +1046,40 @@
             } catch (err) { hideLoader(); e.target.value = ''; playSound('error'); Swal.fire('สแกนไม่สำเร็จ', 'ไม่พบ QR Code/Barcode', 'error'); }
         }
 
-        // ==========================================
-        // 🚀 อัปเดต: ดักจับเครื่องยิงบาร์โค้ด ป้องกันการกด Enter ลั่นใน Popup
-        // ==========================================
+        // 🚀 อัปเดต: ระบบดักจับและแปลงภาษาไทยกลับเป็นอังกฤษ (ป้องกันลืมเปลี่ยนภาษาคีย์บอร์ด)
         async function handleBarcodeInput(e) {
             if (e.key === 'Enter') { 
-                e.preventDefault(); // บล็อกปุ่ม Enter ไม่ให้ทะลุไปกดปุ่มปิด Popup อัตโนมัติ
-                const code = e.target.value.trim(); 
+                let code = e.target.value.trim(); 
                 e.target.value = ''; 
                 
                 if(code) {
+                    // ชุดข้อมูลแปลงตัวอักษรแป้นพิมพ์ไทย กลับเป็น แป้นพิมพ์อังกฤษ
+                    const thaiToEngMap = {
+                        'ๅ':'1', '/':'2', '-':'3', 'ภ':'4', 'ถ':'5', 'ุ':'6', 'ึ':'7', 'ค':'8', 'ต':'9', 'จ':'0',
+                        'ข':'-', 'ช':'=', 'ๆ':'q', 'ไ':'w', 'ำ':'e', 'พ':'r', 'ะ':'t', 'ั':'y', 'ี':'u', 'ร':'i', 'น':'o', 'ย':'p', 'บ':'[', 'ล':']', 'ฃ':'\\',
+                        'ห':'a', 'ก':'s', 'ด':'d', 'เ':'f', '้':'g', '่า':'h', 'า':'k', 'ส':'l', 'ว':';', 'ง':'\'',
+                        'ผ':'z', 'ป':'x', 'แ':'c', 'อ':'v', 'ิ':'b', 'ื':'n', 'ท':'m', 'ม':',', 'ใ':'.', 'ฝ':'/',
+                        // ตัวพิมพ์ใหญ่ (Shift)
+                        '+':'!', '๑':'@', '๒':'#', '๓':'$', '๔':'%', 'ู':'^', '฿':'&', '๕':'*', '๖':'(', '๗':')',
+                        '๘':'_', '๙':'+', '๐':'Q', '"':'W', 'ฎ':'E', 'ฑ':'R', 'ธ':'T', 'ํ':'Y', '๊':'U', 'ณ':'I', 'ฯ':'O', 'ญ':'P', 'ฐ':'{', 'ฅ':'}', 'ฤ':'|',
+                        'ฆ':'A', 'ฏ':'S', 'โ':'D', 'ฌ':'F', '็':'G', '๋':'H', 'ษ':'K', 'ศ':'L', 'ซ':':', '.':'"',
+                        '(':'Z', ')':'X', 'ฉ':'C', 'ฮ':'V', 'ฺ':'B', '์':'N', '?':'M', 'ฒ':'<', 'ฬ':'>', 'ฦ':'?'
+                    };
+
+                    let engCode = "";
+                    for (let i = 0; i < code.length; i++) {
+                        let char = code[i];
+                        // ถ้าตัวอักษรตรงกับแป้นไทย ให้แปลงเป็นอังกฤษ ถ้าไม่ตรง (เช่น เป็นตัวเลขอยู่แล้ว) ให้ใช้ตัวเดิม
+                        engCode += thaiToEngMap[char] || char; 
+                    }
+                    
                     if(isScanningProcess) return; 
                     isScanningProcess = true;
-                    
-                    document.getElementById('barcode-input').blur(); // ยกเลิกการโฟกัสชั่วคราว
-                    
-                    setTimeout(async () => {
-                        try { await processScan(code); } catch(err) { console.error(err); }
-                        setTimeout(() => { 
-                            isScanningProcess = false; 
-                            document.getElementById('barcode-input').focus(); 
-                        }, 800);
-                    }, 50);
+                    try {
+                        // ส่งรหัสที่แปลงเป็นภาษาอังกฤษแล้วไปประมวลผล
+                        await processScan(engCode);
+                    } catch(err) { console.error(err); }
+                    setTimeout(() => { isScanningProcess = false; }, 1000);
                 }
             }
         }
