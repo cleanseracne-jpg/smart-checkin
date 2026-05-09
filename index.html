@@ -117,7 +117,7 @@
         <header class="bg-white/80 backdrop-blur-md shadow-sm z-10 px-4 py-3 flex justify-between items-center no-print border-b border-white/20">
             <div class="flex items-center gap-3">
                 <div id="head-logo-container" class="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-white font-bold text-xl overflow-hidden shadow-sm">
-                    <img src="https://i.postimg.cc/j2jHbQXy/Gemini-Generated-Image-2ur14x2ur14x2ur1.png" alt="Win Wien Logo" class="w-full h-full object-cover">
+                    <img src="https://i.postimg.cc/j2jHbQXy/Gemini-Generated-Image-2ur14x2ur14x2ur1.png" alt="Web Logo" class="w-full h-full object-cover">
                 </div>
                 <div>
                     <h1 class="font-bold text-lg leading-tight text-gray-800" id="head-school-name">โรงเรียน</h1>
@@ -170,7 +170,8 @@
                     <div class="bg-white/90 backdrop-blur p-4 rounded-2xl shadow-sm border border-white/50 mb-4 grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div class="md:col-span-1">
                             <label class="block text-xs font-medium text-gray-500 mb-1">วันที่</label>
-                            <input type="date" id="scan-date" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-white/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <!-- เพิ่ม onchange="loadScanHistory()" เพื่อให้ดึงประวัติตามวัน -->
+                            <input type="date" id="scan-date" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-white/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" onchange="loadScanHistory()">
                         </div>
                         <div class="md:col-span-1">
                             <label class="block text-xs font-medium text-gray-500 mb-1">เลือกวิชา</label>
@@ -654,7 +655,7 @@
         let selectedLogoBase64 = null;
         let isScanningProcess = false;
         let currentCheckView = 'table'; 
-        let currentReportMode = 'score'; // 'score' or 'attendance'
+        let currentReportMode = 'score'; 
 
         // ==========================================
         // ฟังก์ชันแปลงลิงก์ Google Drive ให้ดูภาพได้ตรงๆ (Direct Link)
@@ -698,7 +699,6 @@
             document.getElementById('scan-date').value = today;
             document.getElementById('chk-date').value = today;
             
-            // Set Default Date Range (1 Month back to Today)
             const lastMonth = new Date();
             lastMonth.setMonth(lastMonth.getMonth() - 1);
             document.getElementById('rep-start-date').value = lastMonth.toISOString().split('T')[0];
@@ -708,7 +708,6 @@
             else document.getElementById('auth-screen').classList.remove('hidden');
         };
 
-        // Keyboard Shortcut for Barcode
         document.addEventListener('keydown', function(e) {
             if (!document.getElementById('tab-scan').classList.contains('active')) return;
             if (Swal.isVisible()) return; 
@@ -718,7 +717,6 @@
             if(document.activeElement !== barcodeInput) barcodeInput.focus();
         });
 
-        // Sound System
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playSound(type) {
             if(audioCtx.state === 'suspended') audioCtx.resume();
@@ -795,15 +793,10 @@
             document.getElementById('drop-name').innerText = (currentUser && currentUser.name) ? currentUser.name : 'ครูผู้สอน';
             document.getElementById('drop-email').innerText = (currentUser && currentUser.email) ? currentUser.email : 'Teacher Account';
             
-            if(currentUser && currentUser.logo) {
-                document.getElementById('print-school-logo').src = currentUser.logo;
-            }
-            
             showLoader("กำลังซิงค์ข้อมูลจาก Google Sheets...");
             try {
                 appData = await api.call('getAppData');
                 
-                // 🧹 ระบบเครื่องดูดฝุ่น
                 if (appData.students) {
                     appData.students = appData.students.filter(row => row && row.length > 3 && String(row[3]).trim() !== "");
                 }
@@ -841,11 +834,7 @@
             }
         }
 
-        // ==========================================
-        // 🚀 อัปเดต: ระบบ Dependent Dropdown (วิชา -> กิจกรรม)
-        // ==========================================
         function updateGlobalDropdowns() {
-            // ห้องเรียน
             const classes = [...new Set(appData.students.map(s => s[4]))].sort();
             const classOptions = '<option value="">-- เลือกห้องเรียน --</option>' + classes.map(c => `<option value="${c}">${c}</option>`).join('');
             document.getElementById('filter-class').innerHTML = '<option value="">ทุกห้องเรียน</option>' + classes.map(c => `<option value="${c}">${c}</option>`).join('');
@@ -854,7 +843,6 @@
             document.getElementById('rand-class').innerHTML = classOptions;
             document.getElementById('sum-class').innerHTML = classOptions;
 
-            // ดึงชื่อ "วิชา" ทั้งหมดที่กรอกไว้มาเป็น Dropdown ที่ 1 (Subject)
             const subjects = [...new Set(appData.activities.map(a => a[2] ? a[2].trim() : 'ไม่ระบุวิชา'))].sort();
             const subjectOptions = '<option value="">-- เลือกวิชา --</option>' + subjects.map(s => `<option value="${s}">${s}</option>`).join('');
             
@@ -862,7 +850,6 @@
             document.getElementById('chk-subject').innerHTML = subjectOptions;
             document.getElementById('sum-subject').innerHTML = subjectOptions;
             
-            // สั่งล้างค่าช่อง "กิจกรรม" (Dropdown ที่ 2) ไว้ก่อน
             resetActivityDropdown('scan');
             resetActivityDropdown('chk');
             resetActivityDropdown('sum');
@@ -873,7 +860,7 @@
             const actSelect = document.getElementById(`${prefix}-activity`);
             const infoSpan = document.getElementById(`${prefix}-act-info`);
             
-            if (infoSpan) infoSpan.innerHTML = ''; // เคลียร์ป้ายกำกับ
+            if (infoSpan) infoSpan.innerHTML = ''; 
             
             if (!subject) {
                 resetActivityDropdown(prefix);
@@ -882,10 +869,8 @@
                 return;
             }
 
-            // กรองกิจกรรมเฉพาะของวิชาที่เลือก
             let filteredActs = appData.activities.filter(a => (a[2] ? a[2].trim() : 'ไม่ระบุวิชา') === subject);
             
-            // หน้าสรุปคะแนน ให้ซ่อนกิจกรรมประเภท 'รายวัน' ออก
             if (prefix === 'sum' && currentReportMode === 'score') {
                 filteredActs = filteredActs.filter(a => a[1] !== 'รายวัน');
             }
@@ -926,7 +911,6 @@
                 }
             }
             
-            // รีเฟรชตารางถ้าอยู่หน้าเช็คหรือหน้าสรุป
             if (prefix === 'chk') loadBulkTable();
             if (prefix === 'sum') triggerReportRender();
         }
@@ -962,8 +946,7 @@
                 const res = await api.call('saveUserLogo', currentUser.id, selectedLogoBase64); 
                 if (res.status === 'success') {
                     currentUser.logo = res.logo; localStorage.setItem('att_user', JSON.stringify(currentUser));
-                    document.getElementById('print-school-logo').src = currentUser.logo;
-                    Swal.fire('สำเร็จ', 'บันทึกโลโก้โรงเรียนเรียบร้อยแล้ว (โลโก้จะไปแสดงที่บัตรนักเรียน และใบรายงาน)', 'success');
+                    Swal.fire('สำเร็จ', 'บันทึกโลโก้โรงเรียนเรียบร้อยแล้ว (โลโก้จะไปแสดงที่บัตรนักเรียน)', 'success');
                 }
             } catch(e) {}
             hideLoader();
@@ -1045,14 +1028,13 @@
 
         async function handleBarcodeInput(e) {
             if (e.key === 'Enter') { 
-                e.preventDefault(); // 🚀 ป้องกันปุ่ม Enter ลั่นไปกดปิด Popup อัตโนมัติ
+                e.preventDefault(); 
                 const code = e.target.value.trim(); 
                 e.target.value = ''; 
                 if(code) {
                     if(isScanningProcess) return; 
                     isScanningProcess = true;
                     try { 
-                        // หน่วงเวลาเล็กน้อยให้หน้าต่าง UI จัดการปุ่ม Enter ที่ตกค้างให้เสร็จก่อน
                         setTimeout(async () => {
                             await processScan(code); 
                         }, 50);
@@ -1060,6 +1042,86 @@
                     setTimeout(() => { isScanningProcess = false; }, 1000);
                 }
             }
+        }
+
+        // ==========================================
+        // อัปเดตฟังก์ชันดึงประวัติการสแกน (NEW)
+        // ==========================================
+        function loadScanHistory() {
+            const actId = document.getElementById('scan-activity').value;
+            const cDate = document.getElementById('scan-date').value;
+            const logUl = document.getElementById('scan-log');
+            const countBadge = document.getElementById('scan-count');
+            
+            if(!actId || !cDate) {
+                logUl.innerHTML = '<li class="p-4 text-center text-gray-400 text-sm">รอรับการสแกน...</li>';
+                countBadge.innerText = "0 รายการ";
+                return;
+            }
+
+            const actInfo = appData.activities.find(a => a[0] === actId);
+            if(!actInfo) return;
+            
+            const isDaily = actInfo[1] === 'รายวัน';
+            let recentLogs = [];
+
+            if(isDaily) {
+                // ดึงจาก Attendance
+                recentLogs = appData.attendance.filter(att => att[1] === cDate && att[3] === actId);
+                recentLogs.sort((a,b) => {
+                    // จัดเรียงตามเวลาล่าสุดขึ้นก่อน
+                    return new Date(cDate + ' ' + b[2]) - new Date(cDate + ' ' + a[2]);
+                });
+            } else {
+                // ดึงจาก Score Logs
+                recentLogs = appData.scoreLogs.filter(log => log[2] === actId && log[1].includes(formatDateShortForLog(cDate)));
+                recentLogs.sort((a,b) => {
+                    return new Date(b[1]) - new Date(a[1]);
+                });
+            }
+
+            logUl.innerHTML = '';
+            
+            if(recentLogs.length === 0) {
+                logUl.innerHTML = '<li class="p-4 text-center text-gray-400 text-sm">ยังไม่มีประวัติในวันนี้</li>';
+                countBadge.innerText = "0 รายการ";
+                return;
+            }
+
+            // นำข้อมูลมาวาดเป็น List UI
+            recentLogs.forEach(log => {
+                let studentId = isDaily ? log[5] : log[4];
+                let badgeText = isDaily ? log[9] : `+${log[8]} คะแนน`;
+                let timeText = isDaily ? log[2] : log[1].split(' ')[1] || log[1];
+                
+                const student = appData.students.find(s => s[0] === studentId);
+                if(student) {
+                    const li = document.createElement('li');
+                    li.className = "p-3 flex justify-between items-center bg-white border-l-4 border-indigo-500 mb-2 rounded-r-xl shadow-sm";
+                    li.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-gray-100 overflow-hidden shadow-inner">
+                                 <img src="${student[5] ? getDirectImageUrl(student[5]) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(student[3])}&backgroundColor=e2e8f0`}" class="w-full h-full object-cover">
+                            </div>
+                            <div>
+                                <p class="font-bold text-sm text-gray-800">${student[3]}</p>
+                                <p class="text-xs text-gray-500">ห้อง ${student[4]} | <i class="far fa-clock"></i> ${timeText}</p>
+                            </div>
+                        </div>
+                        <span class="font-bold text-md text-indigo-700 bg-indigo-50 px-3 py-1 rounded-lg shadow-sm border border-indigo-100">${badgeText}</span>
+                    `;
+                    logUl.appendChild(li);
+                }
+            });
+            
+            countBadge.innerText = recentLogs.length + " รายการ";
+        }
+
+        // ตัวช่วยสำหรับแปลง format วันที่ (เพื่อเช็คเวลาจาก Score Log)
+        function formatDateShortForLog(dateStr) {
+            if(!dateStr) return '';
+            const d = new Date(dateStr);
+            return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear() + 543}`; // แปลงเป็นรูปแบบเดียวกับ Timestamp พ.ศ.
         }
 
         async function processScan(code) {
@@ -1140,12 +1202,10 @@
             const studentInfo = appData.students.find(s => s[0] === studentId);
             
             const data = { studentId, activityId: actId, date, value, userId: currentUser.id, actName: actInfo ? `[${actInfo[2]}] ${actInfo[3]}` : "", stdNum: studentInfo ? studentInfo[1] : "", stdName: studentInfo ? studentInfo[3] : "", stdClass: studentInfo ? studentInfo[4] : "" };
-            
-            // เพิ่มข้อมูลลงใน Memory ทันที
             appData.attendance.push(['mock_' + Date.now(), date, new Date().toLocaleTimeString(), actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, value, currentUser.id]);
             
-            // เรียกฟังก์ชันเพื่อวาดกล่องประวัติ
-            updateScanLogUI(studentId, value);
+            updateScanLogUI(studentId, value); // อันนี้ใช้วาดกราฟิกตอนสแกน
+            loadScanHistory(); // อันนี้ใช้วาดประวัติรวม (New)
             
             try { await api.call('saveScanRecord', data); } catch(e) { console.error("Sync Failed", e); }
         }
@@ -1164,12 +1224,11 @@
             const data = { studentId, activityId: actId, points, note, timestamp, userId: currentUser.id, actName: actInfo ? `[${actInfo[2]}] ${actInfo[3]}` : "", stdNum: studentInfo ? studentInfo[1] : "", stdName: studentInfo ? studentInfo[3] : "", stdClass: studentInfo ? studentInfo[4] : "" };
             playSound('success');
 
-            // เพิ่มข้อมูลลงใน Memory ทันที
             const tempLogId = 'temp_' + Date.now();
             appData.scoreLogs.push([tempLogId, timestamp, actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, points, note, currentUser.id]);
             
-            // เรียกฟังก์ชันเพื่อวาดกล่องประวัติ
-            updateScanLogUI(studentId, `+${points} คะแนน`);
+            updateScanLogUI(studentId, `+${points} คะแนน`); // อันนี้ใช้วาดกราฟิกตอนสแกน
+            loadScanHistory(); // อันนี้ใช้วาดประวัติรวม (New)
             
             try {
                 const res = await api.call('saveScoreLog', data);
@@ -1177,12 +1236,11 @@
             } catch(e) { console.error("Sync Failed", e); }
         }
 
-        // 🚀 อัปเดต: ให้แสดงประวัติการสแกนทางขวามืออย่างถูกต้อง
         function updateScanLogUI(studentId, badgeText) {
             try {
                 const student = appData.students.find(s => s[0] == studentId);
                 const logUl = document.getElementById('scan-log');
-                if(logUl.innerHTML.includes('รอรับการสแกน')) logUl.innerHTML = '';
+                if(logUl.innerHTML.includes('รอรับการสแกน') || logUl.innerHTML.includes('ยังไม่มีประวัติในวันนี้')) logUl.innerHTML = '';
                 
                 const li = document.createElement('li');
                 li.className = "p-3 flex justify-between items-center bg-white border-l-4 border-indigo-500 mb-2 rounded-r-xl shadow-sm animate-[fadeIn_0.3s_ease-out]";
@@ -1198,10 +1256,8 @@
                     </div>
                     <span class="font-bold text-md text-indigo-700 bg-indigo-50 px-3 py-1 rounded-lg shadow-sm border border-indigo-100">${badgeText}</span>
                 `;
-                logUl.prepend(li);
+                logUl.prepend(li); // ใส่ไว้บนสุด
                 document.getElementById('scan-count').innerText = document.querySelectorAll('#scan-log li').length + " รายการ";
-                
-                // ดึงโฟกัสกลับไปที่ช่องยิงบาร์โค้ด
                 setTimeout(() => document.getElementById('barcode-input').focus(), 300);
             } catch (error) { console.error("UI Log Error: ", error); }
         }
@@ -1299,7 +1355,7 @@
                 const dailyFlag = isDaily ? 'true' : 'false';
 
                 return `
-                <div onclick="openCardScorePopup('${s[0]}', '${safeName}', ${dailyFlag})" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer hover:shadow-md hover:-translate-y-1 transition transform duration-200 pb-3">
+                <div onclick="openCardScorePopup('${s[0]}', '${safeName}', ${dailyFlag})" class="bg-white/90 backdrop-blur rounded-2xl shadow-sm border border-gray-200 overflow-hidden cursor-pointer hover:shadow-md hover:-translate-y-1 transition transform duration-200 pb-3">
                     <div class="h-28 bg-indigo-50/50 relative overflow-hidden flex justify-center items-center">
                         <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center border-4 border-white overflow-hidden shadow-sm z-10">
                             <img src="${imgUrl}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(s[3])}&backgroundColor=e2e8f0'">
@@ -1358,7 +1414,6 @@
             } catch(e) { console.error("Bulk sync error", e); }
         }
 
-        // 🚀 อัปเดต: ระบบ Popup ให้แสดงประวัติและแก้ไขคะแนนได้
         function openCardScorePopup(studentId, studentName, isDaily) {
             const actId = document.getElementById('chk-activity').value;
             const studentInfo = appData.students.find(s => s[0] === studentId);
@@ -1392,7 +1447,6 @@
             }
         }
 
-        // ฟังก์ชันวาดเนื้อหาคะแนนซ้ำ (เอาไว้รีเฟรชหน้าเดิมโดยไม่ปิด Popup)
         window.renderScorePopupContent = function(studentId, studentName, actId) {
             const studentInfo = appData.students.find(s => s[0] === studentId);
             let studentLogs = [];
@@ -1472,41 +1526,33 @@
                 showConfirmButton: false, 
                 showCancelButton: true, 
                 cancelButtonText: 'ปิดหน้าต่าง',
-                allowEnterKey: false, // ป้องกัน Enter ทำงานผิดพลาด
+                allowEnterKey: false, 
                 didOpen: () => { setTimeout(()=> { const el = document.getElementById('swal-score'); if(el) el.focus(); }, 100); }
             });
         }
 
-        // ฟังก์ชันแก้ไขคะแนนย่อยใน Popup
         window.editInlineScore = async function(logId, currentPoints, sId, sName, actId) {
             const { value: newPoints } = await Swal.fire({ title: 'แก้ไขคะแนน', input: 'number', inputValue: currentPoints, showCancelButton: true, confirmButtonText: 'บันทึก' });
             
             if (newPoints && newPoints !== currentPoints) {
-                // อัปเดตข้อมูลในหน่วยความจำ
                 for(let l of appData.scoreLogs) { if(l[0] === logId) { l[8] = newPoints; break; } }
-                
-                loadBulkTable(); // รีเฟรชตาราง/การ์ดพื้นหลัง
-                renderScorePopupContent(sId, sName, actId); // รีเฟรชข้อมูลใน Popup
-                
+                loadBulkTable(); 
+                renderScorePopupContent(sId, sName, actId); 
                 try { await api.call('updateScoreLog', logId, newPoints); } catch(e) { console.error("Sync Failed", e); }
             } else {
-                renderScorePopupContent(sId, sName, actId); // ดึง Popup กลับมา
+                renderScorePopupContent(sId, sName, actId); 
             }
         }
 
-        // ฟังก์ชันลบคะแนนย่อยใน Popup
         window.deleteInlineScore = async function(logId, sId, sName, actId) {
             const res = await Swal.fire({ title: 'ลบประวัตินี้?', text: "คะแนนจะถูกหักออกทันที", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33' });
             if(res.isConfirmed) {
-                // ลบข้อมูลออกจากหน่วยความจำ
                 appData.scoreLogs = appData.scoreLogs.filter(l => l[0] !== logId);
-                
-                loadBulkTable(); // รีเฟรชตาราง/การ์ดพื้นหลัง
-                renderScorePopupContent(sId, sName, actId); // รีเฟรชข้อมูลใน Popup
-
+                loadBulkTable(); 
+                renderScorePopupContent(sId, sName, actId); 
                 try { await api.call('deleteScoreLog', logId); } catch(e) { console.error("Sync Failed", e); }
             } else {
-                renderScorePopupContent(sId, sName, actId); // ดึง Popup กลับมา
+                renderScorePopupContent(sId, sName, actId); 
             }
         }
 
@@ -1534,7 +1580,6 @@
         }
 
         window.submitScoreLog = async function(studentId, actId) {
-            // ดึงค่าจาก Popup ตรงๆ ไม่ต้องปิด
             const popup = Swal.getPopup();
             if(!popup) return;
             const points = popup.querySelector('#swal-score').value;
@@ -1553,17 +1598,10 @@
             
             playSound('success');
             
-            // 1. นำข้อมูลลงระบบ Memory
             const tempLogId = 'temp_' + Date.now();
             appData.scoreLogs.push([tempLogId, timestamp, actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, points, note, currentUser.id]);
-            
-            // 2. รีเฟรชการ์ดพื้นหลัง
             loadBulkTable(); 
-            
-            // 3. วาดเนื้อหา Popup ใหม่ (เพื่อให้ประวัติ + รวมคะแนนเด้งขึ้นทันที ไม่ปิด)
             renderScorePopupContent(studentId, studentInfo ? studentInfo[3] : "ไม่มีชื่อ", actId);
-            
-            // แจ้งเตือน Toast
             Swal.fire({ title: 'สำเร็จ', text: `เพิ่ม ${points} คะแนน เรียบร้อย`, icon: 'success', timer: 1500, showConfirmButton: false, position: 'top-end', toast: true });
 
             try {
@@ -1638,28 +1676,6 @@
                 histBody.innerHTML = html;
             }
             document.getElementById('modal-history').classList.remove('hidden');
-        }
-
-        async function editScoreLog(logId, currentPoints, sId, sName) {
-            const { value: newPoints } = await Swal.fire({ title: 'แก้ไขคะแนน', input: 'number', inputValue: currentPoints, showCancelButton: true, confirmButtonText: 'บันทึก' });
-            if (newPoints && newPoints !== currentPoints) {
-                // Optimistic UI
-                for(let l of appData.scoreLogs) { if(l[0] === logId) { l[8] = newPoints; break; } }
-                viewStudentHistory(sId, sName); 
-                loadBulkTable(); 
-                try { await api.call('updateScoreLog', logId, newPoints); } catch(e) { console.error("Sync Failed", e); }
-            }
-        }
-
-        async function deleteScoreLog(logId, sId, sName) {
-            const res = await Swal.fire({ title: 'ลบรายการนี้?', text: "คะแนนจะถูกหักออก", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33' });
-            if(res.isConfirmed) {
-                // Optimistic UI
-                appData.scoreLogs = appData.scoreLogs.filter(l => l[0] !== logId);
-                viewStudentHistory(sId, sName);
-                loadBulkTable();
-                try { await api.call('deleteScoreLog', logId); } catch(e) { console.error("Sync Failed", e); }
-            }
         }
 
         function openStudentModal() {
@@ -1860,7 +1876,7 @@
                 const box = document.getElementById(`codebox-${idx}`);
                 if (type === 'barcode') {
                     const canvas = document.createElement('canvas'); box.appendChild(canvas);
-                    JsBarcode(canvas, s[2], { format: "CODE128", width: 1.5, height: 50, displayValue: true, fontSize: 12, margin: 0, background: "transparent" });
+                    JsBarcode(canvas, s[2], { format: "CODE128", width: 1.5, height: 50, displayValue: true, fontSize: 12, margin: 0 });
                 } else {
                     new QRCode(box, { text: s[2], width: 90, height: 90, colorDark : "#000000", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.L });
                     const codeLabel = document.createElement('div'); codeLabel.className = "text-[10px] mt-1 text-center font-mono font-bold text-gray-600"; codeLabel.innerText = s[2];
@@ -1883,7 +1899,6 @@
                 document.getElementById('sum-stats-att').style.display = 'none';
                 document.getElementById('txt-export-btn').innerHTML = '<i class="fas fa-file-excel"></i> Excel';
                 document.getElementById('btn-export-rep').className = "flex-1 bg-green-600 text-white font-bold px-3 py-2 rounded-lg hover:bg-green-700 transition";
-                updateActivityDropdown('sum'); 
             } else {
                 document.getElementById('btn-mode-att').className = "flex-1 md:flex-none px-4 py-2 rounded-lg bg-white shadow-sm text-sm font-bold text-indigo-600 transition";
                 document.getElementById('btn-mode-score').className = "flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-indigo-600 transition";
