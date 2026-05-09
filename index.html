@@ -605,7 +605,7 @@
         </div>
     </div>
 
-    <!-- Modal: Add Activity -->
+    <!-- Modal: Add/Edit Activity -->
     <div id="modal-activity" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex justify-center items-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl">
             <h3 id="modal-activity-title" class="text-lg font-bold mb-4">เพิ่มโครงสร้างใหม่</h3>
@@ -658,7 +658,16 @@
         let currentReportMode = 'score'; 
 
         // ==========================================
-        // ฟังก์ชันแปลงลิงก์ Google Drive ให้ดูภาพได้ตรงๆ (Direct Link)
+        // ฟังก์ชันแปลงวันที่ (Helper)
+        // ==========================================
+        function formatDateShortForLog(dateStr) {
+            if(!dateStr) return '';
+            const d = new Date(dateStr);
+            return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear() + 543}`;
+        }
+
+        // ==========================================
+        // ฟังก์ชันแปลงลิงก์ Google Drive
         // ==========================================
         function getDirectImageUrl(url) {
             if (!url) return '';
@@ -741,6 +750,7 @@
             }
         }
 
+        // Auth System
         function toggleAuth() {
             document.getElementById('login-form').classList.toggle('hidden');
             document.getElementById('reg-form').classList.toggle('hidden');
@@ -800,6 +810,7 @@
             try {
                 appData = await api.call('getAppData');
                 
+                // 🧹 ระบบเครื่องดูดฝุ่น
                 if (appData.students) {
                     appData.students = appData.students.filter(row => row && row.length > 3 && String(row[3]).trim() !== "");
                 }
@@ -833,13 +844,11 @@
             if(tabId !== 'tab-scan' && html5QrCode) {
                 try { stopCamera(); } catch(e){}
             } else if (tabId === 'tab-scan') {
+                loadScanHistory(); // Load history when entering scan tab
                 setTimeout(() => { document.getElementById('barcode-input').focus(); }, 200); 
             }
         }
 
-        // ==========================================
-        // 🚀 อัปเดต: ระบบ Dependent Dropdown (วิชา -> กิจกรรม)
-        // ==========================================
         function updateGlobalDropdowns() {
             const classes = [...new Set(appData.students.map(s => s[4]))].sort();
             const classOptions = '<option value="">-- เลือกห้องเรียน --</option>' + classes.map(c => `<option value="${c}">${c}</option>`).join('');
@@ -872,6 +881,7 @@
                 resetActivityDropdown(prefix);
                 if (prefix === 'chk') loadBulkTable();
                 if (prefix === 'sum') triggerReportRender();
+                if (prefix === 'scan') loadScanHistory();
                 return;
             }
 
@@ -887,6 +897,7 @@
             
             if (prefix === 'chk') loadBulkTable();
             if (prefix === 'sum') triggerReportRender();
+            if (prefix === 'scan') loadScanHistory();
         }
 
         function resetActivityDropdown(prefix) {
@@ -919,6 +930,74 @@
             
             if (prefix === 'chk') loadBulkTable();
             if (prefix === 'sum') triggerReportRender();
+            if (prefix === 'scan') loadScanHistory();
+        }
+
+        // ==========================================
+        // 🔥 โหลดประวัติการสแกนแบบ Real-time
+        // ==========================================
+        function loadScanHistory() {
+            const actId = document.getElementById('scan-activity').value;
+            const cDate = document.getElementById('scan-date').value;
+            const logUl = document.getElementById('scan-log');
+            const countBadge = document.getElementById('scan-count');
+
+            if(!actId || !cDate) {
+                logUl.innerHTML = '<li class="p-4 text-center text-gray-400 text-sm">รอรับการสแกน...</li>';
+                countBadge.innerText = "0 รายการ";
+                return;
+            }
+
+            const actInfo = appData.activities.find(a => a[0] === actId);
+            if(!actInfo) return;
+
+            const isDaily = actInfo[1] === 'รายวัน';
+            let recentLogs = [];
+
+            if(isDaily) {
+                recentLogs = appData.attendance.filter(att => att[1] === cDate && att[3] === actId);
+                recentLogs.reverse(); // ใหม่สุดอยู่บน
+            } else {
+                const thaiDatePrefix = formatDateShortForLog(cDate);
+                recentLogs = appData.scoreLogs.filter(log => log[2] === actId && log[1].includes(thaiDatePrefix));
+                recentLogs.reverse(); // ใหม่สุดอยู่บน
+            }
+
+            logUl.innerHTML = '';
+            if(recentLogs.length === 0) {
+                logUl.innerHTML = '<li class="p-4 text-center text-gray-400 text-sm">ยังไม่มีประวัติในวันนี้</li>';
+                countBadge.innerText = "0 รายการ";
+                return;
+            }
+
+            recentLogs.forEach(log => {
+                let studentId = isDaily ? log[5] : log[4];
+                let badgeText = isDaily ? log[9] : `+${log[8]} คะแนน`;
+                let timeText = isDaily ? log[2] : log[1].split(' ')[1] || log[1];
+
+                const student = appData.students.find(s => s[0] === studentId);
+                if(student) {
+                    const rawImgUrl = student[5] ? student[5].trim() : '';
+                    const imgUrl = rawImgUrl ? getDirectImageUrl(rawImgUrl) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(student[3])}&backgroundColor=e2e8f0`;
+
+                    const li = document.createElement('li');
+                    li.className = "p-3 flex justify-between items-center bg-white border-l-4 border-indigo-500 mb-2 rounded-r-xl shadow-sm";
+                    li.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-gray-100 overflow-hidden shadow-inner">
+                                 <img src="${imgUrl}" class="w-full h-full object-cover">
+                            </div>
+                            <div>
+                                <p class="font-bold text-sm text-gray-800">${student[3]}</p>
+                                <p class="text-xs text-gray-500">ห้อง ${student[4]} | <i class="far fa-clock"></i> ${timeText}</p>
+                            </div>
+                        </div>
+                        <span class="font-bold text-md text-indigo-700 bg-indigo-50 px-3 py-1 rounded-lg shadow-sm border border-indigo-100">${badgeText}</span>
+                    `;
+                    logUl.appendChild(li);
+                }
+            });
+            countBadge.innerText = recentLogs.length + " รายการ";
         }
 
         // Settings Modal
@@ -1035,10 +1114,11 @@
 
         async function handleBarcodeInput(e) {
             if (e.key === 'Enter') { 
-                e.preventDefault(); 
+                e.preventDefault(); // ป้องกันการ Submit form หรือกดปุ่มอื่นอัตโนมัติ
+                
+                let code = e.target.value.trim();
                 
                 // ดักจับภาษาไทยที่เกิดจากการลืมเปลี่ยนภาษาคีย์บอร์ดตอนยิงบาร์โค้ด
-                let code = e.target.value.trim();
                 const thToEnMap = { 'จ':'0', 'ๅ':'1', '/':'2', '-':'3', 'ภ':'4', 'ถ':'5', 'ุ':'6', 'ึ':'7', 'ค':'8', 'ต':'9', 'ๆ':'q', 'ไ':'w', 'ำ':'e', 'พ':'r', 'ะ':'t', 'ั':'y', 'ี':'u', 'ร':'i', 'น':'o', 'ย':'p', 'บ':'[', 'ล':']', 'ฟ':'a', 'ห':'s', 'ก':'d', 'ด':'f', 'เ':'g', '้':'h', '่':'j', 'า':'k', 'ส':'l', 'ว':';', 'ง':'\'', 'ผ':'z', 'ป':'x', 'แ':'c', 'อ':'v', 'ิ':'b', 'ื':'n', 'ท':'m', 'ม':',', 'ใ':'.', 'ฝ':'/' };
                 
                 let isThai = false;
@@ -1060,7 +1140,7 @@
                     if(isScanningProcess) return; 
                     isScanningProcess = true;
                     try { 
-                        // ใช้ SetTimeout นิดนึงเพื่อให้หน้าจอไม่กระตุกตอนที่บาร์โค้ดส่ง Enter มารัวๆ
+                        // หน่วงเวลาเล็กน้อยให้ Event สงบก่อนโชว์ Popup
                         setTimeout(async () => {
                             await processScan(code); 
                         }, 50);
@@ -1068,79 +1148,6 @@
                     setTimeout(() => { isScanningProcess = false; }, 1000);
                 }
             }
-        }
-
-        // 🚀 อัปเดตฟังก์ชันดึงประวัติการสแกนล่าสุดมาแสดง (Load Scan History)
-        function loadScanHistory() {
-            const actId = document.getElementById('scan-activity').value;
-            const cDate = document.getElementById('scan-date').value;
-            const logUl = document.getElementById('scan-log');
-            const countBadge = document.getElementById('scan-count');
-            
-            if(!actId || !cDate) {
-                logUl.innerHTML = '<li class="p-4 text-center text-gray-400 text-sm">รอรับการสแกน...</li>';
-                countBadge.innerText = "0 รายการ";
-                return;
-            }
-
-            const actInfo = appData.activities.find(a => a[0] === actId);
-            if(!actInfo) return;
-            
-            const isDaily = actInfo[1] === 'รายวัน';
-            let recentLogs = [];
-
-            if(isDaily) {
-                // โหมดเช็คชื่อ ดึงจาก Attendance
-                recentLogs = appData.attendance.filter(att => att[1] === cDate && att[3] === actId);
-                recentLogs.sort((a,b) => new Date(cDate + ' ' + b[2]) - new Date(cDate + ' ' + a[2]));
-            } else {
-                // โหมดคะแนน ดึงจาก ScoreLogs
-                recentLogs = appData.scoreLogs.filter(log => log[2] === actId && log[1].includes(formatDateShortForLog(cDate)));
-                recentLogs.sort((a,b) => new Date(b[1]) - new Date(a[1]));
-            }
-
-            logUl.innerHTML = '';
-            
-            if(recentLogs.length === 0) {
-                logUl.innerHTML = '<li class="p-4 text-center text-gray-400 text-sm">ยังไม่มีประวัติในวันนี้</li>';
-                countBadge.innerText = "0 รายการ";
-                return;
-            }
-
-            // นำข้อมูลมาวาดเป็น List UI
-            recentLogs.forEach(log => {
-                let studentId = isDaily ? log[5] : log[4];
-                let badgeText = isDaily ? log[9] : `+${log[8]} คะแนน`;
-                let timeText = isDaily ? log[2] : log[1].split(' ')[1] || log[1];
-                
-                const student = appData.students.find(s => s[0] === studentId);
-                if(student) {
-                    const li = document.createElement('li');
-                    li.className = "p-3 flex justify-between items-center bg-white border-l-4 border-indigo-500 mb-2 rounded-r-xl shadow-sm";
-                    li.innerHTML = `
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-full bg-gray-100 overflow-hidden shadow-inner">
-                                 <img src="${student[5] ? getDirectImageUrl(student[5]) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(student[3])}&backgroundColor=e2e8f0`}" class="w-full h-full object-cover">
-                            </div>
-                            <div>
-                                <p class="font-bold text-sm text-gray-800">${student[3]}</p>
-                                <p class="text-xs text-gray-500">ห้อง ${student[4]} | <i class="far fa-clock"></i> ${timeText}</p>
-                            </div>
-                        </div>
-                        <span class="font-bold text-md text-indigo-700 bg-indigo-50 px-3 py-1 rounded-lg shadow-sm border border-indigo-100">${badgeText}</span>
-                    `;
-                    logUl.appendChild(li);
-                }
-            });
-            
-            countBadge.innerText = recentLogs.length + " รายการ";
-        }
-
-        // ตัวช่วยแปลงวันที่สำหรับ ScoreLog
-        function formatDateShortForLog(dateStr) {
-            if(!dateStr) return '';
-            const d = new Date(dateStr);
-            return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear() + 543}`;
         }
 
         async function processScan(code) {
@@ -1173,12 +1180,12 @@
             if (isDaily) {
                 htmlContent += `
                     <div class="grid grid-cols-2 gap-2">
-                        <button onclick="submitDaily('${student[0]}', 'มา')" class="swal2-confirm bg-green-500 text-white rounded p-3 font-bold hover:bg-green-600">มาเรียน</button>
-                        <button onclick="submitDaily('${student[0]}', 'สาย')" class="swal2-confirm bg-yellow-500 text-white rounded p-3 font-bold hover:bg-yellow-600">สาย</button>
-                        <button onclick="submitDaily('${student[0]}', 'ลา')" class="swal2-confirm bg-orange-500 text-white rounded p-3 font-bold hover:bg-orange-600">ลา</button>
-                        <button onclick="submitDaily('${student[0]}', 'ขาด')" class="swal2-confirm bg-red-500 text-white rounded p-3 font-bold hover:bg-red-600">ขาด</button>
+                        <button type="button" onclick="submitDaily('${student[0]}', 'มา')" class="swal2-confirm bg-green-500 text-white rounded p-3 font-bold hover:bg-green-600">มาเรียน</button>
+                        <button type="button" onclick="submitDaily('${student[0]}', 'สาย')" class="swal2-confirm bg-yellow-500 text-white rounded p-3 font-bold hover:bg-yellow-600">สาย</button>
+                        <button type="button" onclick="submitDaily('${student[0]}', 'ลา')" class="swal2-confirm bg-orange-500 text-white rounded p-3 font-bold hover:bg-orange-600">ลา</button>
+                        <button type="button" onclick="submitDaily('${student[0]}', 'ขาด')" class="swal2-confirm bg-red-500 text-white rounded p-3 font-bold hover:bg-red-600">ขาด</button>
                     </div>`;
-                // ป้องกัน Enter รัวๆ จากปืนยิงบาร์โค้ด
+                // allowEnterKey: false prevents scanner from accidentally submitting/closing
                 Swal.fire({ title: 'เช็คชื่อรายวัน', html: htmlContent, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'ยกเลิก', allowEnterKey: false });
             } else {
                 let studentLogs = [];
@@ -1198,19 +1205,18 @@
                     </div>
                     <div class="text-left bg-gray-50 p-3 rounded-xl border border-gray-200">
                         <div class="flex justify-center gap-2 mb-3">
-                            <button onclick="document.getElementById('swal-score').value=1" class="flex-1 bg-green-100 text-green-700 py-2 rounded-lg font-bold hover:bg-green-200">+1</button>
-                            <button onclick="document.getElementById('swal-score').value=2" class="flex-1 bg-green-100 text-green-700 py-2 rounded-lg font-bold hover:bg-green-200">+2</button>
-                            <button onclick="document.getElementById('swal-score').value=5" class="flex-1 bg-blue-100 text-blue-700 py-2 rounded-lg font-bold hover:bg-blue-200">+5</button>
-                            <button onclick="document.getElementById('swal-score').value=-1" class="flex-1 bg-red-100 text-red-700 py-2 rounded-lg font-bold hover:bg-red-200">-1</button>
+                            <button type="button" onclick="document.getElementById('swal-score').value=1" class="flex-1 bg-green-100 text-green-700 py-2 rounded-lg font-bold hover:bg-green-200">+1</button>
+                            <button type="button" onclick="document.getElementById('swal-score').value=2" class="flex-1 bg-green-100 text-green-700 py-2 rounded-lg font-bold hover:bg-green-200">+2</button>
+                            <button type="button" onclick="document.getElementById('swal-score').value=5" class="flex-1 bg-blue-100 text-blue-700 py-2 rounded-lg font-bold hover:bg-blue-200">+5</button>
+                            <button type="button" onclick="document.getElementById('swal-score').value=-1" class="flex-1 bg-red-100 text-red-700 py-2 rounded-lg font-bold hover:bg-red-200">-1</button>
                         </div>
                         <label class="block text-sm font-bold text-gray-700">ระบุคะแนน (+ หรือ -)</label>
                         <input type="number" id="swal-score" class="w-full border-2 border-indigo-300 rounded-lg p-3 text-center text-2xl font-bold text-indigo-700 outline-none focus:border-indigo-500 mt-2" autofocus placeholder="+1" onkeypress="if(event.key==='Enter') { event.preventDefault(); document.getElementById('swal-btn-save').click(); }">
                         <label class="block text-sm font-bold text-gray-700 mt-3">หมายเหตุ (ถ้ามี)</label>
                         <input type="text" id="swal-note" class="w-full border border-gray-300 rounded-lg p-2 text-sm outline-none focus:border-indigo-500 mt-1" placeholder="เช่น ตอบคำถามในห้อง" onkeypress="if(event.key==='Enter') { event.preventDefault(); document.getElementById('swal-btn-save').click(); }">
                     </div>
-                    <button id="swal-btn-save" onclick="submitScoreLog('${student[0]}')" class="w-full mt-4 bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700">บันทึกคะแนน</button>`;
+                    <button type="button" id="swal-btn-save" onclick="submitScoreLog('${student[0]}')" class="w-full mt-4 bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700">บันทึกคะแนน</button>`;
                 
-                // ป้องกัน Enter รัวๆ จากปืนยิงบาร์โค้ด
                 Swal.fire({ title: 'บันทึกคะแนน', html: htmlContent, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'ยกเลิก', allowEnterKey: false, didOpen: () => { setTimeout(()=>document.getElementById('swal-score').focus(), 100); } });
             }
         }
@@ -1223,10 +1229,12 @@
             const studentInfo = appData.students.find(s => s[0] === studentId);
             
             const data = { studentId, activityId: actId, date, value, userId: currentUser.id, actName: actInfo ? `[${actInfo[2]}] ${actInfo[3]}` : "", stdNum: studentInfo ? studentInfo[1] : "", stdName: studentInfo ? studentInfo[3] : "", stdClass: studentInfo ? studentInfo[4] : "" };
+            
             appData.attendance.push(['mock_' + Date.now(), date, new Date().toLocaleTimeString(), actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, value, currentUser.id]);
             
-            updateScanLogUI(studentId, value); // วาดกราฟิกให้เด้ง
-            loadScanHistory(); // ดึงประวัติมาโชว์ขวามือใหม่
+            // Refresh Scan History UI
+            loadScanHistory();
+            setTimeout(() => document.getElementById('barcode-input').focus(), 300);
 
             try { await api.call('saveScanRecord', data); } catch(e) { console.error("Sync Failed", e); }
         }
@@ -1248,26 +1256,14 @@
             const tempLogId = 'temp_' + Date.now();
             appData.scoreLogs.push([tempLogId, timestamp, actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, points, note, currentUser.id]);
             
-            updateScanLogUI(studentId, `+${points} คะแนน`); // วาดกราฟิกให้เด้ง
-            loadScanHistory(); // ดึงประวัติมาโชว์ขวามือใหม่
+            // Refresh Scan History UI
+            loadScanHistory();
+            setTimeout(() => document.getElementById('barcode-input').focus(), 300);
             
             try {
                 const res = await api.call('saveScoreLog', data);
                 if(res.status === 'success') { const log = appData.scoreLogs.find(l => l[0] === tempLogId); if(log) log[0] = res.logId; }
             } catch(e) { console.error("Sync Failed", e); }
-        }
-
-        // ดัก Error ในฝั่งแสดงผล เพื่อไม่ให้โค้ดหลักหยุดทำงาน
-        function updateScanLogUI(studentId, badgeText) {
-            try {
-                const student = appData.students.find(s => s[0] == studentId);
-                const logUl = document.getElementById('scan-log');
-                if(logUl.innerHTML.includes('รอรับการสแกน') || logUl.innerHTML.includes('ยังไม่มีประวัติในวันนี้')) logUl.innerHTML = '';
-                
-                // ไม่ต้องสร้าง UI ซ้ำตรงนี้แล้ว เพราะฟังก์ชัน loadScanHistory() จัดการให้หมดแล้ว
-                // เราแค่เรียก focus กลับไปที่ input เฉยๆ
-                setTimeout(() => document.getElementById('barcode-input').focus(), 300);
-            } catch (error) { console.error("UI Log Error: ", error); }
         }
 
         // Check Group
@@ -1424,38 +1420,26 @@
         function openCardScorePopup(studentId, studentName, isDaily) {
             const actId = document.getElementById('chk-activity').value;
             const studentInfo = appData.students.find(s => s[0] === studentId);
-            const rawImgUrl = studentInfo && studentInfo[5] ? studentInfo[5].trim() : '';
-            const imgUrl = rawImgUrl ? getDirectImageUrl(rawImgUrl) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(studentName)}&backgroundColor=e2e8f0`;
 
             if (isDaily) {
                 Swal.fire({
+                    title: `เช็คชื่อ: ${studentName}`,
                     html: `
-                        <div class="flex flex-col items-center mb-4">
-                            <div class="w-20 h-20 bg-gray-100 rounded-full mb-2 flex items-center justify-center border-4 border-indigo-100 overflow-hidden shadow-sm">
-                                <img src="${imgUrl}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(studentName)}&backgroundColor=e2e8f0'">
-                            </div>
-                            <div class="text-center">
-                                <h3 class="text-xl font-bold">${studentName}</h3>
-                                <p class="text-xs text-gray-500">เลขที่ ${studentInfo ? studentInfo[1] : '-'} | ห้อง ${studentInfo ? studentInfo[4] : '-'}</p>
-                            </div>
-                        </div>
-                        <h4 class="font-bold text-gray-700">เลือกสถานะวันนี้</h4>
                         <div class="grid grid-cols-2 gap-2 mt-4">
-                            <button onclick="submitCardDaily('${studentId}', 'มา')" class="bg-green-500 text-white rounded-xl p-3 font-bold hover:bg-green-600 transition shadow">มาเรียน</button>
-                            <button onclick="submitCardDaily('${studentId}', 'สาย')" class="bg-yellow-500 text-white rounded-xl p-3 font-bold hover:bg-yellow-600 transition shadow">สาย</button>
-                            <button onclick="submitCardDaily('${studentId}', 'ลา')" class="bg-orange-500 text-white rounded-xl p-3 font-bold hover:bg-orange-600 transition shadow">ลา</button>
-                            <button onclick="submitCardDaily('${studentId}', 'ขาด')" class="bg-red-500 text-white rounded-xl p-3 font-bold hover:bg-red-600 transition shadow">ขาด</button>
+                            <button type="button" onclick="submitCardDaily('${studentId}', 'มา')" class="bg-green-500 text-white rounded-xl p-3 font-bold hover:bg-green-600 transition shadow">มาเรียน</button>
+                            <button type="button" onclick="submitCardDaily('${studentId}', 'สาย')" class="bg-yellow-500 text-white rounded-xl p-3 font-bold hover:bg-yellow-600 transition shadow">สาย</button>
+                            <button type="button" onclick="submitCardDaily('${studentId}', 'ลา')" class="bg-orange-500 text-white rounded-xl p-3 font-bold hover:bg-orange-600 transition shadow">ลา</button>
+                            <button type="button" onclick="submitCardDaily('${studentId}', 'ขาด')" class="bg-red-500 text-white rounded-xl p-3 font-bold hover:bg-red-600 transition shadow">ขาด</button>
                         </div>
                     `,
-                    showConfirmButton: false, showCancelButton: true, cancelButtonText: 'ปิดหน้าต่าง', allowEnterKey: false
+                    showConfirmButton: false, showCancelButton: true, cancelButtonText: 'ยกเลิก'
                 });
             } else {
                 renderScorePopupContent(studentId, studentName, actId);
             }
         }
 
-        // แยกฟังก์ชันแสดง Popup คะแนน เพื่อให้มันอัปเดตตัวเองได้โดยไม่ต้องโหลดเว็บใหม่
-        window.renderScorePopupContent = function(studentId, studentName, actId) {
+        function renderScorePopupContent(studentId, studentName, actId) {
             const studentInfo = appData.students.find(s => s[0] === studentId);
             let studentLogs = [];
             
@@ -1488,8 +1472,8 @@
                             </div>
                             <div class="flex gap-2 items-center">
                                 <span class="font-bold text-xs px-2 py-0.5 rounded ${pointClass}">${pointNum > 0 ? '+'+log[8] : log[8]}</span>
-                                <button onclick="editInlineScore('${log[0]}', '${log[8]}', '${studentId}', '${safeSName}', '${actId}')" class="text-blue-400"><i class="fas fa-edit text-[10px]"></i></button>
-                                <button onclick="deleteInlineScore('${log[0]}', '${studentId}', '${safeSName}', '${actId}')" class="text-red-400"><i class="fas fa-trash text-[10px]"></i></button>
+                                <button type="button" onclick="editInlineScore('${log[0]}', '${log[8]}', '${studentId}', '${safeSName}', '${actId}')" class="text-blue-400"><i class="fas fa-edit text-[10px]"></i></button>
+                                <button type="button" onclick="deleteInlineScore('${log[0]}', '${studentId}', '${safeSName}', '${actId}')" class="text-red-400"><i class="fas fa-trash text-[10px]"></i></button>
                             </div>
                         </div>`;
                 });
@@ -1515,17 +1499,17 @@
                 </div>
                 <div class="text-left bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
                     <div class="flex justify-center gap-2 mb-3">
-                        <button onclick="document.getElementById('swal-score').value=1" class="flex-1 bg-green-50 text-green-700 py-2 rounded-lg font-bold hover:bg-green-100 border border-green-100 transition">+1</button>
-                        <button onclick="document.getElementById('swal-score').value=2" class="flex-1 bg-green-50 text-green-700 py-2 rounded-lg font-bold hover:bg-green-100 border border-green-100 transition">+2</button>
-                        <button onclick="document.getElementById('swal-score').value=5" class="flex-1 bg-blue-50 text-blue-700 py-2 rounded-lg font-bold hover:bg-blue-100 border border-blue-100 transition">+5</button>
-                        <button onclick="document.getElementById('swal-score').value=-1" class="flex-1 bg-red-50 text-red-700 py-2 rounded-lg font-bold hover:bg-red-100 border border-red-100 transition">-1</button>
+                        <button type="button" onclick="document.getElementById('swal-score').value=1" class="flex-1 bg-green-50 text-green-700 py-2 rounded-lg font-bold hover:bg-green-100 border border-green-100 transition">+1</button>
+                        <button type="button" onclick="document.getElementById('swal-score').value=2" class="flex-1 bg-green-50 text-green-700 py-2 rounded-lg font-bold hover:bg-green-100 border border-green-100 transition">+2</button>
+                        <button type="button" onclick="document.getElementById('swal-score').value=5" class="flex-1 bg-blue-50 text-blue-700 py-2 rounded-lg font-bold hover:bg-blue-100 border border-blue-100 transition">+5</button>
+                        <button type="button" onclick="document.getElementById('swal-score').value=-1" class="flex-1 bg-red-50 text-red-700 py-2 rounded-lg font-bold hover:bg-red-100 border border-red-100 transition">-1</button>
                     </div>
                     <label class="block text-sm font-bold text-gray-700">ระบุคะแนน (+ หรือ -)</label>
-                    <input type="number" id="swal-score" placeholder="0" class="w-full text-center border-2 border-indigo-200 rounded-xl p-3 text-2xl font-bold outline-none focus:border-indigo-500 mb-3 shadow-inner bg-gray-50" autofocus onkeypress="if(event.key==='Enter') window.submitScoreLog('${studentId}', '${actId}')">
+                    <input type="number" id="swal-score" placeholder="0" class="w-full text-center border-2 border-indigo-200 rounded-xl p-3 text-2xl font-bold outline-none focus:border-indigo-500 mb-3 shadow-inner bg-gray-50" autofocus onkeypress="if(event.key==='Enter') { event.preventDefault(); window.submitCardScoreBtn('${studentId}', '${actId}'); }">
                     <label class="block text-sm font-bold text-gray-700 mt-1">หมายเหตุ (ถ้ามี)</label>
-                    <input type="text" id="swal-note" placeholder="เช่น ตอบคำถาม" class="w-full px-3 py-2 border border-gray-200 bg-gray-50 rounded-lg outline-none focus:border-indigo-500 text-sm" onkeypress="if(event.key==='Enter') window.submitScoreLog('${studentId}', '${actId}')">
+                    <input type="text" id="swal-note" placeholder="เช่น ตอบคำถาม" class="w-full px-3 py-2 border border-gray-200 bg-gray-50 rounded-lg outline-none focus:border-indigo-500 text-sm" onkeypress="if(event.key==='Enter') { event.preventDefault(); window.submitCardScoreBtn('${studentId}', '${actId}'); }">
                 </div>
-                <button onclick="window.submitScoreLog('${studentId}', '${actId}')" class="w-full mt-4 bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 shadow-lg transition transform hover:-translate-y-0.5">บันทึกคะแนน</button>
+                <button type="button" onclick="window.submitCardScoreBtn('${studentId}', '${actId}')" class="w-full mt-4 bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 shadow-lg transition transform hover:-translate-y-0.5">บันทึกคะแนน</button>
                 ${historyHtml}
             `;
             
@@ -1537,6 +1521,37 @@
                 allowEnterKey: false, 
                 didOpen: () => { setTimeout(()=> { const el = document.getElementById('swal-score'); if(el) el.focus(); }, 100); }
             });
+        }
+
+        window.submitCardScoreBtn = async function(studentId, actId) {
+            const popup = Swal.getPopup();
+            if(!popup) return;
+            const points = popup.querySelector('#swal-score').value;
+            const note = popup.querySelector('#swal-note').value;
+            if(points === "") return Swal.showValidationMessage('กรุณากรอกคะแนน');
+
+            const timestamp = new Date().toLocaleString('th-TH');
+            const actInfo = appData.activities.find(a => a[0] === actId);
+            const studentInfo = appData.students.find(s => s[0] === studentId);
+
+            const data = { 
+                studentId, activityId: actId, points, note, timestamp, userId: currentUser.id,
+                actName: actInfo ? `[${actInfo[2]}] ${actInfo[3]}` : "",
+                stdNum: studentInfo ? studentInfo[1] : "", stdName: studentInfo ? studentInfo[3] : "", stdClass: studentInfo ? studentInfo[4] : ""
+            };
+            
+            playSound('success');
+            
+            const tempLogId = 'temp_' + Date.now();
+            appData.scoreLogs.push([tempLogId, timestamp, actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, points, note, currentUser.id]);
+            loadBulkTable(); 
+            renderScorePopupContent(studentId, studentInfo ? studentInfo[3] : "ไม่มีชื่อ", actId);
+            Swal.fire({ title: 'สำเร็จ', text: `เพิ่ม ${points} คะแนน เรียบร้อย`, icon: 'success', timer: 1500, showConfirmButton: false, position: 'top-end', toast: true });
+
+            try {
+                const res = await api.call('saveScoreLog', data);
+                if(res.status === 'success') { const log = appData.scoreLogs.find(l => l[0] === tempLogId); if(log) log[0] = res.logId; }
+            } catch(e) { console.error("Sync Failed", e); }
         }
 
         window.editInlineScore = async function(logId, currentPoints, sId, sName, actId) {
@@ -1587,40 +1602,7 @@
             try { await api.call('saveScanRecord', data); } catch(e) { console.error("Sync Failed", e); }
         }
 
-        window.submitScoreLog = async function(studentId, actId) {
-            const popup = Swal.getPopup();
-            if(!popup) return;
-            const points = popup.querySelector('#swal-score').value;
-            const note = popup.querySelector('#swal-note').value;
-            if(points === "") return Swal.showValidationMessage('กรุณากรอกคะแนน');
-
-            const timestamp = new Date().toLocaleString('th-TH');
-            const actInfo = appData.activities.find(a => a[0] === actId);
-            const studentInfo = appData.students.find(s => s[0] === studentId);
-
-            const data = { 
-                studentId, activityId: actId, points, note, timestamp, userId: currentUser.id,
-                actName: actInfo ? `[${actInfo[2]}] ${actInfo[3]}` : "",
-                stdNum: studentInfo ? studentInfo[1] : "", stdName: studentInfo ? studentInfo[3] : "", stdClass: studentInfo ? studentInfo[4] : ""
-            };
-            
-            playSound('success');
-            
-            const tempLogId = 'temp_' + Date.now();
-            appData.scoreLogs.push([tempLogId, timestamp, actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, points, note, currentUser.id]);
-            loadBulkTable(); 
-            renderScorePopupContent(studentId, studentInfo ? studentInfo[3] : "ไม่มีชื่อ", actId);
-            Swal.fire({ title: 'สำเร็จ', text: `เพิ่ม ${points} คะแนน เรียบร้อย`, icon: 'success', timer: 1500, showConfirmButton: false, position: 'top-end', toast: true });
-
-            try {
-                const res = await api.call('saveScoreLog', data);
-                if(res.status === 'success') { const log = appData.scoreLogs.find(l => l[0] === tempLogId); if(log) log[0] = res.logId; }
-            } catch(e) { console.error("Sync Failed", e); }
-        }
-
-        // =====================================
-        // TAB 3: STUDENTS & HISTORY LOG
-        // =====================================
+        // Student Database 
         function renderStudentTable() {
             const filterClass = document.getElementById('filter-class').value;
             const search = document.getElementById('search-student').value.toLowerCase();
@@ -1648,7 +1630,6 @@
             
             const s = appData.students.find(st => st[0] === studentId);
             let sLogs = [];
-            // --- Smart Match System ---
             for(let l of appData.scoreLogs) { 
                 if(l[4] === studentId || (s && l[5] == s[1] && l[7] === s[4])) {
                     sLogs.push(l); 
@@ -1684,6 +1665,26 @@
                 histBody.innerHTML = html;
             }
             document.getElementById('modal-history').classList.remove('hidden');
+        }
+
+        async function editScoreLog(logId, currentPoints, sId, sName) {
+            const { value: newPoints } = await Swal.fire({ title: 'แก้ไขคะแนน', input: 'number', inputValue: currentPoints, showCancelButton: true, confirmButtonText: 'บันทึก' });
+            if (newPoints && newPoints !== currentPoints) {
+                for(let l of appData.scoreLogs) { if(l[0] === logId) { l[8] = newPoints; break; } }
+                viewStudentHistory(sId, sName); 
+                loadBulkTable(); 
+                try { await api.call('updateScoreLog', logId, newPoints); } catch(e) { console.error("Sync Failed", e); }
+            }
+        }
+
+        async function deleteScoreLog(logId, sId, sName) {
+            const res = await Swal.fire({ title: 'ลบรายการนี้?', text: "คะแนนจะถูกหักออก", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33' });
+            if(res.isConfirmed) {
+                appData.scoreLogs = appData.scoreLogs.filter(l => l[0] !== logId);
+                viewStudentHistory(sId, sName);
+                loadBulkTable();
+                try { await api.call('deleteScoreLog', logId); } catch(e) { console.error("Sync Failed", e); }
+            }
         }
 
         function openStudentModal() {
@@ -1907,7 +1908,6 @@
                 document.getElementById('sum-stats-att').style.display = 'none';
                 document.getElementById('txt-export-btn').innerHTML = '<i class="fas fa-file-excel"></i> Excel';
                 document.getElementById('btn-export-rep').className = "flex-1 bg-green-600 text-white font-bold px-3 py-2 rounded-lg hover:bg-green-700 transition";
-                updateActivityDropdown('sum'); 
             } else {
                 document.getElementById('btn-mode-att').className = "flex-1 md:flex-none px-4 py-2 rounded-lg bg-white shadow-sm text-sm font-bold text-indigo-600 transition";
                 document.getElementById('btn-mode-score').className = "flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-indigo-600 transition";
