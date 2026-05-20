@@ -54,16 +54,12 @@
             body * { visibility: hidden; }
             #print-area, #print-area * { visibility: visible; }
             #print-area { position: absolute; left: 0; top: 0; width: 100%; }
-            
             #print-report-area, #print-report-area * { visibility: visible; }
             #print-report-area { position: absolute; left: 0; top: 0; width: 100%; padding: 20px; }
-            
             .no-print { display: none !important; }
             .print-only { display: block !important; }
             .print-flex { display: flex !important; }
-            
             .glass { background: white !important; border: none !important; box-shadow: none !important; }
-            
             .bg-blue-600 { background-color: #2563eb !important; color: white !important; }
             .bg-green-600 { background-color: #16a34a !important; color: white !important; }
             .bg-red-600 { background-color: #dc2626 !important; color: white !important; }
@@ -236,9 +232,18 @@
                     </div>
                     
                     <div class="bg-white/90 backdrop-blur p-4 rounded-2xl shadow-sm border border-white/50 mb-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <div class="col-span-2 md:col-span-1"><label class="block text-xs text-gray-500 mb-1">วันที่</label><input type="date" id="chk-date" class="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" onchange="loadBulkTable()"></div>
-                        <div class="col-span-2 md:col-span-1"><label class="block text-xs text-gray-500 mb-1">ห้องเรียน</label><select id="chk-class" class="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" onchange="loadBulkTable()"></select></div>
-                        <div class="col-span-2 md:col-span-1"><label class="block text-xs text-gray-500 mb-1">เลือกวิชา</label><select id="chk-subject" class="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-indigo-600 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500" onchange="updateActivityDropdown('chk')"></select></div>
+                        <div class="col-span-2 md:col-span-1">
+                            <label class="block text-xs text-gray-500 mb-1">วันที่</label>
+                            <input type="date" id="chk-date" class="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" onchange="loadBulkTable()">
+                        </div>
+                        <div class="col-span-2 md:col-span-1">
+                            <label class="block text-xs text-gray-500 mb-1">ห้องเรียน</label>
+                            <select id="chk-class" class="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" onchange="loadBulkTable()"></select>
+                        </div>
+                        <div class="col-span-2 md:col-span-1">
+                            <label class="block text-xs text-gray-500 mb-1">เลือกวิชา</label>
+                            <select id="chk-subject" class="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-indigo-600 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500" onchange="updateActivityDropdown('chk')"></select>
+                        </div>
                         <div class="col-span-2 md:col-span-1">
                             <label class="flex justify-between items-center text-xs text-gray-500 mb-1">
                                 <span>ชิ้นงาน/กิจกรรม</span>
@@ -631,17 +636,19 @@
 
     <script>
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvGbkS3y8_hlDu_mSvdDiZeiRgfYrDm0G_k-XuqlzCXEtdFzgAO_C7WIyh9kD2WN05/exec"; 
+        
         let currentUser = null;
         try { currentUser = JSON.parse(localStorage.getItem('att_user')) || null; } catch(e) { localStorage.removeItem('att_user'); }
+        
         let appData = { students: [], activities: [], attendance: [], scoreLogs: [] };
         let html5QrCode = null; 
         let selectedLogoBase64 = null;
         let isScanningProcess = false;
-        let isModalOpen = false;
+        let isModalOpen = false; // ป้องกันป๊อปอัปซ้อนกันและล็อกคีย์บอร์ด
         let currentCheckView = 'table'; 
         let currentReportMode = 'score'; 
 
-        // ระบบแปลวันที่อัจฉริยะแบบลึกสุดขั้ว
+        // ระบบแปลงวันที่ให้ตรง 100% กับรูปแบบที่มนุษย์อ่าน
         function parseCustomDate(dateStr) {
             if (!dateStr) return 0;
             let str = String(dateStr).trim();
@@ -679,16 +686,6 @@
             return 0;
         }
 
-        // ฟังก์ชันอ่านเวลาอย่างเดียว เพื่อเรียงประวัติเช็คชื่อรายวันให้ล่าสุดขึ้นบนสุด
-        function parseTimeOnly(timeStr) {
-            if (!timeStr) return 0;
-            let parts = String(timeStr).trim().split(':');
-            let h = parseInt(parts[0] || 0, 10);
-            let m = parseInt(parts[1] || 0, 10);
-            let s = parseInt(parts[2] || 0, 10);
-            return (h * 3600) + (m * 60) + s;
-        }
-
         function isSameDate(inputDateStr, logDateStr) {
             if (!logDateStr) return false;
             let inParts = inputDateStr.split('-');
@@ -716,6 +713,7 @@
             return false;
         }
 
+        // เช็คการตรงกันของกิจกรรมและเด็กนักเรียน เพื่อนำมาคำนวณหรือโชว์ประวัติ
         const matchRecord = (logActId, logStdId, logStdNum, logClass, targetActId, targetStdId, targetStdNum, targetClass) => {
              return String(logActId).trim() === String(targetActId).trim() &&
                     (String(logStdId).trim() === String(targetStdId).trim() ||
@@ -858,6 +856,7 @@
             showLoader("กำลังซิงค์ข้อมูลจาก Google Sheets...");
             try {
                 appData = await api.call('getAppData');
+                
                 if (appData.students) appData.students = appData.students.filter(row => row && row.length > 3 && String(row[3]).trim() !== "");
                 if (appData.activities) appData.activities = appData.activities.filter(row => row && row.length > 3 && String(row[3]).trim() !== "");
                 if (!appData.scoreLogs) appData.scoreLogs = []; 
@@ -998,8 +997,8 @@
             if (isDaily) {
                 relevantLogs = appData.attendance.filter(att => String(att[3]).trim() === String(actId).trim() && String(att[1]).trim() === String(dateStr).trim());
                 
-                // [แก้บั๊ก] เรียงจากเวลาล่าสุดไปเก่าสุด
-                relevantLogs.sort((a,b) => parseTimeOnly(b[2]) - parseTimeOnly(a[2]));
+                // ให้ Reverse Array เพื่อให้รายชื่อที่เช็คชื่อล่าสุด (อยู่ล่างสุดใน Sheet) เด้งขึ้นมาอยู่ข้างบนสุด
+                relevantLogs = relevantLogs.reverse();
 
                 if (relevantLogs.length === 0) {
                     logUl.innerHTML = '<li class="p-4 text-center text-gray-400 text-sm">ยังไม่มีประวัติในวันนี้</li>';
@@ -1007,7 +1006,7 @@
                 }
 
                 relevantLogs.forEach(log => {
-                    const student = appData.students.find(s => s[0] === log[5] || (s[1] == log[6] && String(s[4]).trim() === String(log[8]).trim()));
+                    const student = appData.students.find(s => String(s[0]).trim() === String(log[5]).trim() || (String(s[1]).trim() === String(log[6]).trim() && String(s[4]).trim() === String(log[8]).trim()));
                     if(!student) return;
                     const val = log[9];
                     
@@ -1029,7 +1028,8 @@
                     return isSameDate(dateStr, String(log[1])); 
                 });
                 
-                relevantLogs.sort((a,b) => parseCustomDate(String(b[1])) - parseCustomDate(String(a[1])));
+                // สำหรับคะแนน ให้ reverse ลำดับเช่นกันเพื่อให้ล่าสุดเด้งบนสุด
+                relevantLogs = relevantLogs.reverse();
 
                 if (relevantLogs.length === 0) {
                     logUl.innerHTML = '<li class="p-4 text-center text-gray-400 text-sm">ยังไม่มีประวัติการให้คะแนนในวันนี้</li>';
@@ -1045,8 +1045,13 @@
                     
                     let timePart = "";
                     const timeStr = String(log[1]).trim();
-                    if (timeStr.includes(' ')) timePart = timeStr.split(' ')[1];
-                    else timePart = timeStr;
+                    if (timeStr.includes(' ')) {
+                        timePart = timeStr.split(' ')[1];
+                    } else if (timeStr.includes(':')) {
+                        timePart = timeStr;
+                    } else {
+                        timePart = "-";
+                    }
 
                     historyHtml += `<li class="p-3 flex justify-between items-center bg-indigo-50 border-l-4 border-indigo-500 mb-1 rounded-r shadow-sm">
                                     <div><p class="font-bold text-sm text-gray-800">${student[3]}</p><p class="text-xs text-gray-500">ชั้น: ${student[4]} | เวลา: ${timePart}</p></div>
@@ -1365,6 +1370,412 @@
                     }
                 });
             }
+        }
+
+        async function submitDaily(studentId, value) {
+            isModalOpen = false; 
+            if(Swal.isVisible()) Swal.close(); 
+            
+            const actId = document.getElementById('scan-activity').value;
+            const date = document.getElementById('scan-date').value;
+            const actInfo = appData.activities.find(a => a[0] === actId);
+            const studentInfo = appData.students.find(s => s[0] === studentId);
+            
+            const data = { studentId, activityId: actId, date, value, userId: currentUser.id, actName: actInfo ? `[${actInfo[2]}] ${actInfo[3]}` : "", stdNum: studentInfo ? studentInfo[1] : "", stdName: studentInfo ? studentInfo[3] : "", stdClass: studentInfo ? studentInfo[4] : "" };
+            
+            appData.attendance.push(['mock_' + Date.now(), date, new Date().toLocaleTimeString('th-TH'), actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, value, currentUser.id]);
+            
+            updateScanLogUI(studentId, value, date); 
+            Swal.fire({ title: 'เช็คชื่อสำเร็จ', text: `${data.stdName} (${value})`, icon: 'success', timer: 1000, showConfirmButton: false, position: 'top-end', toast: true });
+
+            setTimeout(() => {
+                const barcodeInput = document.getElementById('barcode-input');
+                if(barcodeInput) { 
+                    barcodeInput.value = ''; 
+                    if(document.getElementById('tab-scan').classList.contains('active')) {
+                        barcodeInput.focus(); 
+                    }
+                }
+            }, 300);
+
+            try { await api.call('saveScanRecord', data); } catch(e) { console.error("Sync Failed", e); }
+        }
+
+        async function submitScoreLog(studentId) {
+            const points = document.getElementById('swal-score').value;
+            const note = document.getElementById('swal-note').value;
+            if(points === "") return Swal.showValidationMessage('กรุณากรอกคะแนน');
+            
+            isModalOpen = false; 
+            Swal.close(); 
+
+            const actId = document.getElementById('scan-activity').value;
+            const dateVal = document.getElementById('scan-date').value; 
+            const dateParts = dateVal.split('-');
+            const sYear = parseInt(dateParts[0], 10);
+            const sMonth = parseInt(dateParts[1], 10);
+            const sDay = parseInt(dateParts[2], 10);
+            const dNow = new Date();
+            const timeStr = `${String(dNow.getHours()).padStart(2, '0')}:${String(dNow.getMinutes()).padStart(2, '0')}:${String(dNow.getSeconds()).padStart(2, '0')}`;
+            const timestamp = `${String(sDay).padStart(2, '0')}/${String(sMonth).padStart(2, '0')}/${sYear} ${timeStr}`;
+
+            const actInfo = appData.activities.find(a => a[0] === actId);
+            const studentInfo = appData.students.find(s => s[0] === studentId);
+
+            const data = { studentId, activityId: actId, points, note, timestamp, userId: currentUser.id, actName: actInfo ? `[${actInfo[2]}] ${actInfo[3]}` : "", stdNum: studentInfo ? studentInfo[1] : "", stdName: studentInfo ? studentInfo[3] : "", stdClass: studentInfo ? studentInfo[4] : "" };
+            playSound('success');
+
+            const tempLogId = 'temp_' + Date.now();
+            appData.scoreLogs.push([tempLogId, timestamp, actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, points, note, currentUser.id]);
+            
+            // สั่งเรียกโหลดประวัติซ้ำทันทีเมื่อให้คะแนนเสร็จ (Callback)
+            updateScanLogUI(studentId, `+${points} คะแนน`, dateVal);
+            Swal.fire({ title: 'สำเร็จ', text: `เพิ่ม ${points} คะแนน เรียบร้อย`, icon: 'success', timer: 1500, showConfirmButton: false, position: 'top-end', toast: true });
+
+            setTimeout(() => {
+                const barcodeInput = document.getElementById('barcode-input');
+                if(barcodeInput) {
+                    barcodeInput.value = '';
+                    if(document.getElementById('tab-scan').classList.contains('active')) {
+                        barcodeInput.focus();
+                    }
+                }
+            }, 300);
+
+            try {
+                const res = await api.call('saveScoreLog', data);
+                if(res.status === 'success') { 
+                    const log = appData.scoreLogs.find(l => l[0] === tempLogId); 
+                    if(log) log[0] = res.logId; 
+                    if(document.getElementById('tab-scan').classList.contains('active')) loadScanHistory();
+                }
+            } catch(e) { console.error("Sync Failed", e); }
+        }
+
+        function updateScanLogUI(studentId, badgeText, reqDateStr) {
+            try {
+                loadScanHistory();
+            } catch (error) { console.error("UI Log Error: ", error); }
+        }
+
+        // Check Group
+        function setCheckView(view) {
+            currentCheckView = view;
+            if (view === 'table') {
+                document.getElementById('btn-view-table').className = "px-4 py-2 rounded-lg bg-white shadow-sm text-sm font-bold text-indigo-600 transition";
+                document.getElementById('btn-view-card').className = "px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-indigo-600 transition";
+                document.getElementById('chk-table-view').classList.remove('hidden'); document.getElementById('chk-card-view').classList.add('hidden');
+            } else {
+                document.getElementById('btn-view-card').className = "px-4 py-2 rounded-lg bg-white shadow-sm text-sm font-bold text-indigo-600 transition";
+                document.getElementById('btn-view-table').className = "px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-indigo-600 transition";
+                document.getElementById('chk-table-view').classList.add('hidden'); document.getElementById('chk-card-view').classList.remove('hidden');
+            }
+            loadBulkTable();
+        }
+
+        // =====================================
+        // ฟังก์ชันหัวใจสำคัญ: จัดการแก้บั๊กโหลดข้อมูลในตาราง/การ์ด
+        // =====================================
+        function loadBulkTable() {
+            try {
+                const cClass = document.getElementById('chk-class').value;
+                const cActId = document.getElementById('chk-activity').value;
+                const cDate = document.getElementById('chk-date').value;
+                const tbody = document.getElementById('chk-tbody');
+                const cardView = document.getElementById('chk-card-view');
+                
+                if(!cClass || !cActId) {
+                    tbody.innerHTML = '<tr><td colspan="3" class="py-8 text-center text-gray-500">กรุณาเลือกห้องเรียนและกิจกรรม</td></tr>';
+                    cardView.innerHTML = '<div class="col-span-full py-8 text-center text-gray-500 bg-white/90 rounded-2xl border border-white/50">กรุณาเลือกห้องเรียนและกิจกรรม</div>';
+                    document.getElementById('chk-bulk-actions').style.display = 'none'; 
+                    return;
+                }
+
+                const actOpt = document.getElementById('chk-activity').options[document.getElementById('chk-activity').selectedIndex];
+                const isDaily = actOpt.getAttribute('data-type') === 'รายวัน';
+                
+                document.getElementById('chk-input-header').innerHTML = isDaily ? "สถานะ (เช็คชื่อ)" : `
+                    <div class="flex items-center justify-center gap-2">
+                        <span class="text-xs font-normal text-gray-500">ให้คะแนนทุกคน:</span>
+                        <input type="number" id="master-score-input" class="w-16 px-2 py-1 border border-gray-200 rounded text-center text-sm font-bold text-indigo-700 outline-none focus:ring-2" placeholder="คะแนน">
+                        <button onclick="applyMasterScore()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded text-xs font-bold transition shadow-sm">นำไปใช้</button>
+                    </div>
+                `;
+                document.getElementById('chk-bulk-actions').style.display = 'flex';
+
+                const filteredStudents = appData.students.filter(s => String(s[4]).trim() === String(cClass).trim()).sort((a,b) => parseInt(a[1]) - parseInt(b[1]));
+                
+                if (filteredStudents.length === 0) {
+                     tbody.innerHTML = '<tr><td colspan="3" class="py-8 text-center text-gray-500">ไม่มีรายชื่อนักเรียนในห้องนี้</td></tr>';
+                     cardView.innerHTML = '<div class="col-span-full py-8 text-center text-gray-500 bg-white/90 rounded-2xl border border-white/50">ไม่มีรายชื่อนักเรียนในห้องนี้</div>';
+                     return;
+                }
+
+                // 1. อัปเดต Table View 
+                tbody.innerHTML = filteredStudents.map(s => {
+                    let currentVal = '';
+                    if (isDaily) {
+                        const attLogs = appData.attendance.filter(att => att[1] === cDate && att[3] === cActId && (att[5] === s[0] || (att[6] == s[1] && att[8] === s[4])));
+                        if (attLogs.length > 0) currentVal = attLogs[attLogs.length - 1][9];
+                    }
+
+                    let inputHtml = isDaily ? 
+                        `<select class="bulk-input w-full px-2 py-1.5 border border-gray-200 rounded bg-white text-sm focus:ring-2 outline-none shadow-sm" data-sid="${s[0]}">
+                            <option value="" ${currentVal === '' ? 'selected' : ''}>-- เลือก --</option>
+                            <option value="มา" ${currentVal === 'มา' ? 'selected' : ''}>มา</option>
+                            <option value="สาย" ${currentVal === 'สาย' ? 'selected' : ''}>สาย</option>
+                            <option value="ลา" ${currentVal === 'ลา' ? 'selected' : ''}>ลา</option>
+                            <option value="ขาด" ${currentVal === 'ขาด' ? 'selected' : ''}>ขาด</option>
+                        </select>` : 
+                        `<input type="number" class="bulk-input w-full px-2 py-1.5 border border-gray-200 rounded bg-white text-center font-bold text-indigo-700 outline-none focus:ring-2 shadow-sm" data-sid="${s[0]}" placeholder="คะแนน">`;
+                    return `<tr class="hover:bg-gray-50/50"><td class="py-2 px-4 text-center font-bold text-gray-600">${s[1]}</td><td class="py-2 px-4 font-medium text-gray-800">${s[3]}</td><td class="py-2 px-4">${inputHtml}</td></tr>`;
+                }).join('');
+
+                // 2. อัปเดต Card View
+                cardView.innerHTML = filteredStudents.map(s => {
+                    let scoreDisplay = '';
+
+                    if (isDaily) {
+                        let currentVal = '';
+                        const attLogs = appData.attendance.filter(att => att[1] === cDate && att[3] === cActId && (att[5] === s[0] || (att[6] == s[1] && att[8] === s[4])));
+                        if (attLogs.length > 0) currentVal = attLogs[attLogs.length - 1][9];
+
+                        if (currentVal === 'มา') scoreDisplay = `<div class="mt-2 text-green-600 font-bold text-sm bg-green-50 rounded-full py-1.5 shadow-sm border border-green-100 w-[90%] mx-auto">มาเรียน</div>`;
+                        else if (currentVal === 'สาย') scoreDisplay = `<div class="mt-2 text-yellow-600 font-bold text-sm bg-yellow-50 rounded-full py-1.5 shadow-sm border border-yellow-100 w-[90%] mx-auto">สาย</div>`;
+                        else if (currentVal === 'ลา') scoreDisplay = `<div class="mt-2 text-orange-600 font-bold text-sm bg-orange-50 rounded-full py-1.5 shadow-sm border border-orange-100 w-[90%] mx-auto">ลา</div>`;
+                        else if (currentVal === 'ขาด') scoreDisplay = `<div class="mt-2 text-red-600 font-bold text-sm bg-red-50 rounded-full py-1.5 shadow-sm border border-red-100 w-[90%] mx-auto">ขาด</div>`;
+                        else scoreDisplay = `<div class="mt-2 text-indigo-600 font-bold text-sm bg-indigo-50 rounded-full py-1.5 shadow-sm border border-indigo-100 w-[90%] mx-auto">ยังไม่เช็ค</div>`;
+                    } else {
+                        // แก้บั๊กตัวแปรคะแนนที่ทำให้หน้าค้าง (แก้ตรงนี้)
+                        let sumScore = 0;
+                        if (appData.scoreLogs) {
+                            for(let log of appData.scoreLogs) { 
+                                const matchAct = String(log[2]).trim() === String(cActId).trim() || String(log[3]).trim() === String(actOpt.text).trim();
+                                const matchStd = matchRecord(log[2], log[4], log[5], log[7], cActId, s[0], s[1], s[4]);
+                                if(matchAct && matchStd) {
+                                    let pts = parseFloat(log[8]);
+                                    if(!isNaN(pts)) sumScore += pts; 
+                                }
+                            }
+                        }
+                        scoreDisplay = `<div class="mt-2 text-indigo-600 font-bold text-sm bg-indigo-50 rounded-full py-1.5 shadow-sm border border-indigo-100 mx-auto w-[90%]">${sumScore} คะแนน</div>`;
+                    }
+                    
+                    const rawImgUrl = s[5] ? s[5].trim() : '';
+                    const imgUrl = rawImgUrl ? getDirectImageUrl(rawImgUrl) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(s[3])}&backgroundColor=e2e8f0`;
+                    const safeName = s[3] ? s[3].replace(/'/g, "\\'") : "ไม่มีชื่อ";
+                    const dailyFlag = isDaily ? 'true' : 'false';
+
+                    return `
+                    <div onclick="openCardScorePopup('${s[0]}', '${safeName}', ${dailyFlag})" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer hover:shadow-md hover:-translate-y-1 transition transform duration-200 pb-3">
+                        <div class="h-28 bg-indigo-50/50 relative overflow-hidden flex justify-center items-center">
+                            <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center border-4 border-white overflow-hidden shadow-sm z-10">
+                                <img src="${imgUrl}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(s[3])}&backgroundColor=e2e8f0'">
+                            </div>
+                            <div class="absolute bottom-2 right-2 z-20">
+                                <span class="text-white font-bold text-[10px] bg-indigo-500 px-2 py-0.5 rounded-md shadow-sm">เลขที่ ${s[1]}</span>
+                            </div>
+                        </div>
+                        <div class="p-2 text-center bg-white flex flex-col items-center">
+                            <p class="font-bold text-sm text-gray-800 line-clamp-1 w-full px-1">${s[3]}</p>
+                            ${scoreDisplay}
+                        </div>
+                    </div>`;
+                }).join('');
+            } catch (err) {
+                console.error("Error in loadBulkTable:", err);
+                document.getElementById('chk-tbody').innerHTML = `<tr><td colspan="3" class="py-8 text-center text-red-500">เกิดข้อผิดพลาดในการโหลดข้อมูล โปรดรีเฟรชหน้าจอ</td></tr>`;
+            }
+        }
+
+        function applyMasterScore() {
+            const val = document.getElementById('master-score-input').value;
+            if(val === '') return;
+            document.querySelectorAll('.bulk-input').forEach(el => el.value = val);
+        }
+
+        function bulkMark(val) { document.querySelectorAll('.bulk-input').forEach(el => el.value = val === '0' ? '' : val); }
+
+        async function saveBulkData() {
+            const records = Array.from(document.querySelectorAll('.bulk-input')).filter(el => el.value !== "").map(el => {
+                const sid = el.getAttribute('data-sid'); const studentInfo = appData.students.find(s => s[0] === sid);
+                return { studentId: sid, value: el.value, stdNum: studentInfo ? studentInfo[1] : "", stdName: studentInfo ? studentInfo[3] : "", stdClass: studentInfo ? studentInfo[4] : "" };
+            });
+
+            if(records.length === 0) return Swal.fire('เตือน', 'ไม่มีข้อมูลให้บันทึก', 'warning');
+            const actId = document.getElementById('chk-activity').value;
+            const actOpt = document.getElementById('chk-activity').options[document.getElementById('chk-activity').selectedIndex];
+            const isDaily = actOpt.getAttribute('data-type') === 'รายวัน';
+            const actInfo = appData.activities.find(a => a[0] === actId);
+            const actNameStr = actInfo ? `[${actInfo[2]}] ${actInfo[3]}` : "";
+            const tempBatchId = 'batch_' + Date.now();
+
+            if (isDaily) {
+                const date = document.getElementById('chk-date').value;
+                records.forEach(r => { appData.attendance.push(['mock_'+tempBatchId, date, new Date().toLocaleTimeString('th-TH'), actId, actNameStr, r.studentId, r.stdNum, r.stdName, r.stdClass, r.value, currentUser.id]); });
+            } else {
+                const dateVal = document.getElementById('chk-date').value; 
+                const dateParts = dateVal.split('-');
+                const sYear = parseInt(dateParts[0], 10);
+                const sMonth = parseInt(dateParts[1], 10);
+                const sDay = parseInt(dateParts[2], 10);
+                const dNow = new Date();
+                const timeStr = `${String(dNow.getHours()).padStart(2, '0')}:${String(dNow.getMinutes()).padStart(2, '0')}:${String(dNow.getSeconds()).padStart(2, '0')}`;
+                const timestamp = `${String(sDay).padStart(2, '0')}/${String(sMonth).padStart(2, '0')}/${sYear} ${timeStr}`;
+
+                records.forEach(r => { appData.scoreLogs.push(['mock_'+tempBatchId, timestamp, actId, actNameStr, r.studentId, r.stdNum, r.stdName, r.stdClass, r.value, "เช็คกลุ่ม", currentUser.id]); });
+            }
+            
+            loadBulkTable(); 
+            Swal.fire({ title: 'สำเร็จ', text: 'กำลังบันทึกข้อมูลเข้า Sheet ในพื้นหลัง', icon: 'success', timer: 1500, showConfirmButton: false });
+
+            try {
+                if (isDaily) {
+                    await api.call('saveBulkAttendance', { date: document.getElementById('chk-date').value, activityId: actId, actName: actNameStr, records, userId: currentUser.id });
+                } else {
+                    const dateVal = document.getElementById('chk-date').value; 
+                    const dateParts = dateVal.split('-');
+                    const sYear = parseInt(dateParts[0], 10);
+                    const sMonth = parseInt(dateParts[1], 10);
+                    const sDay = parseInt(dateParts[2], 10);
+                    const dNow = new Date();
+                    const timeStr = `${String(dNow.getHours()).padStart(2, '0')}:${String(dNow.getMinutes()).padStart(2, '0')}:${String(dNow.getSeconds()).padStart(2, '0')}`;
+                    const timestamp = `${String(sDay).padStart(2, '0')}/${String(sMonth).padStart(2, '0')}/${sYear} ${timeStr}`;
+
+                    await api.call('saveBulkScoreLog', { activityId: actId, actName: actNameStr, records, note: "เช็คกลุ่ม", timestamp: timestamp, userId: currentUser.id });
+                }
+            } catch(e) { console.error("Bulk sync error", e); }
+        }
+
+        function openCardScorePopup(studentId, studentName, isDaily) {
+            const actId = document.getElementById('chk-activity').value;
+            const studentInfo = appData.students.find(s => s[0] === studentId);
+
+            if (isDaily) {
+                Swal.fire({
+                    title: `เช็คชื่อ: ${studentName}`,
+                    html: `
+                        <div class="grid grid-cols-2 gap-2 mt-4">
+                            <button onclick="submitCardDaily('${studentId}', 'มา')" class="bg-green-500 text-white rounded-xl p-3 font-bold hover:bg-green-600">มาเรียน</button>
+                            <button onclick="submitCardDaily('${studentId}', 'สาย')" class="bg-yellow-500 text-white rounded-xl p-3 font-bold hover:bg-yellow-600">สาย</button>
+                            <button onclick="submitCardDaily('${studentId}', 'ลา')" class="bg-orange-500 text-white rounded-xl p-3 font-bold hover:bg-orange-600">ลา</button>
+                            <button onclick="submitCardDaily('${studentId}', 'ขาด')" class="bg-red-500 text-white rounded-xl p-3 font-bold hover:bg-red-600">ขาด</button>
+                        </div>
+                    `,
+                    showConfirmButton: false, showCancelButton: true, cancelButtonText: 'ยกเลิก', allowEnterKey: false,
+                    didOpen: () => {
+                        isModalOpen = true; 
+                        const barcodeInput = document.getElementById('barcode-input');
+                        if(barcodeInput) { barcodeInput.blur(); barcodeInput.value = ''; }
+                    },
+                    didClose: () => {
+                        isModalOpen = false; 
+                        if(document.getElementById('tab-check').classList.contains('active') || document.getElementById('tab-scan').classList.contains('active')) {
+                            const barcodeInput = document.getElementById('barcode-input');
+                            if(barcodeInput) {
+                                barcodeInput.value = '';
+                                setTimeout(() => barcodeInput.focus(), 100);
+                            }
+                        }
+                    }
+                });
+            } else {
+                renderScorePopupContent(studentId, studentName, actId);
+            }
+        }
+
+        function renderScorePopupContent(studentId, studentName, actId) {
+            const studentInfo = appData.students.find(s => s[0] === studentId);
+            let studentLogs = [];
+            
+            for(let log of appData.scoreLogs) { 
+                if(log[2] === actId && (log[4] === studentId || (studentInfo && log[5] == studentInfo[1] && log[7] === studentInfo[4]))) {
+                    studentLogs.push(log); 
+                }
+            }
+            
+            studentLogs.sort((a,b) => parseCustomDate(String(b[1])) - parseCustomDate(String(a[1])));
+            
+            let sumScore = 0;
+            for(let log of studentLogs) { sumScore += parseFloat(log[8]||0); } 
+
+            let historyHtml = '';
+            if (studentLogs.length > 0) {
+                historyHtml = `<div class="mt-4 text-left border-t border-gray-200 pt-3 max-h-40 overflow-y-auto">
+                    <p class="text-xs font-bold text-gray-500 mb-2">ประวัติการได้คะแนน</p>`;
+                
+                studentLogs.forEach(log => {
+                    historyHtml += `
+                        <div class="flex justify-between items-center bg-gray-50 p-2 rounded-lg mb-1 border border-gray-100">
+                            <div>
+                                <p class="text-xs text-gray-600">${log[1].split(' ')[1] || log[1]} <span class="font-bold text-indigo-600">${parseFloat(log[8]) > 0 ? '+'+log[8] : log[8]}</span></p>
+                                ${log[9] ? `<p class="text-[10px] text-gray-400 truncate w-32">${log[9]}</p>` : ''}
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="editInlineScore('${log[0]}', '${log[8]}', '${studentId}', '${studentName}', '${actId}')" class="text-blue-500 hover:text-blue-700 p-1"><i class="fas fa-edit text-xs"></i></button>
+                                <button onclick="deleteInlineScore('${log[0]}', '${studentId}', '${studentName}', '${actId}')" class="text-red-500 hover:text-red-700 p-1"><i class="fas fa-trash text-xs"></i></button>
+                            </div>
+                        </div>`;
+                });
+                historyHtml += `</div>`;
+            } else {
+                historyHtml = `<div class="mt-4 text-center border-t border-gray-200 pt-3"><p class="text-xs text-gray-400">ยังไม่มีประวัติคะแนน</p></div>`;
+            }
+
+            const htmlContent = `
+                <div class="mb-3 text-left bg-blue-50 p-3 rounded-xl border border-blue-100 flex justify-between items-center shadow-inner">
+                    <p class="text-sm font-bold text-blue-800">คะแนนสะสมปัจจุบัน:</p>
+                    <p class="text-2xl font-bold text-blue-600" id="popup-total-score">${sumScore}</p>
+                </div>
+                <div class="text-left bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
+                    <div class="flex justify-center gap-2 mb-3">
+                        <button onclick="document.getElementById('card-score-input').value=1" class="flex-1 bg-green-50 text-green-700 py-2 rounded-lg font-bold hover:bg-green-100 border border-green-100 transition">+1</button>
+                        <button onclick="document.getElementById('card-score-input').value=2" class="flex-1 bg-green-50 text-green-700 py-2 rounded-lg font-bold hover:bg-green-100 border border-green-100 transition">+2</button>
+                        <button onclick="document.getElementById('card-score-input').value=5" class="flex-1 bg-blue-50 text-blue-700 py-2 rounded-lg font-bold hover:bg-blue-100 border border-blue-100 transition">+5</button>
+                        <button onclick="document.getElementById('card-score-input').value=-1" class="flex-1 bg-red-50 text-red-700 py-2 rounded-lg font-bold hover:bg-red-100 border border-red-100 transition">-1</button>
+                    </div>
+                    <label class="block text-sm font-bold text-gray-700">ระบุคะแนน (+ หรือ -)</label>
+                    <input type="number" id="card-score-input" placeholder="0" class="w-full text-center border-2 border-indigo-200 rounded-xl p-3 text-2xl font-bold outline-none focus:border-indigo-500 mb-3 shadow-inner bg-gray-50" onkeypress="if(event.key==='Enter') { event.preventDefault(); document.getElementById('card-btn-save').click(); }">
+                    <label class="block text-sm font-bold text-gray-700 mt-1">หมายเหตุ (ถ้ามี)</label>
+                    <input type="text" id="card-score-note" placeholder="เช่น ตอบคำถาม" class="w-full px-3 py-2 border border-gray-200 bg-gray-50 rounded-lg outline-none focus:border-indigo-500 text-sm" onkeypress="if(event.key==='Enter') { event.preventDefault(); document.getElementById('card-btn-save').click(); }">
+                </div>
+                <button id="card-btn-save" onclick="submitCardScore('${studentId}', '${studentName}')" class="w-full mt-4 bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 shadow-lg transition transform hover:-translate-y-0.5">บันทึกคะแนน</button>
+                ${historyHtml}
+            `;
+            
+            Swal.fire({ 
+                title: `ให้คะแนน: ${studentName}`, 
+                html: htmlContent, 
+                showConfirmButton: false, 
+                showCancelButton: true, 
+                cancelButtonText: 'ปิดหน้าต่าง',
+                allowEnterKey: false,
+                didOpen: () => {
+                    isModalOpen = true; 
+                    const barcodeInput = document.getElementById('barcode-input');
+                    if(barcodeInput) {
+                        barcodeInput.blur(); 
+                        barcodeInput.value = ''; 
+                    }
+                    setTimeout(() => {
+                        const scoreInput = document.getElementById('card-score-input');
+                        if(scoreInput) {
+                            scoreInput.value = ''; 
+                            scoreInput.focus();
+                        }
+                    }, 300);
+                },
+                didClose: () => {
+                    isModalOpen = false;
+                    if(document.getElementById('tab-check').classList.contains('active') || document.getElementById('tab-scan').classList.contains('active')) {
+                        const barcodeInput = document.getElementById('barcode-input');
+                        if(barcodeInput) {
+                            barcodeInput.value = '';
+                            setTimeout(() => barcodeInput.focus(), 100); 
+                        }
+                    }
+                }
+            });
         }
 
         async function editInlineScore(logId, currentPoints, sId, sName, actId) {
@@ -1778,144 +2189,6 @@
             }
         }
         
-        // --- TAB 5: CARDS ---
-        function generateCards() {
-            const cClass = document.getElementById('card-class').value;
-            if(!cClass) return Swal.fire('เตือน', 'กรุณาเลือกห้องเรียน', 'warning');
-            const type = document.getElementById('card-type').value; const title = document.getElementById('card-title').value; const color = document.getElementById('card-color').value;
-            const students = appData.students.filter(s => s[4] === cClass).sort((a,b) => parseInt(a[1]) - parseInt(b[1]));
-            
-            const grid = document.getElementById('card-grid'); document.getElementById('card-placeholder').style.display = 'none'; grid.innerHTML = '';
-
-            const schoolLogoHtml = (currentUser && currentUser.logo) 
-                ? `<img src="${currentUser.logo}" class="w-6 h-6 object-contain bg-white rounded p-0.5 shrink-0" style="border-radius: 4px;">` 
-                : '';
-
-            students.forEach((s, idx) => {
-                const card = document.createElement('div'); card.className = "border border-gray-300 rounded-xl overflow-hidden flex flex-col bg-white shadow-sm"; card.style.height = "290px";
-                
-                const rawImgUrl = s[5] ? s[5].trim() : '';
-                const avatarHtml = rawImgUrl 
-                    ? `<img src="${getDirectImageUrl(rawImgUrl)}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<i class=\\'fas fa-user text-4xl text-gray-400\\'></i>'">`
-                    : `<i class="fas fa-user text-4xl text-gray-400"></i>`;
-
-                card.innerHTML = `
-                    <div class="py-1.5 px-2 flex justify-center items-center gap-2 text-white font-bold text-xs" style="background-color: ${color};">
-                        ${schoolLogoHtml}
-                        <span class="truncate">${title}</span>
-                    </div>
-                    <div class="flex-1 flex flex-col items-center justify-center p-2 text-center">
-                        <div class="w-16 h-16 bg-gray-100 rounded-full mb-2 flex items-center justify-center text-gray-400 border-2 border-dashed border-gray-300 overflow-hidden">
-                             ${avatarHtml}
-                        </div>
-                        <p class="font-bold text-sm leading-tight text-gray-800">${s[3]}</p>
-                        <p class="text-[11px] text-gray-500 mt-1">ห้อง ${s[4]} | เลขที่ ${s[1]}</p>
-                    </div>
-                    <div class="bg-gray-50 border-t p-3 flex justify-center items-center h-28 w-full overflow-hidden" id="codebox-${idx}"></div>`;
-                
-                grid.appendChild(card);
-                const box = document.getElementById(`codebox-${idx}`);
-                
-                if (type === 'barcode') {
-                    const canvas = document.createElement('canvas'); box.appendChild(canvas);
-                    JsBarcode(canvas, s[2], { format: "CODE128", width: 1.5, height: 50, displayValue: true, fontSize: 12, margin: 0 });
-                } else {
-                    new QRCode(box, { text: s[2], width: 90, height: 90, colorDark : "#000000", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.L });
-                    const codeLabel = document.createElement('div'); codeLabel.className = "text-[10px] mt-1 text-center font-mono font-bold text-gray-600"; codeLabel.innerText = s[2];
-                    box.classList.add('flex-col'); box.appendChild(codeLabel);
-                }
-            });
-        }
-
-        // =====================================
-        // TAB 6: RANDOMIZER
-        // =====================================
-        let isSpinning = false;
-        let slotInterval;
-
-        function startRandomizer() {
-            if (isSpinning) return;
-            const classVal = document.getElementById('rand-class').value;
-            const students = appData.students.filter(s => s[4] === classVal);
-            if (students.length === 0) return Swal.fire('ไม่พบข้อมูล', 'ไม่มีนักเรียนในห้องเรียนนี้', 'warning');
-
-            isSpinning = true;
-            document.getElementById('btn-start-random').innerText = "กำลังสุ่ม...";
-            document.getElementById('btn-start-random').classList.add('opacity-50', 'cursor-not-allowed');
-            
-            const resultDiv = document.getElementById('slot-result');
-            let counter = 0;
-            
-            if(audioCtx.state === 'suspended') audioCtx.resume();
-            const spinOsc = audioCtx.createOscillator();
-            const spinGain = audioCtx.createGain();
-            spinOsc.type = 'triangle';
-            spinOsc.connect(spinGain);
-            spinGain.connect(audioCtx.destination);
-            spinGain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-            spinOsc.start();
-
-            slotInterval = setInterval(() => {
-                const randomStd = students[Math.floor(Math.random() * students.length)];
-                spinOsc.frequency.setValueAtTime(300 + (Math.random() * 500), audioCtx.currentTime);
-                
-                resultDiv.innerHTML = `
-                    <div class="text-center animate-pulse">
-                        <div class="text-sm font-bold text-pink-500 mb-2">เลขที่ ${randomStd[1]}</div>
-                        <div class="slot-machine drop-shadow-md">${randomStd[3]}</div>
-                    </div>
-                `;
-                counter++;
-                if (counter > 25) { 
-                    clearInterval(slotInterval);
-                    spinOsc.stop();
-                    finishRandomizer(students);
-                }
-            }, 100);
-        }
-
-        function finishRandomizer(students) {
-            const winner = students[Math.floor(Math.random() * students.length)];
-            const resultDiv = document.getElementById('slot-result');
-            
-            playSound('success');
-            
-            const rawImgUrl = winner[5] ? winner[5].trim() : '';
-            const imgUrl = rawImgUrl ? getDirectImageUrl(rawImgUrl) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(winner[3])}&backgroundColor=e2e8f0`;
-
-            resultDiv.innerHTML = `
-                <div class="text-center transform scale-110 transition duration-500 flex flex-col items-center">
-                    <div class="w-20 h-20 bg-white rounded-full mb-3 flex items-center justify-center border-4 border-pink-400 overflow-hidden shadow-xl animate-bounce">
-                        <img src="${imgUrl}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(winner[3])}&backgroundColor=e2e8f0'">
-                    </div>
-                    <div class="text-sm font-bold text-pink-500 bg-pink-100 px-3 py-1 rounded-full mb-2 shadow-sm">ผู้โชคดี เลขที่ ${winner[1]}</div>
-                    <div class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-600 drop-shadow-sm">${winner[3]}</div>
-                </div>
-            `;
-            
-            for(let i=0; i<30; i++) {
-                const conf = document.createElement('div');
-                conf.className = 'absolute w-3 h-3 rounded-full opacity-70';
-                conf.style.backgroundColor = ['#ec4899', '#8b5cf6', '#3b82f6', '#10b981', '#f59e0b'][Math.floor(Math.random()*5)];
-                conf.style.left = '50%'; conf.style.top = '50%';
-                const tx = (Math.random() - 0.5) * 300; const ty = (Math.random() - 0.5) * 300;
-                conf.style.transform = `translate(${tx}px, ${ty}px) rotate(${Math.random()*360}deg)`;
-                conf.style.transition = 'all 1s cubic-bezier(0.1, 0.8, 0.2, 1)';
-                resultDiv.parentElement.appendChild(conf);
-                setTimeout(() => conf.remove(), 1000);
-            }
-
-            setTimeout(() => {
-                isSpinning = false;
-                const btn = document.getElementById('btn-start-random');
-                btn.innerText = "สุ่มใหม่!";
-                btn.classList.remove('opacity-50', 'cursor-not-allowed');
-            }, 1500);
-        }
-
-        // =====================================
-        // TAB 7: ADVANCED SUMMARY & REPORT
-        // =====================================
         function setReportMode(mode) {
             currentReportMode = mode;
             if(mode === 'score') {
