@@ -658,52 +658,89 @@
         let currentReportMode = 'score'; 
 
         // ==========================================
-        // ฟังก์ชันช่วยจัดการวันที่ (Parsing & Validation)
+        // ตัวแกะวันที่อัจฉริยะแบบตัวเลขล้วน ปลอดภัย 100%
         // ==========================================
         function parseCustomDate(dateStr) {
             if (!dateStr) return 0;
+            let str = String(dateStr).trim();
             
-            // Handle "DD/MM/YYYY HH:mm:ss"
-            if (dateStr.includes('/')) {
-                let parts = dateStr.split(' ');
+            if (str.includes('/')) {
+                let parts = str.split(' ');
                 let dmy = parts[0].split('/');
                 let time = parts[1] || '00:00:00';
                 let hms = time.split(':');
                 
-                let d = parseInt(dmy[0]);
-                let m = parseInt(dmy[1]) - 1;
-                let y = parseInt(dmy[2]);
-                if (y > 2500) y -= 543; // แปลง พ.ศ. เป็น ค.ศ.
+                let d = parseInt(dmy[0], 10);
+                let m = parseInt(dmy[1], 10) - 1; 
+                let y = parseInt(dmy[2], 10);
                 
-                let h = parseInt(hms[0] || 0);
-                let min = parseInt(hms[1] || 0);
-                let s = parseInt(hms[2] || 0);
+                if (y > 2500) y -= 543; 
+                
+                let h = parseInt(hms[0] || 0, 10);
+                let min = parseInt(hms[1] || 0, 10);
+                let s = parseInt(hms[2] || 0, 10);
                 
                 return new Date(y, m, d, h, min, s).getTime();
             }
             
-            // Handle "YYYY-MM-DD"
-            if (dateStr.includes('-')) {
-                return new Date(dateStr).getTime();
+            if (str.includes('-')) {
+                let parts = str.split(' ')[0].split('-'); 
+                if(parts.length === 3) {
+                    let y = parseInt(parts[0], 10);
+                    let m = parseInt(parts[1], 10) - 1;
+                    let d = parseInt(parts[2], 10);
+                    return new Date(y, m, d).getTime();
+                }
             }
             
-            return new Date(dateStr).getTime() || 0;
+            let dObj = new Date(str);
+            if (!isNaN(dObj.getTime())) return dObj.getTime();
+            
+            return 0;
         }
 
-        function isSameDate(dateStrInput, logTimeStr) {
-            if (!logTimeStr) return false;
-            const t1 = parseCustomDate(dateStrInput); 
-            const t2 = parseCustomDate(logTimeStr); 
+        function isSameDate(inputDateStr, logDateStr) {
+            if (!logDateStr) return false;
             
-            if (t1 === 0 || t2 === 0) return false;
+            // แตกวันที่หน้าเว็บจากกล่อง input เช่น "2026-05-20"
+            let inParts = inputDateStr.split('-');
+            if (inParts.length !== 3) return false;
+            let inY = parseInt(inParts[0], 10);
+            let inM = parseInt(inParts[1], 10);
+            let inD = parseInt(inParts[2], 10);
 
-            const d1 = new Date(t1);
-            const d2 = new Date(t2);
+            // แตกวันที่จากฐานข้อมูล เช่น "20/5/2569 9:11:5" หรือ "20/05/2026"
+            let datePart = String(logDateStr).trim().split(' ')[0]; 
             
-            return d1.getFullYear() === d2.getFullYear() && 
-                   d1.getMonth() === d2.getMonth() && 
-                   d1.getDate() === d2.getDate();
+            if (datePart.includes('/')) {
+                let sParts = datePart.split('/');
+                let sD = parseInt(sParts[0], 10);
+                let sM = parseInt(sParts[1], 10);
+                let sY = parseInt(sParts[2], 10);
+                
+                // แก้ปัญหาปี พ.ศ. ให้เป็น ค.ศ. เทียบง่ายๆ
+                if (sY > 2500) sY -= 543;
+                
+                return (inD === sD && inM === sM && inY === sY);
+            } else if (datePart.includes('-')) {
+                let sParts = datePart.split('-');
+                let sY = parseInt(sParts[0], 10);
+                let sM = parseInt(sParts[1], 10);
+                let sD = parseInt(sParts[2], 10);
+                if (sY > 2500) sY -= 543;
+                return (inD === sD && inM === sM && inY === sY);
+            }
+            return false;
         }
+
+        // ==========================================
+        // ฟังก์ชันช่วยจับคู่ Data อย่างปลอดภัยที่สุด
+        // ==========================================
+        const matchRecord = (logActId, logStdId, logStdNum, logClass, targetActId, targetStdId, targetStdNum, targetClass) => {
+             return String(logActId).trim() === String(targetActId).trim() &&
+                    (String(logStdId).trim() === String(targetStdId).trim() ||
+                    (String(logStdNum).trim() === String(targetStdNum).trim() && String(logClass).trim() === String(targetClass).trim()));
+        };
 
         // ==========================================
         // ฟังก์ชันแปลงลิงก์ Google Drive ให้ดูภาพได้ตรงๆ
@@ -851,7 +888,6 @@
             try {
                 appData = await api.call('getAppData');
                 
-                // 🧹 ระบบเครื่องดูดฝุ่น (ล้างแถวว่าง)
                 if (appData.students) {
                     appData.students = appData.students.filter(row => row && row.length > 3 && String(row[3]).trim() !== "");
                 }
@@ -977,11 +1013,11 @@
         }
 
         // ==========================================
-        // ฟังก์ชันโหลดประวัติการสแกน (แก้ไข Date Parsing ให้สมบูรณ์ 100%)
+        // ฟังก์ชันโหลดประวัติการสแกน
         // ==========================================
         function loadScanHistory() {
             const actId = document.getElementById('scan-activity').value;
-            const dateStr = document.getElementById('scan-date').value; // e.g. "2026-05-20"
+            const dateStr = document.getElementById('scan-date').value; 
             const logUl = document.getElementById('scan-log');
             const countSpan = document.getElementById('scan-count');
             
@@ -996,12 +1032,11 @@
             const actInfo = appData.activities.find(a => a[0] === actId);
             if (!actInfo) return;
             const isDaily = actInfo[1] === 'รายวัน';
-            
+
             let relevantLogs = [];
 
             if (isDaily) {
                 relevantLogs = appData.attendance.filter(att => att[3] === actId && att[1] === dateStr);
-                // จัดเรียงเวลาย้อนหลังล่าสุดไว้บนสุด
                 relevantLogs.sort((a,b) => parseCustomDate(b[1] + " " + b[2]) - parseCustomDate(a[1] + " " + a[2]));
 
                 if (relevantLogs.length === 0) {
@@ -1010,7 +1045,7 @@
                 }
 
                 relevantLogs.forEach(log => {
-                    const student = appData.students.find(s => s[0] === log[5] || (s[1] == log[6] && s[4] === log[8]));
+                    const student = appData.students.find(s => s[0] === log[5] || (s[1] == log[6] && String(s[4]).trim() === String(log[8]).trim()));
                     if(!student) return;
                     const val = log[9];
                     
@@ -1029,8 +1064,16 @@
 
             } else {
                 relevantLogs = appData.scoreLogs.filter(log => {
-                    if (log[2] !== actId) return false;
-                    return isSameDate(dateStr, String(log[1])); // ตรวจสอบวันที่ด้วยระบบใหม่
+                    let actMatch = false;
+                    const cleanLogAct = String(log[3]).replace(/\[.*?\]\s*/g, '').trim();
+                    const cleanTargetAct = String(actInfo[3]).replace(/\[.*?\]\s*/g, '').trim();
+                    
+                    if (String(log[2]).trim() === String(actId).trim()) actMatch = true;
+                    else if (cleanLogAct && cleanTargetAct && cleanLogAct.includes(cleanTargetAct)) actMatch = true;
+                    else if (cleanLogAct && cleanTargetAct && cleanTargetAct.includes(cleanLogAct)) actMatch = true;
+                    
+                    if (!actMatch) return false;
+                    return isSameDate(dateStr, String(log[1]));
                 });
                 
                 relevantLogs.sort((a,b) => parseCustomDate(String(b[1])) - parseCustomDate(String(a[1])));
@@ -1041,13 +1084,14 @@
                 }
 
                 relevantLogs.forEach(log => {
-                    const student = appData.students.find(s => s[0] === log[4] || (s[1] == log[5] && s[4] === log[7]));
+                    const student = appData.students.find(s => String(s[0]).trim() === String(log[4]).trim() || (String(s[1]).trim() === String(log[5]).trim() && String(s[4]).trim() === String(log[7]).trim()));
                     if(!student) return;
+                    
                     const pointsVal = parseFloat(log[8]);
-                    const points = pointsVal > 0 ? '+'+pointsVal : pointsVal;
+                    const points = !isNaN(pointsVal) ? (pointsVal > 0 ? '+'+pointsVal : pointsVal) : '0';
                     
                     let timePart = "";
-                    const timeStr = String(log[1]);
+                    const timeStr = String(log[1]).trim();
                     if (timeStr.includes(' ')) {
                         timePart = timeStr.split(' ')[1];
                     } else if (timeStr.includes(':')) {
@@ -1070,9 +1114,6 @@
             countSpan.innerText = relevantLogs.length + " รายการ";
         }
 
-        // ==========================================
-        // ฟังก์ชันลบประวัติที่สแกนผิด (Undo Scan)
-        // ==========================================
         async function undoAttendance(logId) {
             const res = await Swal.fire({ 
                 title: 'ลบประวัติการเช็คชื่อ?', 
@@ -1127,7 +1168,6 @@
             }
         }
 
-        // Settings Modal
         function openSettingsModal() { 
             document.getElementById('modal-settings').classList.remove('hidden');
             document.getElementById('set-teacher-name').innerText = "ครู" + currentUser.name;
@@ -1182,7 +1222,6 @@
             }
         }
 
-        // Camera System (Scanner)
         async function startCamera() {
             const startBtn = document.getElementById('camera-start-btn');
             startBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> กำลังเตรียมกล้อง...';
@@ -1314,14 +1353,17 @@
                     </div>`;
 
                 let studentLogs = [];
-                for(let l of appData.scoreLogs) { 
-                    if(l[2] === actId && (l[4] === student[0] || (l[5] == student[1] && l[7] === student[4]))) {
-                        studentLogs.push(l); 
+                for(let log of appData.scoreLogs) { 
+                    if(matchRecord(log[2], log[4], log[5], log[7], actId, student[0], student[1], student[4])) {
+                        studentLogs.push(log); 
                     }
                 } 
                 
                 let sumScore = 0;
-                for(let log of studentLogs) { sumScore += parseFloat(log[8]||0); } 
+                for(let log of studentLogs) { 
+                    let pts = parseFloat(log[8]);
+                    if(!isNaN(pts)) sumScore += pts; 
+                } 
 
                 htmlContent += `
                     <div class="mb-3 text-left bg-blue-50 p-3 rounded-xl border border-blue-100 flex justify-between items-center">
@@ -1366,7 +1408,7 @@
                     },
                     didClose: () => {
                         isModalOpen = false;
-                        if(document.getElementById('tab-scan').classList.contains('active')) {
+                        if(document.getElementById('tab-check').classList.contains('active') || document.getElementById('tab-scan').classList.contains('active')) {
                             const barcodeInput = document.getElementById('barcode-input');
                             if(barcodeInput) {
                                 barcodeInput.value = '';
@@ -1376,397 +1418,6 @@
                     }
                 });
             }
-        }
-
-        async function submitDaily(studentId, value) {
-            isModalOpen = false; 
-            if(Swal.isVisible()) Swal.close(); 
-            
-            const actId = document.getElementById('scan-activity').value;
-            const date = document.getElementById('scan-date').value;
-            const actInfo = appData.activities.find(a => a[0] === actId);
-            const studentInfo = appData.students.find(s => s[0] === studentId);
-            
-            const data = { studentId, activityId: actId, date, value, userId: currentUser.id, actName: actInfo ? `[${actInfo[2]}] ${actInfo[3]}` : "", stdNum: studentInfo ? studentInfo[1] : "", stdName: studentInfo ? studentInfo[3] : "", stdClass: studentInfo ? studentInfo[4] : "" };
-            
-            appData.attendance.push(['mock_' + Date.now(), date, new Date().toLocaleTimeString('th-TH'), actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, value, currentUser.id]);
-            
-            updateScanLogUI(studentId, value, date); 
-            Swal.fire({ title: 'เช็คชื่อสำเร็จ', text: `${data.stdName} (${value})`, icon: 'success', timer: 1000, showConfirmButton: false, position: 'top-end', toast: true });
-
-            setTimeout(() => {
-                const barcodeInput = document.getElementById('barcode-input');
-                if(barcodeInput) { 
-                    barcodeInput.value = ''; 
-                    if(document.getElementById('tab-scan').classList.contains('active')) {
-                        barcodeInput.focus(); 
-                    }
-                }
-            }, 300);
-
-            try { await api.call('saveScanRecord', data); } catch(e) { console.error("Sync Failed", e); }
-        }
-
-        async function submitScoreLog(studentId) {
-            const points = document.getElementById('swal-score').value;
-            const note = document.getElementById('swal-note').value;
-            if(points === "") return Swal.showValidationMessage('กรุณากรอกคะแนน');
-            
-            isModalOpen = false; 
-            Swal.close(); 
-
-            const actId = document.getElementById('scan-activity').value;
-            
-            // อ่านค่าวันที่จาก Dropdown แล้วสร้างเป็น Timestamp ที่เป๊ะ 100%
-            const dateVal = document.getElementById('scan-date').value; 
-            const dateParts = dateVal.split('-');
-            const sYear = parseInt(dateParts[0]);
-            const sMonth = parseInt(dateParts[1]);
-            const sDay = parseInt(dateParts[2]);
-            
-            const dNow = new Date();
-            const timeStr = `${String(dNow.getHours()).padStart(2, '0')}:${String(dNow.getMinutes()).padStart(2, '0')}:${String(dNow.getSeconds()).padStart(2, '0')}`;
-            const timestamp = `${String(sDay).padStart(2, '0')}/${String(sMonth).padStart(2, '0')}/${sYear} ${timeStr}`;
-
-            const actInfo = appData.activities.find(a => a[0] === actId);
-            const studentInfo = appData.students.find(s => s[0] === studentId);
-
-            const data = { studentId, activityId: actId, points, note, timestamp, userId: currentUser.id, actName: actInfo ? `[${actInfo[2]}] ${actInfo[3]}` : "", stdNum: studentInfo ? studentInfo[1] : "", stdName: studentInfo ? studentInfo[3] : "", stdClass: studentInfo ? studentInfo[4] : "" };
-            playSound('success');
-
-            const tempLogId = 'temp_' + Date.now();
-            appData.scoreLogs.push([tempLogId, timestamp, actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, points, note, currentUser.id]);
-            
-            updateScanLogUI(studentId, `+${points} คะแนน`, dateVal);
-            Swal.fire({ title: 'สำเร็จ', text: `เพิ่ม ${points} คะแนน เรียบร้อย`, icon: 'success', timer: 1500, showConfirmButton: false, position: 'top-end', toast: true });
-
-            setTimeout(() => {
-                const barcodeInput = document.getElementById('barcode-input');
-                if(barcodeInput) {
-                    barcodeInput.value = '';
-                    if(document.getElementById('tab-scan').classList.contains('active')) {
-                        barcodeInput.focus();
-                    }
-                }
-            }, 300);
-
-            try {
-                const res = await api.call('saveScoreLog', data);
-                if(res.status === 'success') { 
-                    const log = appData.scoreLogs.find(l => l[0] === tempLogId); 
-                    if(log) log[0] = res.logId; 
-                    // อัปเดตตารางให้ชัวร์ว่าเซฟเข้าฐานข้อมูลเรียบร้อย
-                    if(document.getElementById('tab-scan').classList.contains('active')) loadScanHistory();
-                }
-            } catch(e) { console.error("Sync Failed", e); }
-        }
-
-        function updateScanLogUI(studentId, badgeText, reqDateStr) {
-            try {
-                loadScanHistory();
-            } catch (error) { console.error("UI Log Error: ", error); }
-        }
-
-        // Check Group
-        function setCheckView(view) {
-            currentCheckView = view;
-            if (view === 'table') {
-                document.getElementById('btn-view-table').className = "px-4 py-2 rounded-lg bg-white shadow-sm text-sm font-bold text-indigo-600 transition";
-                document.getElementById('btn-view-card').className = "px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-indigo-600 transition";
-                document.getElementById('chk-table-view').classList.remove('hidden'); document.getElementById('chk-card-view').classList.add('hidden');
-            } else {
-                document.getElementById('btn-view-card').className = "px-4 py-2 rounded-lg bg-white shadow-sm text-sm font-bold text-indigo-600 transition";
-                document.getElementById('btn-view-table').className = "px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-indigo-600 transition";
-                document.getElementById('chk-table-view').classList.add('hidden'); document.getElementById('chk-card-view').classList.remove('hidden');
-            }
-            loadBulkTable();
-        }
-
-        function loadBulkTable() {
-            const cClass = document.getElementById('chk-class').value;
-            const cActId = document.getElementById('chk-activity').value;
-            const cDate = document.getElementById('chk-date').value;
-            const tbody = document.getElementById('chk-tbody');
-            const cardView = document.getElementById('chk-card-view');
-            
-            if(!cClass || !cActId) {
-                tbody.innerHTML = '<tr><td colspan="3" class="py-8 text-center text-gray-500">กรุณาเลือกวิชาและกิจกรรม</td></tr>';
-                cardView.innerHTML = '<div class="col-span-full py-8 text-center text-gray-500 bg-white/90 rounded-2xl border border-white/50">กรุณาเลือกวิชาและกิจกรรม</div>';
-                document.getElementById('chk-bulk-actions').style.display = 'none'; return;
-            }
-
-            const actOpt = document.getElementById('chk-activity').options[document.getElementById('chk-activity').selectedIndex];
-            const isDaily = actOpt.getAttribute('data-type') === 'รายวัน';
-            
-            document.getElementById('chk-input-header').innerHTML = isDaily ? "สถานะ (เช็คชื่อ)" : `
-                <div class="flex items-center justify-center gap-2">
-                    <span class="text-xs font-normal text-gray-500">ให้คะแนนทุกคน:</span>
-                    <input type="number" id="master-score-input" class="w-16 px-2 py-1 border border-gray-200 rounded text-center text-sm font-bold text-indigo-700 outline-none focus:ring-2" placeholder="คะแนน">
-                    <button onclick="applyMasterScore()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded text-xs font-bold transition shadow-sm">นำไปใช้</button>
-                </div>
-            `;
-            document.getElementById('chk-bulk-actions').style.display = 'flex';
-
-            const filteredStudents = appData.students.filter(s => s[4] === cClass).sort((a,b) => parseInt(a[1]) - parseInt(b[1]));
-            
-            // 1. อัปเดต Table View 
-            tbody.innerHTML = filteredStudents.map(s => {
-                let currentVal = '';
-                if (isDaily) {
-                    const attLogs = appData.attendance.filter(att => att[1] === cDate && att[3] === cActId && (att[5] === s[0] || (att[6] == s[1] && att[8] === s[4])));
-                    if (attLogs.length > 0) currentVal = attLogs[attLogs.length - 1][9];
-                }
-
-                let inputHtml = isDaily ? 
-                    `<select class="bulk-input w-full px-2 py-1.5 border border-gray-200 rounded bg-white text-sm focus:ring-2 outline-none shadow-sm" data-sid="${s[0]}">
-                        <option value="" ${currentVal === '' ? 'selected' : ''}>-- เลือก --</option>
-                        <option value="มา" ${currentVal === 'มา' ? 'selected' : ''}>มา</option>
-                        <option value="สาย" ${currentVal === 'สาย' ? 'selected' : ''}>สาย</option>
-                        <option value="ลา" ${currentVal === 'ลา' ? 'selected' : ''}>ลา</option>
-                        <option value="ขาด" ${currentVal === 'ขาด' ? 'selected' : ''}>ขาด</option>
-                    </select>` : 
-                    `<input type="number" class="bulk-input w-full px-2 py-1.5 border border-gray-200 rounded bg-white text-center font-bold text-indigo-700 outline-none focus:ring-2 shadow-sm" data-sid="${s[0]}" placeholder="คะแนน">`;
-                return `<tr class="hover:bg-gray-50/50"><td class="py-2 px-4 text-center font-bold text-gray-600">${s[1]}</td><td class="py-2 px-4 font-medium text-gray-800">${s[3]}</td><td class="py-2 px-4">${inputHtml}</td></tr>`;
-            }).join('');
-
-            // 2. อัปเดต Card View
-            cardView.innerHTML = filteredStudents.map(s => {
-                let scoreDisplay = '';
-
-                if (isDaily) {
-                    let currentVal = '';
-                    const attLogs = appData.attendance.filter(att => att[1] === cDate && att[3] === cActId && (att[5] === s[0] || (att[6] == s[1] && att[8] === s[4])));
-                    if (attLogs.length > 0) currentVal = attLogs[attLogs.length - 1][9];
-
-                    if (currentVal === 'มา') {
-                        scoreDisplay = `<div class="mt-2 text-green-600 font-bold text-sm bg-green-50 rounded-full py-1.5 shadow-sm border border-green-100 w-[90%] mx-auto">มาเรียน</div>`;
-                    } else if (currentVal === 'สาย') {
-                        scoreDisplay = `<div class="mt-2 text-yellow-600 font-bold text-sm bg-yellow-50 rounded-full py-1.5 shadow-sm border border-yellow-100 w-[90%] mx-auto">สาย</div>`;
-                    } else if (currentVal === 'ลา') {
-                        scoreDisplay = `<div class="mt-2 text-orange-600 font-bold text-sm bg-orange-50 rounded-full py-1.5 shadow-sm border border-orange-100 w-[90%] mx-auto">ลา</div>`;
-                    } else if (currentVal === 'ขาด') {
-                        scoreDisplay = `<div class="mt-2 text-red-600 font-bold text-sm bg-red-50 rounded-full py-1.5 shadow-sm border border-red-100 w-[90%] mx-auto">ขาด</div>`;
-                    } else {
-                        scoreDisplay = `<div class="mt-2 text-indigo-600 font-bold text-sm bg-indigo-50 rounded-full py-1.5 shadow-sm border border-indigo-100 w-[90%] mx-auto">ยังไม่เช็ค</div>`;
-                    }
-                } else {
-                    let sumScore = 0;
-                    for(let log of appData.scoreLogs) { if(log[2] === cActId && (log[4] === s[0] || (log[5] == s[1] && log[7] === s[4]))) sumScore += parseFloat(log[8]||0); }
-                    scoreDisplay = `<div class="mt-2 text-indigo-600 font-bold text-sm bg-indigo-50 rounded-full py-1.5 shadow-sm border border-indigo-100 mx-auto w-[90%]">${sumScore} คะแนน</div>`;
-                }
-                
-                const rawImgUrl = s[5] ? s[5].trim() : '';
-                const imgUrl = rawImgUrl ? getDirectImageUrl(rawImgUrl) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(s[3])}&backgroundColor=e2e8f0`;
-                
-                const safeName = s[3] ? s[3].replace(/'/g, "\\'") : "ไม่มีชื่อ";
-                const dailyFlag = isDaily ? 'true' : 'false';
-
-                return `
-                <div onclick="openCardScorePopup('${s[0]}', '${safeName}', ${dailyFlag})" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer hover:shadow-md hover:-translate-y-1 transition transform duration-200 pb-3">
-                    <div class="h-28 bg-indigo-50/50 relative overflow-hidden flex justify-center items-center">
-                        <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center border-4 border-white overflow-hidden shadow-sm z-10">
-                            <img src="${imgUrl}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(s[3])}&backgroundColor=e2e8f0'">
-                        </div>
-                        <div class="absolute bottom-2 right-2 z-20">
-                            <span class="text-white font-bold text-[10px] bg-indigo-500 px-2 py-0.5 rounded-md shadow-sm">เลขที่ ${s[1]}</span>
-                        </div>
-                    </div>
-                    <div class="p-2 text-center bg-white flex flex-col items-center">
-                        <p class="font-bold text-sm text-gray-800 line-clamp-1 w-full px-1">${s[3]}</p>
-                        ${scoreDisplay}
-                    </div>
-                </div>`;
-            }).join('');
-        }
-
-        function applyMasterScore() {
-            const val = document.getElementById('master-score-input').value;
-            if(val === '') return;
-            document.querySelectorAll('.bulk-input').forEach(el => el.value = val);
-        }
-
-        function bulkMark(val) { document.querySelectorAll('.bulk-input').forEach(el => el.value = val === '0' ? '' : val); }
-
-        async function saveBulkData() {
-            const records = Array.from(document.querySelectorAll('.bulk-input')).filter(el => el.value !== "").map(el => {
-                const sid = el.getAttribute('data-sid'); const studentInfo = appData.students.find(s => s[0] === sid);
-                return { studentId: sid, value: el.value, stdNum: studentInfo ? studentInfo[1] : "", stdName: studentInfo ? studentInfo[3] : "", stdClass: studentInfo ? studentInfo[4] : "" };
-            });
-
-            if(records.length === 0) return Swal.fire('เตือน', 'ไม่มีข้อมูลให้บันทึก', 'warning');
-            const actId = document.getElementById('chk-activity').value;
-            const actOpt = document.getElementById('chk-activity').options[document.getElementById('chk-activity').selectedIndex];
-            const isDaily = actOpt.getAttribute('data-type') === 'รายวัน';
-            const actInfo = appData.activities.find(a => a[0] === actId);
-            const actNameStr = actInfo ? `[${actInfo[2]}] ${actInfo[3]}` : "";
-            const tempBatchId = 'batch_' + Date.now();
-
-            if (isDaily) {
-                const date = document.getElementById('chk-date').value;
-                records.forEach(r => { appData.attendance.push(['mock_'+tempBatchId, date, new Date().toLocaleTimeString('th-TH'), actId, actNameStr, r.studentId, r.stdNum, r.stdName, r.stdClass, r.value, currentUser.id]); });
-            } else {
-                const dateVal = document.getElementById('chk-date').value; 
-                const dateParts = dateVal.split('-');
-                const sYear = parseInt(dateParts[0]);
-                const sMonth = parseInt(dateParts[1]);
-                const sDay = parseInt(dateParts[2]);
-                const dNow = new Date();
-                const timeStr = `${String(dNow.getHours()).padStart(2, '0')}:${String(dNow.getMinutes()).padStart(2, '0')}:${String(dNow.getSeconds()).padStart(2, '0')}`;
-                const timestamp = `${String(sDay).padStart(2, '0')}/${String(sMonth).padStart(2, '0')}/${sYear} ${timeStr}`;
-
-                records.forEach(r => { appData.scoreLogs.push(['mock_'+tempBatchId, timestamp, actId, actNameStr, r.studentId, r.stdNum, r.stdName, r.stdClass, r.value, "เช็คกลุ่ม", currentUser.id]); });
-            }
-            
-            loadBulkTable(); 
-            Swal.fire({ title: 'สำเร็จ', text: 'กำลังบันทึกข้อมูลเข้า Sheet ในพื้นหลัง', icon: 'success', timer: 1500, showConfirmButton: false });
-
-            try {
-                if (isDaily) {
-                    await api.call('saveBulkAttendance', { date: document.getElementById('chk-date').value, activityId: actId, actName: actNameStr, records, userId: currentUser.id });
-                } else {
-                    const dateVal = document.getElementById('chk-date').value; 
-                    const dateParts = dateVal.split('-');
-                    const sYear = parseInt(dateParts[0]);
-                    const sMonth = parseInt(dateParts[1]);
-                    const sDay = parseInt(dateParts[2]);
-                    const dNow = new Date();
-                    const timeStr = `${String(dNow.getHours()).padStart(2, '0')}:${String(dNow.getMinutes()).padStart(2, '0')}:${String(dNow.getSeconds()).padStart(2, '0')}`;
-                    const timestamp = `${String(sDay).padStart(2, '0')}/${String(sMonth).padStart(2, '0')}/${sYear} ${timeStr}`;
-
-                    await api.call('saveBulkScoreLog', { activityId: actId, actName: actNameStr, records, note: "เช็คกลุ่ม", timestamp: timestamp, userId: currentUser.id });
-                }
-            } catch(e) { console.error("Bulk sync error", e); }
-        }
-
-        function openCardScorePopup(studentId, studentName, isDaily) {
-            const actId = document.getElementById('chk-activity').value;
-            const studentInfo = appData.students.find(s => s[0] === studentId);
-
-            if (isDaily) {
-                Swal.fire({
-                    title: `เช็คชื่อ: ${studentName}`,
-                    html: `
-                        <div class="grid grid-cols-2 gap-2 mt-4">
-                            <button onclick="submitCardDaily('${studentId}', 'มา')" class="bg-green-500 text-white rounded-xl p-3 font-bold hover:bg-green-600">มาเรียน</button>
-                            <button onclick="submitCardDaily('${studentId}', 'สาย')" class="bg-yellow-500 text-white rounded-xl p-3 font-bold hover:bg-yellow-600">สาย</button>
-                            <button onclick="submitCardDaily('${studentId}', 'ลา')" class="bg-orange-500 text-white rounded-xl p-3 font-bold hover:bg-orange-600">ลา</button>
-                            <button onclick="submitCardDaily('${studentId}', 'ขาด')" class="bg-red-500 text-white rounded-xl p-3 font-bold hover:bg-red-600">ขาด</button>
-                        </div>
-                    `,
-                    showConfirmButton: false, showCancelButton: true, cancelButtonText: 'ยกเลิก', allowEnterKey: false,
-                    didOpen: () => {
-                        isModalOpen = true; 
-                        const barcodeInput = document.getElementById('barcode-input');
-                        if(barcodeInput) { barcodeInput.blur(); barcodeInput.value = ''; }
-                    },
-                    didClose: () => {
-                        isModalOpen = false; 
-                        if(document.getElementById('tab-check').classList.contains('active') || document.getElementById('tab-scan').classList.contains('active')) {
-                            const barcodeInput = document.getElementById('barcode-input');
-                            if(barcodeInput) {
-                                barcodeInput.value = '';
-                                setTimeout(() => barcodeInput.focus(), 100);
-                            }
-                        }
-                    }
-                });
-            } else {
-                renderScorePopupContent(studentId, studentName, actId);
-            }
-        }
-
-        function renderScorePopupContent(studentId, studentName, actId) {
-            const studentInfo = appData.students.find(s => s[0] === studentId);
-            let studentLogs = [];
-            
-            for(let log of appData.scoreLogs) { 
-                if(log[2] === actId && (log[4] === studentId || (studentInfo && log[5] == studentInfo[1] && log[7] === studentInfo[4]))) {
-                    studentLogs.push(log); 
-                }
-            }
-            
-            studentLogs.sort((a,b) => parseCustomDate(String(b[1])) - parseCustomDate(String(a[1])));
-            
-            let sumScore = 0;
-            for(let log of studentLogs) { sumScore += parseFloat(log[8]||0); } 
-
-            let historyHtml = '';
-            if (studentLogs.length > 0) {
-                historyHtml = `<div class="mt-4 text-left border-t border-gray-200 pt-3 max-h-40 overflow-y-auto">
-                    <p class="text-xs font-bold text-gray-500 mb-2">ประวัติการได้คะแนน</p>`;
-                
-                studentLogs.forEach(log => {
-                    historyHtml += `
-                        <div class="flex justify-between items-center bg-gray-50 p-2 rounded-lg mb-1 border border-gray-100">
-                            <div>
-                                <p class="text-xs text-gray-600">${log[1].split(' ')[1] || log[1]} <span class="font-bold text-indigo-600">${parseFloat(log[8]) > 0 ? '+'+log[8] : log[8]}</span></p>
-                                ${log[9] ? `<p class="text-[10px] text-gray-400 truncate w-32">${log[9]}</p>` : ''}
-                            </div>
-                            <div class="flex gap-2">
-                                <button onclick="editInlineScore('${log[0]}', '${log[8]}', '${studentId}', '${studentName}', '${actId}')" class="text-blue-500 hover:text-blue-700 p-1"><i class="fas fa-edit text-xs"></i></button>
-                                <button onclick="deleteInlineScore('${log[0]}', '${studentId}', '${studentName}', '${actId}')" class="text-red-500 hover:text-red-700 p-1"><i class="fas fa-trash text-xs"></i></button>
-                            </div>
-                        </div>`;
-                });
-                historyHtml += `</div>`;
-            } else {
-                historyHtml = `<div class="mt-4 text-center border-t border-gray-200 pt-3"><p class="text-xs text-gray-400">ยังไม่มีประวัติคะแนน</p></div>`;
-            }
-
-            const htmlContent = `
-                <div class="mb-3 text-left bg-blue-50 p-3 rounded-xl border border-blue-100 flex justify-between items-center shadow-inner">
-                    <p class="text-sm font-bold text-blue-800">คะแนนสะสมปัจจุบัน:</p>
-                    <p class="text-2xl font-bold text-blue-600" id="popup-total-score">${sumScore}</p>
-                </div>
-                <div class="text-left bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
-                    <div class="flex justify-center gap-2 mb-3">
-                        <button onclick="document.getElementById('card-score-input').value=1" class="flex-1 bg-green-50 text-green-700 py-2 rounded-lg font-bold hover:bg-green-100 border border-green-100 transition">+1</button>
-                        <button onclick="document.getElementById('card-score-input').value=2" class="flex-1 bg-green-50 text-green-700 py-2 rounded-lg font-bold hover:bg-green-100 border border-green-100 transition">+2</button>
-                        <button onclick="document.getElementById('card-score-input').value=5" class="flex-1 bg-blue-50 text-blue-700 py-2 rounded-lg font-bold hover:bg-blue-100 border border-blue-100 transition">+5</button>
-                        <button onclick="document.getElementById('card-score-input').value=-1" class="flex-1 bg-red-50 text-red-700 py-2 rounded-lg font-bold hover:bg-red-100 border border-red-100 transition">-1</button>
-                    </div>
-                    <label class="block text-sm font-bold text-gray-700">ระบุคะแนน (+ หรือ -)</label>
-                    <input type="number" id="card-score-input" placeholder="0" class="w-full text-center border-2 border-indigo-200 rounded-xl p-3 text-2xl font-bold outline-none focus:border-indigo-500 mb-3 shadow-inner bg-gray-50" onkeypress="if(event.key==='Enter') { event.preventDefault(); document.getElementById('card-btn-save').click(); }">
-                    <label class="block text-sm font-bold text-gray-700 mt-1">หมายเหตุ (ถ้ามี)</label>
-                    <input type="text" id="card-score-note" placeholder="เช่น ตอบคำถาม" class="w-full px-3 py-2 border border-gray-200 bg-gray-50 rounded-lg outline-none focus:border-indigo-500 text-sm" onkeypress="if(event.key==='Enter') { event.preventDefault(); document.getElementById('card-btn-save').click(); }">
-                </div>
-                <button id="card-btn-save" onclick="submitCardScore('${studentId}', '${studentName}')" class="w-full mt-4 bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 shadow-lg transition transform hover:-translate-y-0.5">บันทึกคะแนน</button>
-                ${historyHtml}
-            `;
-            
-            Swal.fire({ 
-                title: `ให้คะแนน: ${studentName}`, 
-                html: htmlContent, 
-                showConfirmButton: false, 
-                showCancelButton: true, 
-                cancelButtonText: 'ปิดหน้าต่าง',
-                allowEnterKey: false,
-                didOpen: () => {
-                    isModalOpen = true; 
-                    const barcodeInput = document.getElementById('barcode-input');
-                    if(barcodeInput) {
-                        barcodeInput.blur(); 
-                        barcodeInput.value = ''; 
-                    }
-                    setTimeout(() => {
-                        const scoreInput = document.getElementById('card-score-input');
-                        if(scoreInput) {
-                            scoreInput.value = ''; 
-                            scoreInput.focus();
-                        }
-                    }, 300);
-                },
-                didClose: () => {
-                    isModalOpen = false;
-                    if(document.getElementById('tab-check').classList.contains('active') || document.getElementById('tab-scan').classList.contains('active')) {
-                        const barcodeInput = document.getElementById('barcode-input');
-                        if(barcodeInput) {
-                            barcodeInput.value = '';
-                            setTimeout(() => barcodeInput.focus(), 100); 
-                        }
-                    }
-                }
-            });
         }
 
         async function editInlineScore(logId, currentPoints, sId, sName, actId) {
@@ -1865,9 +1516,9 @@
             
             const dateVal = document.getElementById('chk-date').value || document.getElementById('scan-date').value; 
             const dateParts = dateVal.split('-');
-            const sYear = parseInt(dateParts[0]);
-            const sMonth = parseInt(dateParts[1]);
-            const sDay = parseInt(dateParts[2]);
+            const sYear = parseInt(dateParts[0], 10);
+            const sMonth = parseInt(dateParts[1], 10);
+            const sDay = parseInt(dateParts[2], 10);
             const dNow = new Date();
             const timeStr = `${String(dNow.getHours()).padStart(2, '0')}:${String(dNow.getMinutes()).padStart(2, '0')}:${String(dNow.getSeconds()).padStart(2, '0')}`;
             const timestamp = `${String(sDay).padStart(2, '0')}/${String(sMonth).padStart(2, '0')}/${sYear} ${timeStr}`;
@@ -1897,7 +1548,7 @@
                 loadBulkTable(); 
                 renderScorePopupContent(studentId, studentName, actId);
             } else if (document.getElementById('tab-scan').classList.contains('active')) {
-                updateScanLogUI(studentId, `+${points} คะแนน`);
+                updateScanLogUI(studentId, `+${points} คะแนน`, dateVal);
             }
 
             Swal.fire({ title: 'สำเร็จ', text: `เพิ่ม ${points} คะแนน เรียบร้อย`, icon: 'success', timer: 1500, showConfirmButton: false, position: 'top-end', toast: true });
@@ -1917,17 +1568,14 @@
             } catch(e) { console.error("Sync Failed", e); }
         }
 
-        // =====================================
-        // TAB 3: STUDENTS & HISTORY LOG
-        // =====================================
         function renderStudentTable() {
             const filterClass = document.getElementById('filter-class').value;
             const search = document.getElementById('search-student').value.toLowerCase();
             let data = appData.students;
             
-            if(filterClass) data = data.filter(s => s[4] === filterClass);
+            if(filterClass) data = data.filter(s => String(s[4]).trim() === String(filterClass).trim());
             if(search) data = data.filter(s => s[3].toLowerCase().includes(search) || s[2].includes(search));
-            data.sort((a,b) => a[4].localeCompare(b[4]) || parseInt(a[1]) - parseInt(b[1]));
+            data.sort((a,b) => String(a[4]).localeCompare(String(b[4])) || parseInt(a[1]) - parseInt(b[1]));
 
             document.getElementById('std-tbody').innerHTML = data.map(s => `
                 <tr class="hover:bg-gray-50 group border-b border-gray-100">
@@ -1948,7 +1596,8 @@
             const s = appData.students.find(st => st[0] === studentId);
             let sLogs = [];
             for(let l of appData.scoreLogs) { 
-                if(l[4] === studentId || (s && l[5] == s[1] && l[7] === s[4])) {
+                const stdMatch = String(l[4]).trim() === String(studentId).trim() || (s && String(l[5]).trim() === String(s[1]).trim() && String(l[7]).trim() === String(s[4]).trim());
+                if(stdMatch) {
                     sLogs.push(l); 
                 }
             } 
@@ -1963,10 +1612,15 @@
                 sLogs.forEach(log => {
                     let actName = log[3] || "วิชาที่ไม่รู้จัก"; 
                     
+                    let timePart = "";
+                    const timeStr = String(log[1]).trim();
+                    if (timeStr.includes(' ')) timePart = timeStr.split(' ')[1];
+                    else timePart = timeStr;
+                    
                     html += `
                         <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
                             <div>
-                                <p class="text-xs text-gray-500"><i class="far fa-clock"></i> ${log[1]}</p>
+                                <p class="text-xs text-gray-500"><i class="far fa-clock"></i> ${timePart}</p>
                                 <p class="font-bold text-sm text-gray-800">${actName} <span class="text-xs font-normal text-gray-500">(${log[9] || 'ไม่มีหมายเหตุ'})</span></p>
                             </div>
                             <div class="flex items-center gap-3">
@@ -1990,6 +1644,7 @@
                 for(let l of appData.scoreLogs) { if(l[0] === logId) { l[8] = newPoints; break; } }
                 viewStudentHistory(sId, sName); 
                 loadBulkTable(); 
+                if(document.getElementById('tab-scan').classList.contains('active')) loadScanHistory();
                 try { await api.call('updateScoreLog', logId, newPoints); } catch(e) { console.error("Sync Failed", e); }
             }
         }
@@ -2000,6 +1655,7 @@
                 appData.scoreLogs = appData.scoreLogs.filter(l => l[0] !== logId);
                 viewStudentHistory(sId, sName);
                 loadBulkTable();
+                if(document.getElementById('tab-scan').classList.contains('active')) loadScanHistory();
                 try { await api.call('deleteScoreLog', logId); } catch(e) { console.error("Sync Failed", e); }
             }
         }
@@ -2173,7 +1829,6 @@
             }
         }
         
-        // --- TAB 5: CARDS ---
         function generateCards() {
             const cClass = document.getElementById('card-class').value;
             if(!cClass) return Swal.fire('เตือน', 'กรุณาเลือกห้องเรียน', 'warning');
@@ -2222,9 +1877,6 @@
             });
         }
 
-        // =====================================
-        // TAB 6: RANDOMIZER
-        // =====================================
         let isSpinning = false;
         let slotInterval;
 
@@ -2308,9 +1960,6 @@
             }, 1500);
         }
 
-        // =====================================
-        // TAB 7: ADVANCED SUMMARY & REPORT
-        // =====================================
         function setReportMode(mode) {
             currentReportMode = mode;
             if(mode === 'score') {
@@ -2364,14 +2013,18 @@
             const maxScore = parseFloat(actOpt.getAttribute('data-max') || 100);
             document.getElementById('print-report-title').innerText = `รายงานคะแนน: ${actOpt.text.replace(/\[วิชา\] /g, '')}`;
 
-            const students = appData.students.filter(s => s[4] === cClass).sort((a,b) => parseInt(a[1]) - parseInt(b[1]));
+            const students = appData.students.filter(s => String(s[4]).trim() === String(cClass).trim()).sort((a,b) => parseInt(a[1]) - parseInt(b[1]));
             let totalRecordsFound = 0; let sumScores = 0;
             
             const html = students.map(s => {
                 let sumScore = 0;
+                let hasRecord = false;
                 for(let log of appData.scoreLogs) { 
-                    if(log[2] === cActId && (log[4] === s[0] || (log[5] == s[1] && log[7] === s[4]))) {
-                        sumScore += parseFloat(log[8]||0); 
+                    const matchAct = String(log[2]).trim() === String(cActId).trim() || String(log[3]).trim() === String(actOpt.text).trim();
+                    const matchStd = matchRecord(log[2], log[4], log[5], log[7], cActId, s[0], s[1], s[4]);
+                    if(matchAct && matchStd) {
+                        let pts = parseFloat(log[8]);
+                        if (!isNaN(pts)) { sumScore += pts; hasRecord = true; }
                     }
                 }
                 
@@ -2379,7 +2032,7 @@
                 let progress = 0;
                 let statusHtml = `<span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold print:bg-transparent print:text-gray-800">ยังไม่มีคะแนน</span>`;
 
-                if(sumScore > 0 || appData.scoreLogs.some(l => l[2] === cActId && (l[4] === s[0] || (l[5] == s[1] && l[7] === s[4])))) {
+                if(sumScore > 0 || hasRecord) {
                     displayVal = `${sumScore} / ${maxScore}`;
                     progress = (sumScore/maxScore)*100;
                     statusHtml = sumScore >= maxScore 
@@ -2429,16 +2082,16 @@
 
             const start = new Date(startDateStr).setHours(0,0,0,0);
             const end = new Date(endDateStr).setHours(23,59,59,999);
-            const students = appData.students.filter(s => s[4] === cClass).sort((a,b) => parseInt(a[1]) - parseInt(b[1]));
+            const students = appData.students.filter(s => String(s[4]).trim() === String(cClass).trim()).sort((a,b) => parseInt(a[1]) - parseInt(b[1]));
 
             let schoolDaysSet = new Set();
             let relevantLogsMap = new Map(); 
 
             appData.attendance.forEach(att => {
-                const std = appData.students.find(s => s[0] === att[5] || (s[1] == att[6] && s[4] === att[8]));
-                if(std && std[4] === cClass) {
-                    const attDateStr = att[1]; 
-                    const attDate = new Date(attDateStr).getTime();
+                const std = appData.students.find(s => s[0] === att[5] || (s[1] == att[6] && String(s[4]).trim() === String(att[8]).trim()));
+                if(std && String(std[4]).trim() === String(cClass).trim()) {
+                    const attDateStr = String(att[1]).trim(); 
+                    const attDate = parseCustomDate(attDateStr); 
                     
                     if(attDate >= start && attDate <= end) {
                         schoolDaysSet.add(attDateStr);
@@ -2452,7 +2105,7 @@
                 }
             });
 
-            const schoolDays = Array.from(schoolDaysSet).sort(); 
+            const schoolDays = Array.from(schoolDaysSet).sort((a,b) => parseCustomDate(a) - parseCustomDate(b)); 
             const relevantLogs = Array.from(relevantLogsMap.values()); 
 
             if(schoolDays.length === 0) {
@@ -2520,7 +2173,9 @@
 
         function formatDateShort(dateStr) {
             if(!dateStr) return '';
-            const d = new Date(dateStr);
+            let dTime = parseCustomDate(dateStr);
+            if(dTime === 0) return dateStr;
+            let d = new Date(dTime);
             return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
         }
 
@@ -2532,7 +2187,7 @@
         function exportSummaryScore() {
             const cClass = document.getElementById('sum-class').value;
             if(!cClass) return Swal.fire('เตือน', 'กรุณาเลือกห้องเรียนก่อนทำการ Export', 'warning');
-            const students = appData.students.filter(s => s[4] === cClass).sort((a,b) => parseInt(a[1]) - parseInt(b[1]));
+            const students = appData.students.filter(s => String(s[4]).trim() === String(cClass).trim()).sort((a,b) => parseInt(a[1]) - parseInt(b[1]));
             if(students.length === 0) return Swal.fire('เตือน', 'ไม่พบข้อมูลนักเรียน', 'warning');
 
             const headerRow1 = ["เลขที่", "รหัสประจำตัว", "ชื่อ-สกุล"];
@@ -2563,7 +2218,7 @@
                     if (act[1] === 'รายวัน') {
                         let count = 0;
                         for(let att of appData.attendance) { 
-                            if(att[3] === act[0] && (att[5] === s[0] || (att[6] == s[1] && att[8] === s[4]))) {
+                            if(matchRecord(att[3], att[5], att[6], att[8], act[0], s[0], s[1], s[4])) {
                                 if(att[9] === 'มา' || att[9] === 'สาย') count++;
                             }
                         }
@@ -2571,8 +2226,11 @@
                     } else {
                         let score = 0;
                         for(let log of appData.scoreLogs) { 
-                            if(log[2] === act[0] && (log[4] === s[0] || (log[5] == s[1] && log[7] === s[4]))) {
-                                score += parseFloat(log[8]||0); 
+                            const matchAct = String(log[2]).trim() === String(act[0]).trim() || String(log[3]).trim() === String(act[3]).trim();
+                            const matchStd = matchRecord(log[2], log[4], log[5], log[7], act[0], s[0], s[1], s[4]);
+                            if(matchAct && matchStd) {
+                                let pts = parseFloat(log[8]);
+                                if(!isNaN(pts)) score += pts; 
                             }
                         }
                         row.push(score); 
