@@ -713,7 +713,6 @@
             if (!document.getElementById('tab-scan').classList.contains('active')) return;
             
             // ใช้ isModalOpen ควบคุมอย่างเดียว ห้ามใช้ Swal.isVisible() 
-            // เพราะ Toast สีเขียวที่เด้งขึ้นมา จะถูกนับเป็น Swal.isVisible() และไปบล็อกการสแกนเด็กคนถัดไป
             if (isModalOpen) return; 
             
             if (e.ctrlKey || e.altKey || e.metaKey) return;
@@ -806,7 +805,6 @@
             try {
                 appData = await api.call('getAppData');
                 
-                // 🧹 ระบบเครื่องดูดฝุ่น (ล้างแถวว่าง)
                 if (appData.students) {
                     appData.students = appData.students.filter(row => row && row.length > 3 && String(row[3]).trim() !== "");
                 }
@@ -846,7 +844,7 @@
         }
 
         // ==========================================
-        // 🚀 อัปเดต: ระบบ Dependent Dropdown (วิชา -> กิจกรรม)
+        // 🚀 อัปเดต: ระบบ Dependent Dropdown
         // ==========================================
         function updateGlobalDropdowns() {
             const classes = [...new Set(appData.students.map(s => s[4]))].sort();
@@ -932,11 +930,11 @@
         }
 
         // ==========================================
-        // ฟังก์ชันโหลดประวัติการสแกน (เพิ่มปุ่มลบประวัติ)
+        // ฟังก์ชันโหลดประวัติการสแกน (แก้ไขเรื่อง Date Match 100%)
         // ==========================================
         function loadScanHistory() {
             const actId = document.getElementById('scan-activity').value;
-            const dateStr = document.getElementById('scan-date').value;
+            const dateStr = document.getElementById('scan-date').value; // e.g. "2026-05-20"
             const logUl = document.getElementById('scan-log');
             const countSpan = document.getElementById('scan-count');
             
@@ -952,8 +950,23 @@
             if (!actInfo) return;
             const isDaily = actInfo[1] === 'รายวัน';
             
+            // แยกวันที่เพื่อสร้างรูปแบบการค้นหาที่ครอบคลุม ทั้งไทย และ สากล
             const parts = dateStr.split('-');
-            const thDateStr = `${parts[2]}/${parts[1]}/${parts[0]}`; 
+            if(parts.length !== 3) return;
+            
+            const year = parseInt(parts[0]);
+            const month = parseInt(parts[1]);
+            const day = parseInt(parts[2]);
+            const thYear = year + 543; 
+
+            // สร้าง Array ไว้ค้นหาวันที่ ที่เป็นไปได้ทั้งหมด
+            const searchDates = [
+                dateStr, // "2026-05-20"
+                `${String(day).padStart(2,'0')}/${String(month).padStart(2,'0')}/${year}`, // "20/05/2026"
+                `${day}/${month}/${year}`, // "20/5/2026"
+                `${String(day).padStart(2,'0')}/${String(month).padStart(2,'0')}/${thYear}`, // "20/05/2569"
+                `${day}/${month}/${thYear}` // "20/5/2569"
+            ];
 
             let relevantLogs = [];
 
@@ -989,7 +1002,13 @@
                 });
 
             } else {
-                relevantLogs = appData.scoreLogs.filter(log => log[2] === actId && log[1].includes(thDateStr));
+                relevantLogs = appData.scoreLogs.filter(log => {
+                    if (log[2] !== actId) return false;
+                    const logTimeStr = String(log[1]);
+                    // ค้นหาวันที่จาก Array ที่เตรียมไว้ ป้องกันบั๊กเรื่องรูปแบบวันที่
+                    return searchDates.some(f => logTimeStr.includes(f));
+                });
+                
                 relevantLogs.sort((a,b) => new Date(b[1]) - new Date(a[1]));
 
                 if (relevantLogs.length === 0) {
@@ -1000,11 +1019,18 @@
                 relevantLogs.forEach(log => {
                     const student = appData.students.find(s => s[0] === log[4] || (s[1] == log[5] && s[4] === log[7]));
                     if(!student) return;
-                    const points = parseFloat(log[8]) > 0 ? '+'+log[8] : log[8];
+                    const pointsVal = parseFloat(log[8]);
+                    const points = pointsVal > 0 ? '+'+pointsVal : pointsVal;
                     
+                    // ดึงเฉพาะเวลาออกมาแสดง
+                    let timePart = "";
+                    const timeSplit = String(log[1]).split(' ');
+                    if (timeSplit.length > 1) timePart = timeSplit[1];
+                    else timePart = log[1];
+
                     const li = document.createElement('li');
                     li.className = `p-3 flex justify-between items-center bg-indigo-50 border-l-4 border-indigo-500 mb-1 rounded-r shadow-sm`;
-                    li.innerHTML = `<div><p class="font-bold text-sm text-gray-800">${student[3]}</p><p class="text-xs text-gray-500">ชั้น: ${student[4]} | เวลา: ${log[1].split(' ')[1]}</p></div>
+                    li.innerHTML = `<div><p class="font-bold text-sm text-gray-800">${student[3]}</p><p class="text-xs text-gray-500">ชั้น: ${student[4]} | เวลา: ${timePart}</p></div>
                                     <div class="flex items-center gap-2">
                                         <span class="font-bold text-md text-indigo-700 bg-white px-3 py-1 rounded-lg shadow-sm border border-indigo-200">${points} คะแนน</span>
                                         <button onclick="undoScore('${log[0]}')" class="text-red-400 hover:text-red-600 bg-white hover:bg-red-50 p-1.5 rounded-lg border border-red-100 transition shadow-sm" title="ลบข้อมูลนี้"><i class="fas fa-trash"></i></button>
@@ -1151,7 +1177,7 @@
                     } catch (e) { 
                         console.error(e); 
                     } finally {
-                        isScanningProcess = false; // ป้องกันสถานะค้าง
+                        isScanningProcess = false; 
                     }
                 };
                 
@@ -1197,7 +1223,6 @@
             if (e.key === 'Enter') {
                 e.preventDefault(); 
                 
-                // ถ้าระบบกำลังให้คะแนน (ป๊อปอัปเปิด) จะทิ้งค่าที่สแกนเบิ้ลมาทั้งหมดทันที
                 if (isModalOpen) {
                     e.target.value = ''; 
                     return; 
@@ -1224,7 +1249,7 @@
                     } catch(err) { 
                         console.error(err); 
                     } finally {
-                        isScanningProcess = false; // การันตีการปลดล็อกสถานะสแกน
+                        isScanningProcess = false; 
                     }
                 }
             }
@@ -1283,7 +1308,7 @@
                             <button onclick="document.getElementById('swal-score').value=-1" class="flex-1 bg-red-100 text-red-700 py-2 rounded-lg font-bold hover:bg-red-200">-1</button>
                         </div>
                         <label class="block text-sm font-bold text-gray-700">ระบุคะแนน (+ หรือ -)</label>
-                        <input type="number" id="swal-score" class="w-full border-2 border-indigo-300 rounded-lg p-3 text-center text-2xl font-bold text-indigo-700 outline-none focus:border-indigo-500 mt-2" placeholder="+1" onkeypress="if(event.key==='Enter') { event.preventDefault(); document.getElementById('swal-btn-save').click(); }">
+                        <input type="number" id="swal-score" class="w-full text-center border-2 border-indigo-300 rounded-lg p-3 text-2xl font-bold outline-none focus:border-indigo-500 mt-2" placeholder="+1" onkeypress="if(event.key==='Enter') { event.preventDefault(); document.getElementById('swal-btn-save').click(); }">
                         <label class="block text-sm font-bold text-gray-700 mt-3">หมายเหตุ (ถ้ามี)</label>
                         <input type="text" id="swal-note" class="w-full border border-gray-300 rounded-lg p-2 text-sm outline-none focus:border-indigo-500 mt-1" placeholder="เช่น ตอบคำถามในห้อง" onkeypress="if(event.key==='Enter') { event.preventDefault(); document.getElementById('swal-btn-save').click(); }">
                     </div>
@@ -1297,14 +1322,12 @@
                     cancelButtonText: 'ยกเลิก', 
                     allowEnterKey: false,
                     didOpen: () => {
-                        isModalOpen = true; // ล็อกสถานะ
+                        isModalOpen = true; 
                         const barcodeInput = document.getElementById('barcode-input');
                         if(barcodeInput) {
                             barcodeInput.blur(); 
                             barcodeInput.value = ''; 
                         }
-                        
-                        // รอหน่วงเวลาให้กล้อง/เครื่องสแกนเคลียร์บัฟเฟอร์ แล้วย้ายโฟกัสมาให้ครูพิมพ์คะแนน
                         setTimeout(() => {
                             const scoreInput = document.getElementById('swal-score');
                             if(scoreInput) {
@@ -1314,10 +1337,8 @@
                         }, 300);
                     },
                     didClose: () => {
-                        isModalOpen = false; // คืนค่าสถานะทันทีเมื่อกดปิด/ยกเลิก/Esc
-                        
-                        // คืนโฟกัสกลับไปที่ช่องรับรหัส
-                        if(document.getElementById('tab-scan').classList.contains('active')) {
+                        isModalOpen = false;
+                        if(document.getElementById('tab-check').classList.contains('active') || document.getElementById('tab-scan').classList.contains('active')) {
                             const barcodeInput = document.getElementById('barcode-input');
                             if(barcodeInput) {
                                 barcodeInput.value = '';
@@ -1330,7 +1351,7 @@
         }
 
         async function submitDaily(studentId, value) {
-            isModalOpen = false; // คืนสถานะเสมอ
+            isModalOpen = false; 
             if(Swal.isVisible()) Swal.close(); 
             
             const actId = document.getElementById('scan-activity').value;
@@ -1345,7 +1366,6 @@
             updateScanLogUI(studentId, value, date); 
             Swal.fire({ title: 'เช็คชื่อสำเร็จ', text: `${data.stdName} (${value})`, icon: 'success', timer: 1000, showConfirmButton: false, position: 'top-end', toast: true });
 
-            // คืนค่าเคอร์เซอร์
             setTimeout(() => {
                 const barcodeInput = document.getElementById('barcode-input');
                 if(barcodeInput) { 
@@ -1364,11 +1384,14 @@
             const note = document.getElementById('swal-note').value;
             if(points === "") return Swal.showValidationMessage('กรุณากรอกคะแนน');
             
-            isModalOpen = false; // ปลดล็อกทันทีที่สั่ง Save
+            isModalOpen = false; 
             Swal.close(); 
 
             const actId = document.getElementById('scan-activity').value;
-            const timestamp = new Date().toLocaleString('th-TH');
+            // สร้างเวลามาตรฐานเพื่อใช้ Filter ได้อย่างแม่นยำ
+            const dNow = new Date();
+            const timestamp = `${String(dNow.getDate()).padStart(2, '0')}/${String(dNow.getMonth() + 1).padStart(2, '0')}/${dNow.getFullYear()} ${String(dNow.getHours()).padStart(2, '0')}:${String(dNow.getMinutes()).padStart(2, '0')}:${String(dNow.getSeconds()).padStart(2, '0')}`;
+            
             const actInfo = appData.activities.find(a => a[0] === actId);
             const studentInfo = appData.students.find(s => s[0] === studentId);
 
@@ -1381,7 +1404,6 @@
             updateScanLogUI(studentId, `+${points} คะแนน`, document.getElementById('scan-date').value);
             Swal.fire({ title: 'สำเร็จ', text: `เพิ่ม ${points} คะแนน เรียบร้อย`, icon: 'success', timer: 1500, showConfirmButton: false, position: 'top-end', toast: true });
 
-            // 🌟 คืนค่าเคอร์เซอร์และล้างขยะสำหรับให้พร้อมสแกนคนต่อไป
             setTimeout(() => {
                 const barcodeInput = document.getElementById('barcode-input');
                 if(barcodeInput) {
@@ -1400,9 +1422,7 @@
 
         function updateScanLogUI(studentId, badgeText, reqDateStr) {
             try {
-                // อัปเดตตารางประวัติจาก Memory แทนการวาดซ้อน เพื่อให้รูปแบบเหมือนกัน 100%
                 loadScanHistory();
-                setTimeout(() => document.getElementById('barcode-input').focus(), 300);
             } catch (error) { console.error("UI Log Error: ", error); }
         }
 
@@ -1544,7 +1564,8 @@
                 const date = document.getElementById('chk-date').value;
                 records.forEach(r => { appData.attendance.push(['mock_'+tempBatchId, date, new Date().toLocaleTimeString('th-TH'), actId, actNameStr, r.studentId, r.stdNum, r.stdName, r.stdClass, r.value, currentUser.id]); });
             } else {
-                const timestamp = new Date().toLocaleString('th-TH');
+                const dNow = new Date();
+                const timestamp = `${String(dNow.getDate()).padStart(2, '0')}/${String(dNow.getMonth() + 1).padStart(2, '0')}/${dNow.getFullYear()} ${String(dNow.getHours()).padStart(2, '0')}:${String(dNow.getMinutes()).padStart(2, '0')}:${String(dNow.getSeconds()).padStart(2, '0')}`;
                 records.forEach(r => { appData.scoreLogs.push(['mock_'+tempBatchId, timestamp, actId, actNameStr, r.studentId, r.stdNum, r.stdName, r.stdClass, r.value, "เช็คกลุ่ม", currentUser.id]); });
             }
             
@@ -1555,7 +1576,9 @@
                 if (isDaily) {
                     await api.call('saveBulkAttendance', { date: document.getElementById('chk-date').value, activityId: actId, actName: actNameStr, records, userId: currentUser.id });
                 } else {
-                    await api.call('saveBulkScoreLog', { activityId: actId, actName: actNameStr, records, note: "เช็คกลุ่ม", timestamp: new Date().toLocaleString('th-TH'), userId: currentUser.id });
+                    const dNow = new Date();
+                    const timestamp = `${String(dNow.getDate()).padStart(2, '0')}/${String(dNow.getMonth() + 1).padStart(2, '0')}/${dNow.getFullYear()} ${String(dNow.getHours()).padStart(2, '0')}:${String(dNow.getMinutes()).padStart(2, '0')}:${String(dNow.getSeconds()).padStart(2, '0')}`;
+                    await api.call('saveBulkScoreLog', { activityId: actId, actName: actNameStr, records, note: "เช็คกลุ่ม", timestamp: timestamp, userId: currentUser.id });
                 }
             } catch(e) { console.error("Bulk sync error", e); }
         }
@@ -1582,7 +1605,7 @@
                         if(barcodeInput) { barcodeInput.blur(); barcodeInput.value = ''; }
                     },
                     didClose: () => {
-                        isModalOpen = false; // ปลดล็อกสถานะ
+                        isModalOpen = false; 
                         if(document.getElementById('tab-check').classList.contains('active') || document.getElementById('tab-scan').classList.contains('active')) {
                             const barcodeInput = document.getElementById('barcode-input');
                             if(barcodeInput) {
@@ -1679,11 +1702,13 @@
                     }, 300);
                 },
                 didClose: () => {
-                    isModalOpen = false; // ปลดล็อก
-                    const barcodeInput = document.getElementById('barcode-input');
-                    if(barcodeInput) {
-                        barcodeInput.value = '';
-                        setTimeout(() => barcodeInput.focus(), 100);
+                    isModalOpen = false;
+                    if(document.getElementById('tab-check').classList.contains('active') || document.getElementById('tab-scan').classList.contains('active')) {
+                        const barcodeInput = document.getElementById('barcode-input');
+                        if(barcodeInput) {
+                            barcodeInput.value = '';
+                            setTimeout(() => barcodeInput.focus(), 100);
+                        }
                     }
                 }
             });
@@ -1736,7 +1761,7 @@
         }
 
         async function submitCardDaily(studentId, value) {
-            isModalOpen = false; // คืนค่าสถานะทันที
+            isModalOpen = false; 
             if(Swal.isVisible()) Swal.close();
             
             const actId = document.getElementById('chk-activity').value;
@@ -1778,7 +1803,7 @@
             const note = document.getElementById('card-score-note').value;
             if(points === "") return Swal.showValidationMessage('กรุณากรอกคะแนน');
             
-            isModalOpen = false; // คืนค่าสถานะทันที
+            isModalOpen = false; 
             Swal.close();
 
             const actId = document.getElementById('chk-activity').value || document.getElementById('scan-activity').value;
@@ -1858,7 +1883,6 @@
             
             const s = appData.students.find(st => st[0] === studentId);
             let sLogs = [];
-            // --- Smart Match System ---
             for(let l of appData.scoreLogs) { 
                 if(l[4] === studentId || (s && l[5] == s[1] && l[7] === s[4])) {
                     sLogs.push(l); 
@@ -1899,30 +1923,20 @@
         async function editScoreLog(logId, currentPoints, sId, sName) {
             const { value: newPoints } = await Swal.fire({ title: 'แก้ไขคะแนน', input: 'number', inputValue: currentPoints, showCancelButton: true, confirmButtonText: 'บันทึก', allowEnterKey: false });
             if (newPoints && newPoints !== currentPoints) {
-                
-                // Optimistic UI
                 for(let l of appData.scoreLogs) { if(l[0] === logId) { l[8] = newPoints; break; } }
                 viewStudentHistory(sId, sName); 
                 loadBulkTable(); 
-
-                try {
-                    await api.call('updateScoreLog', logId, newPoints);
-                } catch(e) { console.error("Sync Failed", e); }
+                try { await api.call('updateScoreLog', logId, newPoints); } catch(e) { console.error("Sync Failed", e); }
             }
         }
 
         async function deleteScoreLog(logId, sId, sName) {
             const res = await Swal.fire({ title: 'ลบรายการนี้?', text: "คะแนนจะถูกหักออก", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33' });
             if(res.isConfirmed) {
-
-                // Optimistic UI
                 appData.scoreLogs = appData.scoreLogs.filter(l => l[0] !== logId);
                 viewStudentHistory(sId, sName);
                 loadBulkTable();
-
-                try {
-                    await api.call('deleteScoreLog', logId);
-                } catch(e) { console.error("Sync Failed", e); }
+                try { await api.call('deleteScoreLog', logId); } catch(e) { console.error("Sync Failed", e); }
             }
         }
 
