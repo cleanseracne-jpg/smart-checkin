@@ -653,7 +653,7 @@
         let html5QrCode = null; 
         let selectedLogoBase64 = null;
         let isScanningProcess = false;
-        let isModalOpen = false; 
+        let isModalOpen = false; // สถานะตัวควบคุมหลัก ป้องกันการทำงานซ้อนทับกัน
         let currentCheckView = 'table'; 
         let currentReportMode = 'score'; 
 
@@ -711,7 +711,11 @@
         // ระบบจับคีย์บอร์ด (Barcode Scanner) 
         document.addEventListener('keydown', function(e) {
             if (!document.getElementById('tab-scan').classList.contains('active')) return;
-            if (isModalOpen || Swal.isVisible()) return; 
+            
+            // ใช้ isModalOpen ควบคุมอย่างเดียว ห้ามใช้ Swal.isVisible() 
+            // เพราะ Toast สีเขียวที่เด้งขึ้นมา จะถูกนับเป็น Swal.isVisible() และไปบล็อกการสแกนเด็กคนถัดไป
+            if (isModalOpen) return; 
+            
             if (e.ctrlKey || e.altKey || e.metaKey) return;
             const barcodeInput = document.getElementById('barcode-input');
             if (document.activeElement.tagName === 'INPUT' && document.activeElement !== barcodeInput) return;
@@ -976,7 +980,6 @@
 
                     const li = document.createElement('li');
                     li.className = `p-3 flex justify-between items-center ${bgCol} border-l-4 mb-1 rounded-r shadow-sm`;
-                    // [แก้ไข] เพิ่มปุ่ม Undo ลบทิ้งท้ายประวัติ
                     li.innerHTML = `<div><p class="font-bold text-sm text-gray-800">${student[3]}</p><p class="text-xs text-gray-500">ชั้น: ${student[4]} | เวลา: ${log[2]}</p></div>
                                     <div class="flex items-center gap-2">
                                         <span class="font-bold text-md ${textCol} bg-white px-3 py-1 rounded-lg shadow-sm border">${val}</span>
@@ -1001,7 +1004,6 @@
                     
                     const li = document.createElement('li');
                     li.className = `p-3 flex justify-between items-center bg-indigo-50 border-l-4 border-indigo-500 mb-1 rounded-r shadow-sm`;
-                    // [แก้ไข] เพิ่มปุ่ม Undo ลบทิ้งท้ายประวัติ
                     li.innerHTML = `<div><p class="font-bold text-sm text-gray-800">${student[3]}</p><p class="text-xs text-gray-500">ชั้น: ${student[4]} | เวลา: ${log[1].split(' ')[1]}</p></div>
                                     <div class="flex items-center gap-2">
                                         <span class="font-bold text-md text-indigo-700 bg-white px-3 py-1 rounded-lg shadow-sm border border-indigo-200">${points} คะแนน</span>
@@ -1018,19 +1020,55 @@
         // ฟังก์ชันลบประวัติที่สแกนผิด (Undo Scan)
         // ==========================================
         async function undoAttendance(logId) {
-            const res = await Swal.fire({ title: 'ลบประวัติการเช็คชื่อ?', text: "ข้อมูลนี้จะถูกลบออกจากระบบทันที", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'ลบข้อมูล' });
+            const res = await Swal.fire({ 
+                title: 'ลบประวัติการเช็คชื่อ?', 
+                text: "ข้อมูลนี้จะถูกลบออกจากระบบทันที", 
+                icon: 'warning', 
+                showCancelButton: true, 
+                confirmButtonColor: '#d33', 
+                confirmButtonText: 'ลบข้อมูล',
+                didOpen: () => { isModalOpen = true; },
+                didClose: () => { 
+                    isModalOpen = false;
+                    setTimeout(() => {
+                        const barcodeInput = document.getElementById('barcode-input');
+                        if (barcodeInput && document.getElementById('tab-scan').classList.contains('active')) {
+                            barcodeInput.focus();
+                        }
+                    }, 100);
+                }
+            });
+            
             if(res.isConfirmed) {
                 appData.attendance = appData.attendance.filter(l => l[0] !== logId);
-                loadScanHistory(); // อัปเดต UI ทันที
+                loadScanHistory(); 
                 try { await api.call('deleteAttendanceLog', logId); } catch(e) { console.error("Delete Failed", e); }
             }
         }
 
         async function undoScore(logId) {
-            const res = await Swal.fire({ title: 'ลบประวัติคะแนน?', text: "คะแนนนี้จะถูกลบออกจากระบบทันที", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'ลบข้อมูล' });
+            const res = await Swal.fire({ 
+                title: 'ลบประวัติคะแนน?', 
+                text: "คะแนนนี้จะถูกลบออกจากระบบทันที", 
+                icon: 'warning', 
+                showCancelButton: true, 
+                confirmButtonColor: '#d33', 
+                confirmButtonText: 'ลบข้อมูล',
+                didOpen: () => { isModalOpen = true; },
+                didClose: () => { 
+                    isModalOpen = false;
+                    setTimeout(() => {
+                        const barcodeInput = document.getElementById('barcode-input');
+                        if (barcodeInput && document.getElementById('tab-scan').classList.contains('active')) {
+                            barcodeInput.focus();
+                        }
+                    }, 100);
+                }
+            });
+            
             if(res.isConfirmed) {
                 appData.scoreLogs = appData.scoreLogs.filter(l => l[0] !== logId);
-                loadScanHistory(); // อัปเดต UI ทันที
+                loadScanHistory(); 
                 try { await api.call('deleteScoreLog', logId); } catch(e) { console.error("Delete Failed", e); }
             }
         }
@@ -1108,8 +1146,13 @@
                 const onScan = async (decodedText) => {
                     if(isScanningProcess || isModalOpen) return; 
                     isScanningProcess = true;
-                    try { await processScan(decodedText); } catch (e) { console.error(e); }
-                    setTimeout(() => { isScanningProcess = false; }, 800); 
+                    try { 
+                        await processScan(decodedText); 
+                    } catch (e) { 
+                        console.error(e); 
+                    } finally {
+                        isScanningProcess = false; // ป้องกันสถานะค้าง
+                    }
                 };
                 
                 try { await html5QrCode.start({ facingMode: "environment" }, config, onScan); } 
@@ -1153,7 +1196,12 @@
         async function handleBarcodeInput(e) {
             if (e.key === 'Enter') {
                 e.preventDefault(); 
-                if (isModalOpen) return; 
+                
+                // ถ้าระบบกำลังให้คะแนน (ป๊อปอัปเปิด) จะทิ้งค่าที่สแกนเบิ้ลมาทั้งหมดทันที
+                if (isModalOpen) {
+                    e.target.value = ''; 
+                    return; 
+                }
                 
                 let code = e.target.value.trim(); 
                 e.target.value = ''; 
@@ -1171,8 +1219,13 @@
                         newCode += (idx !== -1) ? enMap[idx] : char;
                     }
                     
-                    try { await processScan(newCode); } catch(err) { console.error(err); }
-                    setTimeout(() => { isScanningProcess = false; }, 800);
+                    try { 
+                        await processScan(newCode); 
+                    } catch(err) { 
+                        console.error(err); 
+                    } finally {
+                        isScanningProcess = false; // การันตีการปลดล็อกสถานะสแกน
+                    }
                 }
             }
         }
@@ -1187,17 +1240,14 @@
 
             let actInfo = appData.activities.find(a => a[0] === actId);
             const isDaily = actInfo && actInfo[1] === 'รายวัน';
-            const maxScore = actInfo ? actInfo[4] : 100;
 
             const rawImgUrl = student[5] ? student[5].trim() : '';
             const imgUrl = rawImgUrl ? getDirectImageUrl(rawImgUrl) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(student[3])}&backgroundColor=e2e8f0`;
 
             if (isDaily) {
-                // [ฟีเจอร์ใหม่] เช็คชื่ออัตโนมัติ (Auto-Attendance) ให้ทำงานทันที ไม่ต้องเปิดป๊อปอัป
                 await submitDaily(student[0], 'มา');
                 playSound('success');
             } else {
-                // เก็บแต้ม (Score Mode) ทำงานเปิดป๊อปอัปเหมือนเดิม
                 playSound('success');
                 let htmlContent = `
                     <div class="flex flex-col items-center mb-4">
@@ -1247,12 +1297,14 @@
                     cancelButtonText: 'ยกเลิก', 
                     allowEnterKey: false,
                     didOpen: () => {
-                        isModalOpen = true;
+                        isModalOpen = true; // ล็อกสถานะ
                         const barcodeInput = document.getElementById('barcode-input');
                         if(barcodeInput) {
                             barcodeInput.blur(); 
                             barcodeInput.value = ''; 
                         }
+                        
+                        // รอหน่วงเวลาให้กล้อง/เครื่องสแกนเคลียร์บัฟเฟอร์ แล้วย้ายโฟกัสมาให้ครูพิมพ์คะแนน
                         setTimeout(() => {
                             const scoreInput = document.getElementById('swal-score');
                             if(scoreInput) {
@@ -1262,9 +1314,15 @@
                         }, 300);
                     },
                     didClose: () => {
-                        isModalOpen = false;
+                        isModalOpen = false; // คืนค่าสถานะทันทีเมื่อกดปิด/ยกเลิก/Esc
+                        
+                        // คืนโฟกัสกลับไปที่ช่องรับรหัส
                         if(document.getElementById('tab-scan').classList.contains('active')) {
-                            setTimeout(() => document.getElementById('barcode-input').focus(), 100); 
+                            const barcodeInput = document.getElementById('barcode-input');
+                            if(barcodeInput) {
+                                barcodeInput.value = '';
+                                setTimeout(() => barcodeInput.focus(), 100); 
+                            }
                         }
                     }
                 });
@@ -1272,7 +1330,9 @@
         }
 
         async function submitDaily(studentId, value) {
+            isModalOpen = false; // คืนสถานะเสมอ
             if(Swal.isVisible()) Swal.close(); 
+            
             const actId = document.getElementById('scan-activity').value;
             const date = document.getElementById('scan-date').value;
             const actInfo = appData.activities.find(a => a[0] === actId);
@@ -1283,9 +1343,18 @@
             appData.attendance.push(['mock_' + Date.now(), date, new Date().toLocaleTimeString('th-TH'), actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, value, currentUser.id]);
             
             updateScanLogUI(studentId, value, date); 
-            
-            // แจ้งเตือนสั้นๆ (Toast) แบบไม่ขัดขวางการทำงาน 
             Swal.fire({ title: 'เช็คชื่อสำเร็จ', text: `${data.stdName} (${value})`, icon: 'success', timer: 1000, showConfirmButton: false, position: 'top-end', toast: true });
+
+            // คืนค่าเคอร์เซอร์
+            setTimeout(() => {
+                const barcodeInput = document.getElementById('barcode-input');
+                if(barcodeInput) { 
+                    barcodeInput.value = ''; 
+                    if(document.getElementById('tab-scan').classList.contains('active')) {
+                        barcodeInput.focus(); 
+                    }
+                }
+            }, 300);
 
             try { await api.call('saveScanRecord', data); } catch(e) { console.error("Sync Failed", e); }
         }
@@ -1294,6 +1363,8 @@
             const points = document.getElementById('swal-score').value;
             const note = document.getElementById('swal-note').value;
             if(points === "") return Swal.showValidationMessage('กรุณากรอกคะแนน');
+            
+            isModalOpen = false; // ปลดล็อกทันทีที่สั่ง Save
             Swal.close(); 
 
             const actId = document.getElementById('scan-activity').value;
@@ -1310,6 +1381,17 @@
             updateScanLogUI(studentId, `+${points} คะแนน`, document.getElementById('scan-date').value);
             Swal.fire({ title: 'สำเร็จ', text: `เพิ่ม ${points} คะแนน เรียบร้อย`, icon: 'success', timer: 1500, showConfirmButton: false, position: 'top-end', toast: true });
 
+            // 🌟 คืนค่าเคอร์เซอร์และล้างขยะสำหรับให้พร้อมสแกนคนต่อไป
+            setTimeout(() => {
+                const barcodeInput = document.getElementById('barcode-input');
+                if(barcodeInput) {
+                    barcodeInput.value = '';
+                    if(document.getElementById('tab-scan').classList.contains('active')) {
+                        barcodeInput.focus();
+                    }
+                }
+            }, 300);
+
             try {
                 const res = await api.call('saveScoreLog', data);
                 if(res.status === 'success') { const log = appData.scoreLogs.find(l => l[0] === tempLogId); if(log) log[0] = res.logId; }
@@ -1318,6 +1400,7 @@
 
         function updateScanLogUI(studentId, badgeText, reqDateStr) {
             try {
+                // อัปเดตตารางประวัติจาก Memory แทนการวาดซ้อน เพื่อให้รูปแบบเหมือนกัน 100%
                 loadScanHistory();
                 setTimeout(() => document.getElementById('barcode-input').focus(), 300);
             } catch (error) { console.error("UI Log Error: ", error); }
@@ -1499,9 +1582,13 @@
                         if(barcodeInput) { barcodeInput.blur(); barcodeInput.value = ''; }
                     },
                     didClose: () => {
-                        isModalOpen = false;
-                        if(document.getElementById('tab-scan').classList.contains('active')) {
-                            setTimeout(() => document.getElementById('barcode-input').focus(), 100);
+                        isModalOpen = false; // ปลดล็อกสถานะ
+                        if(document.getElementById('tab-check').classList.contains('active') || document.getElementById('tab-scan').classList.contains('active')) {
+                            const barcodeInput = document.getElementById('barcode-input');
+                            if(barcodeInput) {
+                                barcodeInput.value = '';
+                                setTimeout(() => barcodeInput.focus(), 100);
+                            }
                         }
                     }
                 });
@@ -1592,9 +1679,11 @@
                     }, 300);
                 },
                 didClose: () => {
-                    isModalOpen = false;
-                    if(document.getElementById('tab-scan').classList.contains('active')) {
-                        setTimeout(() => document.getElementById('barcode-input').focus(), 100);
+                    isModalOpen = false; // ปลดล็อก
+                    const barcodeInput = document.getElementById('barcode-input');
+                    if(barcodeInput) {
+                        barcodeInput.value = '';
+                        setTimeout(() => barcodeInput.focus(), 100);
                     }
                 }
             });
@@ -1647,7 +1736,9 @@
         }
 
         async function submitCardDaily(studentId, value) {
-            Swal.close();
+            isModalOpen = false; // คืนค่าสถานะทันที
+            if(Swal.isVisible()) Swal.close();
+            
             const actId = document.getElementById('chk-activity').value;
             const date = document.getElementById('chk-date').value;
             
@@ -1674,6 +1765,11 @@
             
             Swal.fire({ title: 'สำเร็จ', text: `บันทึกสถานะ ${value} เรียบร้อย`, icon: 'success', timer: 1000, showConfirmButton: false, position: 'top-end', toast: true });
 
+            setTimeout(() => {
+                const barcodeInput = document.getElementById('barcode-input');
+                if(barcodeInput) { barcodeInput.value = ''; barcodeInput.focus(); }
+            }, 300);
+
             try { await api.call('saveScanRecord', data); } catch(e) { console.error("Sync Failed", e); }
         }
 
@@ -1682,6 +1778,9 @@
             const note = document.getElementById('card-score-note').value;
             if(points === "") return Swal.showValidationMessage('กรุณากรอกคะแนน');
             
+            isModalOpen = false; // คืนค่าสถานะทันที
+            Swal.close();
+
             const actId = document.getElementById('chk-activity').value || document.getElementById('scan-activity').value;
             const timestamp = new Date().toLocaleString('th-TH');
             
@@ -1710,11 +1809,15 @@
                 loadBulkTable(); 
                 renderScorePopupContent(studentId, studentName, actId);
             } else if (document.getElementById('tab-scan').classList.contains('active')) {
-                Swal.close();
                 updateScanLogUI(studentId, `+${points} คะแนน`);
             }
 
             Swal.fire({ title: 'สำเร็จ', text: `เพิ่ม ${points} คะแนน เรียบร้อย`, icon: 'success', timer: 1500, showConfirmButton: false, position: 'top-end', toast: true });
+
+            setTimeout(() => {
+                const barcodeInput = document.getElementById('barcode-input');
+                if(barcodeInput) { barcodeInput.value = ''; barcodeInput.focus(); }
+            }, 300);
 
             try {
                 const res = await api.call('saveScoreLog', data);
@@ -2194,7 +2297,7 @@
                     }
                 }
                 
-                let displayVal = `0 / ${maxScore}`;
+                let displayVal = `${sumScore} / ${maxScore}`;
                 let progress = 0;
                 let statusHtml = `<span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold print:bg-transparent print:text-gray-800">ยังไม่มีคะแนน</span>`;
 
@@ -2224,9 +2327,6 @@
             document.getElementById('stat-sc-max').innerText = maxScore;
         }
 
-        // ==========================================
-        // 🔥 สรุปเวลาเรียนเชิงลึก + Unique Dates + Auto Absent
-        // ==========================================
         function renderAttendanceReport() {
             const cClass = document.getElementById('sum-class').value;
             const startDateStr = document.getElementById('rep-start-date').value;
