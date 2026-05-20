@@ -190,14 +190,11 @@
                             <div class="p-3 bg-indigo-50/80 border-b border-indigo-100 flex justify-between items-center">
                                 <span class="font-bold text-sm text-indigo-800"><i class="fas fa-camera"></i> เปิดกล้องเว็บแคม / มือถือ</span>
                             </div>
-                            
                             <div class="p-4 bg-white/50 border-b border-gray-100 flex flex-col items-center justify-center min-h-[250px] relative">
                                 <div id="reader" class="w-full max-w-sm rounded-xl overflow-hidden shadow-inner bg-gray-100 border border-gray-200 empty:hidden"></div>
-                                
                                 <div class="mt-4 flex flex-wrap gap-2 justify-center w-full relative z-10 px-2">
                                     <button id="camera-start-btn" onclick="startCamera()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-bold shadow-md transition text-sm flex-1"><i class="fas fa-video mr-1"></i> เปิดกล้องสด</button>
                                     <button id="camera-stop-btn" onclick="stopCamera()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2.5 rounded-xl font-bold shadow-md transition text-sm hidden flex-1"><i class="fas fa-stop mr-1"></i> ปิดกล้อง</button>
-                                    
                                     <label class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2.5 rounded-xl font-bold shadow-md transition text-sm cursor-pointer text-center flex-1">
                                         <i class="fas fa-image mr-1"></i> อัปโหลดรูปภาพ
                                         <input type="file" accept="image/*" class="hidden" onchange="scanImageFile(event)">
@@ -228,7 +225,6 @@
                 <div id="tab-check" class="tab-content max-w-5xl mx-auto">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-4 gap-3">
                         <h2 class="text-2xl font-bold flex items-center gap-2 text-white drop-shadow-md"><i class="fas fa-tasks"></i> เช็คชื่อ/ลงคะแนน ในห้องเรียน</h2>
-                        
                         <div class="bg-white/50 backdrop-blur p-1 rounded-xl flex gap-1 no-print shadow-sm">
                             <button onclick="setCheckView('table')" id="btn-view-table" class="px-4 py-2 rounded-lg bg-white shadow-sm text-sm font-bold text-indigo-600 transition"><i class="fas fa-list mr-1"></i> แบบตาราง</button>
                             <button onclick="setCheckView('card')" id="btn-view-card" class="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-indigo-600 transition"><i class="fas fa-th-large mr-1"></i> แบบการ์ด</button>
@@ -392,14 +388,12 @@
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-4 gap-3 no-print">
                         <h2 class="text-2xl font-bold flex items-center gap-2 text-white drop-shadow-md"><i class="fas fa-chart-pie"></i> แดชบอร์ดสรุปผล</h2>
                         
-                        <!-- Toggle สลับโหมดรายงาน -->
                         <div class="bg-white/50 backdrop-blur p-1 rounded-xl flex gap-1 shadow-sm w-full md:w-auto">
                             <button onclick="setReportMode('score')" id="btn-mode-score" class="flex-1 md:flex-none px-4 py-2 rounded-lg bg-white shadow-sm text-sm font-bold text-indigo-600 transition"><i class="fas fa-star mr-1"></i> สรุปคะแนน (วิชา)</button>
                             <button onclick="setReportMode('attendance')" id="btn-mode-att" class="flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-indigo-600 transition"><i class="fas fa-calendar-check mr-1"></i> สรุปเวลาเรียน (รายวัน)</button>
                         </div>
                     </div>
 
-                    <!-- ส่วนค้นหา (ปรับตามโหมด) -->
                     <div class="bg-white/90 backdrop-blur p-4 rounded-2xl shadow-sm border border-white/50 mb-4 no-print">
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                             <div class="md:col-span-1">
@@ -407,7 +401,6 @@
                                 <select id="sum-class" class="w-full px-3 py-2 border border-gray-200 bg-white/50 rounded-lg text-sm" onchange="triggerReportRender()"></select>
                             </div>
                             
-                            <!-- ช่องค้นหาโหมดคะแนน -->
                             <div class="md:col-span-2 grid grid-cols-2 gap-2" id="filter-score-wrap">
                                 <div>
                                     <label class="block text-xs text-gray-500 mb-1">เลือกวิชา</label>
@@ -422,7 +415,6 @@
                                 </div>
                             </div>
 
-                            <!-- ช่องค้นหาโหมดเวลาเรียน (Date Range) -->
                             <div class="md:col-span-2 hidden" id="filter-att-wrap">
                                 <div class="grid grid-cols-2 gap-2">
                                     <div><label class="block text-xs text-gray-500 mb-1">ตั้งแต่วันที่</label><input type="date" id="rep-start-date" class="w-full px-3 py-2 border border-gray-200 bg-white/50 rounded-lg text-sm" onchange="triggerReportRender()"></div>
@@ -439,9 +431,7 @@
                         </div>
                     </div>
 
-                    <!-- พื้นที่รายงานสำหรับปริ้นท์ -->
                     <div id="print-report-area">
-                        <!-- ส่วนหัวกระดาษตอนปริ้นท์ (จะโชว์เฉพาะตอน Print) -->
                         <div class="print-only mb-6 border-b-2 border-gray-800 pb-4">
                             <div class="print-flex justify-between items-end">
                                 <div class="print-flex items-center gap-4">
@@ -461,14 +451,12 @@
                             </div>
                         </div>
 
-                        <!-- 1. Stats Cards (โหมดคะแนน) -->
                         <div class="grid grid-cols-3 gap-4 mb-4" id="sum-stats-score" style="display:none;">
                             <div class="bg-white/90 p-4 rounded-xl border border-gray-200 shadow-sm text-center"><p class="text-xs text-gray-500 font-bold">นักเรียนทั้งหมด</p><h3 class="text-3xl font-bold text-blue-600" id="stat-sc-total">0</h3></div>
                             <div class="bg-white/90 p-4 rounded-xl border border-gray-200 shadow-sm text-center"><p class="text-xs text-gray-500 font-bold">ส่งงานเฉลี่ย / สัดส่วน</p><h3 class="text-3xl font-bold text-green-600" id="stat-sc-avg">0%</h3></div>
                             <div class="bg-white/90 p-4 rounded-xl border border-gray-200 shadow-sm text-center"><p class="text-xs text-gray-500 font-bold">คะแนนเต็มอ้างอิง</p><h3 class="text-3xl font-bold text-purple-600" id="stat-sc-max">0</h3></div>
                         </div>
 
-                        <!-- 2. Stats Cards (โหมดเวลาเรียน - แบบรูปภาพ 3 กล่องสีสด) -->
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4" id="sum-stats-att" style="display:none;">
                             <div class="bg-blue-600 p-4 rounded-xl shadow-md flex flex-col justify-center items-center text-white print:bg-blue-600 print:text-white print:border-none">
                                 <p class="text-sm font-bold mb-1">ทั้งหมด (คน)</p>
@@ -484,12 +472,10 @@
                             </div>
                         </div>
 
-                        <!-- Table Container -->
                         <div class="bg-white/90 backdrop-blur rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                             <div class="overflow-x-auto max-h-[600px] print:max-h-none print:overflow-visible">
                                 <table class="w-full text-sm text-left relative" id="table-export">
                                     <thead class="bg-gray-100/80 text-gray-800 uppercase text-xs sticky top-0 z-10 shadow-sm print:static print:shadow-none" id="rep-thead">
-                                        <!-- Header injected via JS -->
                                     </thead>
                                     <tbody id="rep-tbody" class="divide-y divide-gray-100/50">
                                         <tr><td colspan="5" class="py-8 text-center text-gray-500">กรุณาเลือกเงื่อนไขเพื่อดูสรุปผล</td></tr>
@@ -498,13 +484,12 @@
                             </div>
                         </div>
                         
-                    </div> <!-- End print-report-area -->
+                    </div> 
                 </div>
 
             </main>
         </div>
         
-        <!-- Mobile Bottom Nav -->
         <nav class="md:hidden bg-white/80 backdrop-blur-md border-t border-white/30 flex justify-around p-2 text-xs no-print shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-20">
             <button onclick="switchTab('tab-scan')" class="flex flex-col items-center p-2 text-gray-500 hover:text-indigo-600"><i class="fas fa-qrcode text-lg mb-1"></i>สแกน</button>
             <button onclick="switchTab('tab-check')" class="flex flex-col items-center p-2 text-gray-500 hover:text-indigo-600"><i class="fas fa-tasks text-lg mb-1"></i>เช็คกลุ่ม</button>
@@ -641,86 +626,70 @@
     </div>
 
     <script>
-        // ==========================================
-        // URL ของ Web App จาก Google Apps Script
-        // ==========================================
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvGbkS3y8_hlDu_mSvdDiZeiRgfYrDm0G_k-XuqlzCXEtdFzgAO_C7WIyh9kD2WN05/exec"; 
-        
         let currentUser = null;
         try { currentUser = JSON.parse(localStorage.getItem('att_user')) || null; } catch(e) { localStorage.removeItem('att_user'); }
-        
         let appData = { students: [], activities: [], attendance: [], scoreLogs: [] };
         let html5QrCode = null; 
         let selectedLogoBase64 = null;
         let isScanningProcess = false;
-        let isModalOpen = false; // สถานะตัวควบคุมหลัก ป้องกันการทำงานซ้อนทับกัน
+        let isModalOpen = false;
         let currentCheckView = 'table'; 
         let currentReportMode = 'score'; 
 
-        // ==========================================
-        // ตัวแกะวันที่อัจฉริยะแบบตัวเลขล้วน ปลอดภัย 100%
-        // ==========================================
+        // ระบบแปลวันที่อัจฉริยะแบบลึกสุดขั้ว
         function parseCustomDate(dateStr) {
             if (!dateStr) return 0;
             let str = String(dateStr).trim();
-            
             if (str.includes('/')) {
                 let parts = str.split(' ');
                 let dmy = parts[0].split('/');
                 let time = parts[1] || '00:00:00';
                 let hms = time.split(':');
-                
                 let d = parseInt(dmy[0], 10);
                 let m = parseInt(dmy[1], 10) - 1; 
                 let y = parseInt(dmy[2], 10);
-                
                 if (y > 2500) y -= 543; 
-                
                 let h = parseInt(hms[0] || 0, 10);
                 let min = parseInt(hms[1] || 0, 10);
                 let s = parseInt(hms[2] || 0, 10);
-                
                 return new Date(y, m, d, h, min, s).getTime();
             }
-            
             if (str.includes('-')) {
-                let parts = str.split(' ')[0].split('-'); 
+                let datePart = str.split(' ')[0];
+                let timePart = str.split(' ')[1] || '00:00:00';
+                let parts = datePart.split('-'); 
+                let hms = timePart.split(':');
                 if(parts.length === 3) {
                     let y = parseInt(parts[0], 10);
                     let m = parseInt(parts[1], 10) - 1;
                     let d = parseInt(parts[2], 10);
-                    return new Date(y, m, d).getTime();
+                    let h = parseInt(hms[0] || 0, 10);
+                    let min = parseInt(hms[1] || 0, 10);
+                    let s = parseInt(hms[2] || 0, 10);
+                    return new Date(y, m, d, h, min, s).getTime();
                 }
             }
-            
             let dObj = new Date(str);
             if (!isNaN(dObj.getTime())) return dObj.getTime();
-            
             return 0;
         }
 
         function isSameDate(inputDateStr, logDateStr) {
             if (!logDateStr) return false;
-            
-            // แตกวันที่หน้าเว็บจากกล่อง input เช่น "2026-05-20"
             let inParts = inputDateStr.split('-');
             if (inParts.length !== 3) return false;
             let inY = parseInt(inParts[0], 10);
             let inM = parseInt(inParts[1], 10);
             let inD = parseInt(inParts[2], 10);
 
-            // แตกวันที่จากฐานข้อมูล เช่น "20/5/2569 9:11:5" หรือ "20/05/2026"
             let datePart = String(logDateStr).trim().split(' ')[0]; 
-            
             if (datePart.includes('/')) {
                 let sParts = datePart.split('/');
                 let sD = parseInt(sParts[0], 10);
                 let sM = parseInt(sParts[1], 10);
                 let sY = parseInt(sParts[2], 10);
-                
-                // แก้ปัญหาปี พ.ศ. ให้เป็น ค.ศ. เทียบง่ายๆ
                 if (sY > 2500) sY -= 543;
-                
                 return (inD === sD && inM === sM && inY === sY);
             } else if (datePart.includes('-')) {
                 let sParts = datePart.split('-');
@@ -733,18 +702,12 @@
             return false;
         }
 
-        // ==========================================
-        // ฟังก์ชันช่วยจับคู่ Data อย่างปลอดภัยที่สุด
-        // ==========================================
         const matchRecord = (logActId, logStdId, logStdNum, logClass, targetActId, targetStdId, targetStdNum, targetClass) => {
              return String(logActId).trim() === String(targetActId).trim() &&
                     (String(logStdId).trim() === String(targetStdId).trim() ||
                     (String(logStdNum).trim() === String(targetStdNum).trim() && String(logClass).trim() === String(targetClass).trim()));
         };
 
-        // ==========================================
-        // ฟังก์ชันแปลงลิงก์ Google Drive ให้ดูภาพได้ตรงๆ
-        // ==========================================
         function getDirectImageUrl(url) {
             if (!url) return '';
             url = url.trim();
@@ -756,9 +719,6 @@
             return url;
         }
 
-        // ==========================================
-        // ระบบ Fetch API เชื่อมต่อกับ Backend
-        // ==========================================
         const api = {
             call: async (funcName, ...args) => {
                 try {
@@ -793,7 +753,6 @@
             else document.getElementById('auth-screen').classList.remove('hidden');
         };
 
-        // ระบบจับคีย์บอร์ด (Barcode Scanner) 
         document.addEventListener('keydown', function(e) {
             if (!document.getElementById('tab-scan').classList.contains('active')) return;
             if (isModalOpen) return; 
@@ -828,7 +787,6 @@
             }
         }
 
-        // Auth System
         function toggleAuth() {
             document.getElementById('login-form').classList.toggle('hidden');
             document.getElementById('reg-form').classList.toggle('hidden');
@@ -869,7 +827,6 @@
 
         function logout() { localStorage.removeItem('att_user'); location.reload(); }
 
-        // Init App Data
         async function initApp() {
             document.getElementById('auth-screen').classList.add('hidden');
             document.getElementById('main-app').classList.remove('hidden');
@@ -887,13 +844,8 @@
             showLoader("กำลังซิงค์ข้อมูลจาก Google Sheets...");
             try {
                 appData = await api.call('getAppData');
-                
-                if (appData.students) {
-                    appData.students = appData.students.filter(row => row && row.length > 3 && String(row[3]).trim() !== "");
-                }
-                if (appData.activities) {
-                    appData.activities = appData.activities.filter(row => row && row.length > 3 && String(row[3]).trim() !== "");
-                }
+                if (appData.students) appData.students = appData.students.filter(row => row && row.length > 3 && String(row[3]).trim() !== "");
+                if (appData.activities) appData.activities = appData.activities.filter(row => row && row.length > 3 && String(row[3]).trim() !== "");
                 if (!appData.scoreLogs) appData.scoreLogs = []; 
                 if (!appData.attendance) appData.attendance = []; 
 
@@ -909,7 +861,6 @@
         function hideLoader() { document.getElementById('loader').style.display = 'none'; }
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
         
-        // Navigation
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
@@ -926,9 +877,6 @@
             }
         }
 
-        // ==========================================
-        // 🚀 อัปเดต: ระบบ Dependent Dropdown
-        // ==========================================
         function updateGlobalDropdowns() {
             const classes = [...new Set(appData.students.map(s => s[4]))].sort();
             const classOptions = '<option value="">-- เลือกห้องเรียน --</option>' + classes.map(c => `<option value="${c}">${c}</option>`).join('');
@@ -1012,9 +960,6 @@
             if (prefix === 'sum') triggerReportRender();
         }
 
-        // ==========================================
-        // ฟังก์ชันโหลดประวัติการสแกน
-        // ==========================================
         function loadScanHistory() {
             const actId = document.getElementById('scan-activity').value;
             const dateStr = document.getElementById('scan-date').value; 
@@ -1037,6 +982,8 @@
 
             if (isDaily) {
                 relevantLogs = appData.attendance.filter(att => att[3] === actId && att[1] === dateStr);
+                
+                // [แก้ไขบั๊กการเรียงลำดับเวลาให้ล่าสุดขึ้นบนสุด]
                 relevantLogs.sort((a,b) => parseCustomDate(b[1] + " " + b[2]) - parseCustomDate(a[1] + " " + a[2]));
 
                 if (relevantLogs.length === 0) {
@@ -1064,14 +1011,7 @@
 
             } else {
                 relevantLogs = appData.scoreLogs.filter(log => {
-                    let actMatch = false;
-                    const cleanLogAct = String(log[3]).replace(/\[.*?\]\s*/g, '').trim();
-                    const cleanTargetAct = String(actInfo[3]).replace(/\[.*?\]\s*/g, '').trim();
-                    
-                    if (String(log[2]).trim() === String(actId).trim()) actMatch = true;
-                    else if (cleanLogAct && cleanTargetAct && cleanLogAct.includes(cleanTargetAct)) actMatch = true;
-                    else if (cleanLogAct && cleanTargetAct && cleanTargetAct.includes(cleanLogAct)) actMatch = true;
-                    
+                    const actMatch = String(log[2]).trim() === String(actId).trim() || String(log[3]).trim() === String(actInfo[3]).trim();
                     if (!actMatch) return false;
                     return isSameDate(dateStr, String(log[1]));
                 });
@@ -1092,13 +1032,8 @@
                     
                     let timePart = "";
                     const timeStr = String(log[1]).trim();
-                    if (timeStr.includes(' ')) {
-                        timePart = timeStr.split(' ')[1];
-                    } else if (timeStr.includes(':')) {
-                        timePart = timeStr;
-                    } else {
-                        timePart = "-";
-                    }
+                    if (timeStr.includes(' ')) timePart = timeStr.split(' ')[1];
+                    else timePart = timeStr;
 
                     const li = document.createElement('li');
                     li.className = `p-3 flex justify-between items-center bg-indigo-50 border-l-4 border-indigo-500 mb-1 rounded-r shadow-sm`;
@@ -1568,6 +1503,9 @@
             } catch(e) { console.error("Sync Failed", e); }
         }
 
+        // =====================================
+        // TAB 3: STUDENTS & HISTORY LOG
+        // =====================================
         function renderStudentTable() {
             const filterClass = document.getElementById('filter-class').value;
             const search = document.getElementById('search-student').value.toLowerCase();
