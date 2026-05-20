@@ -43,10 +43,20 @@
             to { opacity: 1; transform: translateY(0); } 
         }
         
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        ::-webkit-scrollbar { 
+            width: 6px; 
+            height: 6px; 
+        }
+        ::-webkit-scrollbar-track { 
+            background: #f1f1f1; 
+        }
+        ::-webkit-scrollbar-thumb { 
+            background: #cbd5e1; 
+            border-radius: 3px; 
+        }
+        ::-webkit-scrollbar-thumb:hover { 
+            background: #94a3b8; 
+        }
 
         .slot-machine { 
             font-size: 3rem; 
@@ -80,28 +90,77 @@
             100% { transform: rotate(360deg); } 
         }
         
-        .modal-body-scroll { max-height: 70vh; overflow-y: auto; }
+        .modal-body-scroll { 
+            max-height: 70vh; 
+            overflow-y: auto; 
+        }
 
-        #reader { width: 100%; min-height: 200px; background-color: #ffffff; text-align: center; border: none !important; }
-        #reader video { border-radius: 0.75rem; width: 100% !important; max-height: 350px; object-fit: contain; }
+        #reader { 
+            width: 100%; 
+            min-height: 200px; 
+            background-color: #ffffff; 
+            text-align: center; 
+            border: none !important; 
+        }
+        #reader video { 
+            border-radius: 0.75rem; 
+            width: 100% !important; 
+            max-height: 350px; 
+            object-fit: contain; 
+        }
 
-        .print-only { display: none; }
+        .print-only { 
+            display: none; 
+        }
 
         @media print {
-            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
-            body { background: white !important; }
-            body * { visibility: hidden; }
-            #print-area, #print-area * { visibility: visible; }
-            #print-area { position: absolute; left: 0; top: 0; width: 100%; }
+            * { 
+                -webkit-print-color-adjust: exact !important; 
+                print-color-adjust: exact !important; 
+                color-adjust: exact !important; 
+            }
+            body { 
+                background: white !important; 
+            }
+            body * { 
+                visibility: hidden; 
+            }
+            #print-area, #print-area * { 
+                visibility: visible; 
+            }
+            #print-area { 
+                position: absolute; 
+                left: 0; 
+                top: 0; 
+                width: 100%; 
+            }
             
-            #print-report-area, #print-report-area * { visibility: visible; }
-            #print-report-area { position: absolute; left: 0; top: 0; width: 100%; padding: 20px; }
+            #print-report-area, #print-report-area * { 
+                visibility: visible; 
+            }
+            #print-report-area { 
+                position: absolute; 
+                left: 0; 
+                top: 0; 
+                width: 100%; 
+                padding: 20px; 
+            }
             
-            .no-print { display: none !important; }
-            .print-only { display: block !important; }
-            .print-flex { display: flex !important; }
+            .no-print { 
+                display: none !important; 
+            }
+            .print-only { 
+                display: block !important; 
+            }
+            .print-flex { 
+                display: flex !important; 
+            }
             
-            .glass { background: white !important; border: none !important; box-shadow: none !important; }
+            .glass { 
+                background: white !important; 
+                border: none !important; 
+                box-shadow: none !important; 
+            }
             
             .bg-blue-600 { background-color: #2563eb !important; color: white !important; }
             .bg-green-600 { background-color: #16a34a !important; color: white !important; }
@@ -111,6 +170,7 @@
 </head>
 <body class="text-gray-800 h-screen flex flex-col overflow-hidden">
 
+    <!-- Loading Overlay -->
     <div id="loader">
         <div class="spinner"></div>
         <p class="mt-4 font-semibold text-indigo-600" id="loader-text">กำลังโหลด...</p>
@@ -125,6 +185,7 @@
                 <p class="text-sm text-gray-500" id="auth-subtitle">ลงชื่อเข้าใช้เพื่อจัดการห้องเรียนของคุณ</p>
             </div>
 
+            <!-- Login Form -->
             <form id="login-form" onsubmit="event.preventDefault(); handleLogin(event);">
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-1">อีเมล</label>
@@ -134,10 +195,16 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">รหัสผ่าน</label>
                     <input type="password" id="log-pass" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" required>
                 </div>
-                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl transition shadow-lg">เข้าสู่ระบบ</button>
-                <p class="text-center mt-4 text-sm text-gray-600">ยังไม่มีบัญชี? <a href="#" onclick="toggleAuth()" class="text-indigo-600 font-bold hover:underline">สมัครสมาชิก</a></p>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl transition shadow-lg">
+                    เข้าสู่ระบบ
+                </button>
+                <p class="text-center mt-4 text-sm text-gray-600">
+                    ยังไม่มีบัญชี? 
+                    <a href="#" onclick="toggleAuth()" class="text-indigo-600 font-bold hover:underline">สมัครสมาชิก</a>
+                </p>
             </form>
 
+            <!-- Register Form -->
             <form id="reg-form" class="hidden" onsubmit="event.preventDefault(); handleRegister(event);">
                 <div class="mb-3">
                     <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อ - สกุล (คุณครู)</label>
@@ -155,8 +222,13 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">รหัสผ่าน</label>
                     <input type="password" id="reg-pass" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" required>
                 </div>
-                <button type="submit" class="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-3 px-4 rounded-xl transition shadow-lg">สร้างบัญชี</button>
-                <p class="text-center mt-4 text-sm text-gray-600">มีบัญชีอยู่แล้ว? <a href="#" onclick="toggleAuth()" class="text-indigo-600 font-bold hover:underline">เข้าสู่ระบบ</a></p>
+                <button type="submit" class="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-3 px-4 rounded-xl transition shadow-lg">
+                    สร้างบัญชี
+                </button>
+                <p class="text-center mt-4 text-sm text-gray-600">
+                    มีบัญชีอยู่แล้ว? 
+                    <a href="#" onclick="toggleAuth()" class="text-indigo-600 font-bold hover:underline">เข้าสู่ระบบ</a>
+                </p>
             </form>
         </div>
     </div>
@@ -178,10 +250,14 @@
             
             <div class="relative group cursor-pointer z-50">
                 <div class="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-200 hover:bg-gray-100 transition">
-                    <div class="w-7 h-7 rounded-full bg-gradient-to-r from-purple-400 to-indigo-500 text-white flex items-center justify-center text-sm font-bold"><i class="fas fa-user"></i></div>
+                    <div class="w-7 h-7 rounded-full bg-gradient-to-r from-purple-400 to-indigo-500 text-white flex items-center justify-center text-sm font-bold">
+                        <i class="fas fa-user"></i>
+                    </div>
                     <span class="text-sm font-medium hidden md:block" id="head-teacher-name">ครูผู้สอน</span>
                     <i class="fas fa-chevron-down text-xs text-gray-400"></i>
                 </div>
+                
+                <!-- Dropdown Menu ครูผู้สอน -->
                 <div class="absolute right-0 top-full pt-2 w-48 hidden group-hover:block">
                     <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
                         <div class="px-4 py-3 border-b border-gray-50 bg-gray-50">
@@ -200,7 +276,7 @@
         </header>
 
         <div class="flex flex-1 overflow-hidden">
-            <!-- Sidebar -->
+            <!-- Sidebar Navigation -->
             <aside class="hidden md:flex w-64 flex-col bg-white/70 backdrop-blur-md border-r border-white/30 no-print">
                 <nav class="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
                     <button onclick="switchTab('tab-scan')" id="btn-tab-scan" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left font-medium text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition">
@@ -209,7 +285,9 @@
                     <button onclick="switchTab('tab-check')" id="btn-tab-check" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left font-medium text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition">
                         <i class="fas fa-tasks w-5 text-center"></i> เช็คชื่อแบบกลุ่ม
                     </button>
+                    
                     <div class="my-2 border-t border-gray-100"></div>
+                    
                     <button onclick="switchTab('tab-students')" id="btn-tab-students" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left font-medium text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition">
                         <i class="fas fa-users w-5 text-center"></i> ฐานข้อมูล นร.
                     </button>
@@ -219,7 +297,9 @@
                     <button onclick="switchTab('tab-cards')" id="btn-tab-cards" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left font-medium text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition">
                         <i class="fas fa-id-card w-5 text-center"></i> สร้างบัตรนักเรียน
                     </button>
+                    
                     <div class="my-2 border-t border-gray-100"></div>
+                    
                     <button onclick="switchTab('tab-random')" id="btn-tab-random" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left font-medium text-gray-600 hover:bg-pink-50 hover:text-pink-600 transition">
                         <i class="fas fa-dice w-5 text-center"></i> สุ่มเรียกชื่อ
                     </button>
@@ -257,6 +337,7 @@
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- ฝั่งซ้าย: กล้องสแกน -->
                         <div class="bg-white/90 backdrop-blur rounded-2xl shadow-sm border border-white/50 overflow-hidden flex flex-col">
                             <div class="p-3 bg-indigo-50/80 border-b border-indigo-100 flex justify-between items-center">
                                 <span class="font-bold text-sm text-indigo-800"><i class="fas fa-camera"></i> เปิดกล้องเว็บแคม / มือถือ</span>
@@ -279,12 +360,16 @@
                                     </label>
                                 </div>
                             </div>
+                            <!-- ช่องรับบาร์โค้ด USB -->
                             <div class="p-4 bg-gray-50/80 flex-1 text-center border-t border-gray-100">
-                                <label for="barcode-input" class="block text-sm font-bold text-gray-700 mb-2 cursor-pointer"><i class="fas fa-barcode text-lg mr-1 text-indigo-600"></i> ใช้เครื่องยิงบาร์โค้ด USB เสียบแล้วยิงได้เลย!</label>
+                                <label for="barcode-input" class="block text-sm font-bold text-gray-700 mb-2 cursor-pointer">
+                                    <i class="fas fa-barcode text-lg mr-1 text-indigo-600"></i> ใช้เครื่องยิงบาร์โค้ด USB เสียบแล้วยิงได้เลย!
+                                </label>
                                 <input type="text" id="barcode-input" placeholder="เคอร์เซอร์จะกระพริบที่นี่อัตโนมัติ..." class="w-full max-w-sm mx-auto px-4 py-3 border-2 border-indigo-300 rounded-xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 outline-none text-center font-bold tracking-widest text-lg shadow-inner bg-white transition" onkeydown="handleBarcodeInput(event)">
                             </div>
                         </div>
 
+                        <!-- ฝั่งขวา: ประวัติการสแกน -->
                         <div class="bg-white/90 backdrop-blur rounded-2xl shadow-sm border border-white/50 flex flex-col h-[400px] md:h-auto">
                             <div class="p-3 bg-gray-50/80 border-b flex justify-between items-center">
                                 <span class="font-bold text-sm"><i class="fas fa-list-ul"></i> ประวัติการสแกนล่าสุด</span>
@@ -302,7 +387,9 @@
                 <!-- TAB 2: CHECK -->
                 <div id="tab-check" class="tab-content max-w-5xl mx-auto">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-4 gap-3">
-                        <h2 class="text-2xl font-bold flex items-center gap-2 text-white drop-shadow-md"><i class="fas fa-tasks"></i> เช็คชื่อ/ลงคะแนน ในห้องเรียน</h2>
+                        <h2 class="text-2xl font-bold flex items-center gap-2 text-white drop-shadow-md">
+                            <i class="fas fa-tasks"></i> เช็คชื่อ/ลงคะแนน ในห้องเรียน
+                        </h2>
                         
                         <div class="bg-white/50 backdrop-blur p-1 rounded-xl flex gap-1 no-print shadow-sm">
                             <button onclick="setCheckView('table')" id="btn-view-table" class="px-4 py-2 rounded-lg bg-white shadow-sm text-sm font-bold text-indigo-600 transition">
@@ -314,6 +401,7 @@
                         </div>
                     </div>
                     
+                    <!-- เมนูเลือกห้องเรียนเพื่อดูตาราง -->
                     <div class="bg-white/90 backdrop-blur p-4 rounded-2xl shadow-sm border border-white/50 mb-4 grid grid-cols-2 md:grid-cols-4 gap-3">
                         <div class="col-span-2 md:col-span-1">
                             <label class="block text-xs text-gray-500 mb-1">วันที่</label>
@@ -336,6 +424,7 @@
                         </div>
                     </div>
 
+                    <!-- ตารางแสดงรายชื่อ -->
                     <div id="chk-table-view" class="bg-white/90 backdrop-blur rounded-2xl shadow-sm border border-white/50 overflow-hidden">
                         <div class="p-3 bg-gray-50/80 border-b flex flex-wrap justify-between items-center gap-2">
                             <span class="font-bold text-sm" id="chk-title">รายชื่อนักเรียน</span>
@@ -361,6 +450,7 @@
                         </div>
                     </div>
 
+                    <!-- แบบการ์ด -->
                     <div id="chk-card-view" class="hidden grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                         <div class="col-span-full py-8 text-center text-gray-500 bg-white/90 rounded-2xl border border-white/50">กรุณาเลือกห้องเรียนและกิจกรรม</div>
                     </div>
@@ -370,7 +460,9 @@
                 <div id="tab-students" class="tab-content max-w-5xl mx-auto">
                     <div class="flex flex-wrap justify-between items-end mb-4 gap-3">
                         <div>
-                            <h2 class="text-2xl font-bold flex items-center gap-2 text-white drop-shadow-md"><i class="fas fa-users"></i> ฐานข้อมูลนักเรียน</h2>
+                            <h2 class="text-2xl font-bold flex items-center gap-2 text-white drop-shadow-md">
+                                <i class="fas fa-users"></i> ฐานข้อมูลนักเรียน
+                            </h2>
                             <p class="text-sm text-white/80">จัดการข้อมูลรายบุคคล, ดูประวัติคะแนน หรือนำเข้าจาก Excel</p>
                         </div>
                         <div class="flex gap-2">
@@ -419,7 +511,9 @@
                 <div id="tab-activities" class="tab-content max-w-4xl mx-auto">
                     <div class="flex justify-between items-end mb-4">
                         <div>
-                            <h2 class="text-2xl font-bold flex items-center gap-2 text-white drop-shadow-md"><i class="fas fa-book"></i> โครงสร้างหลักสูตร / กิจกรรม</h2>
+                            <h2 class="text-2xl font-bold flex items-center gap-2 text-white drop-shadow-md">
+                                <i class="fas fa-book"></i> โครงสร้างหลักสูตร / กิจกรรม
+                            </h2>
                             <p class="text-sm text-white/80">สร้างรายวิชาและกำหนดชิ้นงานเพื่อใช้เช็คชื่อและให้คะแนน</p>
                         </div>
                         <button onclick="openActivityModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm shadow-sm">
@@ -428,13 +522,19 @@
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- รายวัน -->
                         <div class="bg-white/90 backdrop-blur rounded-2xl shadow-sm border border-white/50 overflow-hidden">
-                            <div class="bg-gradient-to-r from-blue-500 to-cyan-500 p-3 text-white font-bold"><i class="fas fa-sun"></i> กิจกรรมรายวัน (เช็ค มา/สาย/ลา/ขาด)</div>
+                            <div class="bg-gradient-to-r from-blue-500 to-cyan-500 p-3 text-white font-bold">
+                                <i class="fas fa-sun"></i> กิจกรรมรายวัน (เช็ค มา/สาย/ลา/ขาด)
+                            </div>
                             <ul id="list-daily" class="divide-y divide-gray-100/50 p-2"></ul>
                         </div>
                         
+                        <!-- วิชา -->
                         <div class="bg-white/90 backdrop-blur rounded-2xl shadow-sm border border-white/50 overflow-hidden">
-                            <div class="bg-gradient-to-r from-purple-500 to-pink-500 p-3 text-white font-bold"><i class="fas fa-star"></i> ชิ้นงาน / ตรวจข้อสอบ (ให้คะแนน)</div>
+                            <div class="bg-gradient-to-r from-purple-500 to-pink-500 p-3 text-white font-bold">
+                                <i class="fas fa-star"></i> ชิ้นงาน / ตรวจข้อสอบ (ให้คะแนน)
+                            </div>
                             <ul id="list-subject" class="divide-y divide-gray-100/50 p-2"></ul>
                         </div>
                     </div>
@@ -442,7 +542,9 @@
 
                 <!-- TAB 5: CARDS -->
                 <div id="tab-cards" class="tab-content max-w-5xl mx-auto">
-                    <h2 class="text-2xl font-bold mb-4 flex items-center gap-2 text-white drop-shadow-md no-print"><i class="fas fa-id-card"></i> สร้างบัตรประจำตัวนักเรียน</h2>
+                    <h2 class="text-2xl font-bold mb-4 flex items-center gap-2 text-white drop-shadow-md no-print">
+                        <i class="fas fa-id-card"></i> สร้างบัตรประจำตัวนักเรียน
+                    </h2>
                     
                     <div class="bg-white/90 backdrop-blur p-4 rounded-2xl shadow-sm border border-white/50 mb-4 grid grid-cols-2 md:grid-cols-5 gap-3 no-print items-end">
                         <div class="col-span-2 md:col-span-1">
@@ -470,7 +572,9 @@
                     </div>
                     
                     <div class="text-right mb-2 no-print">
-                        <button onclick="window.print()" class="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-gray-900"><i class="fas fa-print"></i> สั่งพิมพ์ (A4)</button>
+                        <button onclick="window.print()" class="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-gray-900">
+                            <i class="fas fa-print"></i> สั่งพิมพ์ (A4)
+                        </button>
                     </div>
 
                     <div id="print-area" class="bg-white p-8 rounded-xl shadow-inner min-h-[500px]">
@@ -481,7 +585,9 @@
 
                 <!-- TAB 6: RANDOMIZER -->
                 <div id="tab-random" class="tab-content max-w-3xl mx-auto text-center py-10">
-                    <h2 class="text-3xl font-bold mb-2 flex items-center justify-center gap-3 text-white drop-shadow-lg"><i class="fas fa-dice text-pink-300"></i> สุ่มเรียกชื่อผู้โชคดี</h2>
+                    <h2 class="text-3xl font-bold mb-2 flex items-center justify-center gap-3 text-white drop-shadow-lg">
+                        <i class="fas fa-dice text-pink-300"></i> สุ่มเรียกชื่อผู้โชคดี
+                    </h2>
                     <p class="text-white/80 mb-8 drop-shadow">สร้างความตื่นเต้นในห้องเรียนด้วยการสุ่มเลขที่</p>
 
                     <div class="max-w-xs mx-auto mb-8">
@@ -504,14 +610,22 @@
                 <div id="tab-summary" class="tab-content max-w-5xl mx-auto">
                     
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-4 gap-3 no-print">
-                        <h2 class="text-2xl font-bold flex items-center gap-2 text-white drop-shadow-md"><i class="fas fa-chart-pie"></i> แดชบอร์ดสรุปผล</h2>
+                        <h2 class="text-2xl font-bold flex items-center gap-2 text-white drop-shadow-md">
+                            <i class="fas fa-chart-pie"></i> แดชบอร์ดสรุปผล
+                        </h2>
                         
+                        <!-- Toggle สลับโหมดรายงาน -->
                         <div class="bg-white/50 backdrop-blur p-1 rounded-xl flex gap-1 shadow-sm w-full md:w-auto">
-                            <button onclick="setReportMode('score')" id="btn-mode-score" class="flex-1 md:flex-none px-4 py-2 rounded-lg bg-white shadow-sm text-sm font-bold text-indigo-600 transition"><i class="fas fa-star mr-1"></i> สรุปคะแนน (วิชา)</button>
-                            <button onclick="setReportMode('attendance')" id="btn-mode-att" class="flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-indigo-600 transition"><i class="fas fa-calendar-check mr-1"></i> สรุปเวลาเรียน (รายวัน)</button>
+                            <button onclick="setReportMode('score')" id="btn-mode-score" class="flex-1 md:flex-none px-4 py-2 rounded-lg bg-white shadow-sm text-sm font-bold text-indigo-600 transition">
+                                <i class="fas fa-star mr-1"></i> สรุปคะแนน (วิชา)
+                            </button>
+                            <button onclick="setReportMode('attendance')" id="btn-mode-att" class="flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-indigo-600 transition">
+                                <i class="fas fa-calendar-check mr-1"></i> สรุปเวลาเรียน (รายวัน)
+                            </button>
                         </div>
                     </div>
 
+                    <!-- ส่วนค้นหา (ปรับตามโหมด) -->
                     <div class="bg-white/90 backdrop-blur p-4 rounded-2xl shadow-sm border border-white/50 mb-4 no-print">
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                             <div class="md:col-span-1">
@@ -519,6 +633,7 @@
                                 <select id="sum-class" class="w-full px-3 py-2 border border-gray-200 bg-white/50 rounded-lg text-sm" onchange="triggerReportRender()"></select>
                             </div>
                             
+                            <!-- ช่องค้นหาโหมดคะแนน -->
                             <div class="md:col-span-2 grid grid-cols-2 gap-2" id="filter-score-wrap">
                                 <div>
                                     <label class="block text-xs text-gray-500 mb-1">เลือกวิชา</label>
@@ -533,15 +648,24 @@
                                 </div>
                             </div>
 
+                            <!-- ช่องค้นหาโหมดเวลาเรียน -->
                             <div class="md:col-span-2 hidden" id="filter-att-wrap">
                                 <div class="grid grid-cols-2 gap-2">
-                                    <div><label class="block text-xs text-gray-500 mb-1">ตั้งแต่วันที่</label><input type="date" id="rep-start-date" class="w-full px-3 py-2 border border-gray-200 bg-white/50 rounded-lg text-sm" onchange="triggerReportRender()"></div>
-                                    <div><label class="block text-xs text-gray-500 mb-1">ถึงวันที่</label><input type="date" id="rep-end-date" class="w-full px-3 py-2 border border-gray-200 bg-white/50 rounded-lg text-sm" onchange="triggerReportRender()"></div>
+                                    <div>
+                                        <label class="block text-xs text-gray-500 mb-1">ตั้งแต่วันที่</label>
+                                        <input type="date" id="rep-start-date" class="w-full px-3 py-2 border border-gray-200 bg-white/50 rounded-lg text-sm" onchange="triggerReportRender()">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs text-gray-500 mb-1">ถึงวันที่</label>
+                                        <input type="date" id="rep-end-date" class="w-full px-3 py-2 border border-gray-200 bg-white/50 rounded-lg text-sm" onchange="triggerReportRender()">
+                                    </div>
                                 </div>
                             </div>
 
                             <div class="flex items-end gap-2 md:col-span-1">
-                                <button onclick="triggerReportRender()" class="flex-1 bg-indigo-100 text-indigo-700 font-bold px-3 py-2 rounded-lg hover:bg-indigo-200 transition"><i class="fas fa-search"></i> ค้นหา</button>
+                                <button onclick="triggerReportRender()" class="flex-1 bg-indigo-100 text-indigo-700 font-bold px-3 py-2 rounded-lg hover:bg-indigo-200 transition">
+                                    <i class="fas fa-search"></i> ค้นหา
+                                </button>
                                 <button onclick="handleReportExport()" class="flex-1 bg-green-600 text-white font-bold px-3 py-2 rounded-lg hover:bg-green-700 transition" id="btn-export-rep" title="Export/Print">
                                     <span id="txt-export-btn"><i class="fas fa-file-excel"></i> Excel</span>
                                 </button>
@@ -549,7 +673,9 @@
                         </div>
                     </div>
 
+                    <!-- พื้นที่รายงานสำหรับปริ้นท์ -->
                     <div id="print-report-area">
+                        <!-- ส่วนหัวกระดาษตอนปริ้นท์ -->
                         <div class="print-only mb-6 border-b-2 border-gray-800 pb-4">
                             <div class="print-flex justify-between items-end">
                                 <div class="print-flex items-center gap-4">
@@ -569,12 +695,23 @@
                             </div>
                         </div>
 
+                        <!-- 1. Stats Cards (โหมดคะแนน) -->
                         <div class="grid grid-cols-3 gap-4 mb-4" id="sum-stats-score" style="display:none;">
-                            <div class="bg-white/90 p-4 rounded-xl border border-gray-200 shadow-sm text-center"><p class="text-xs text-gray-500 font-bold">นักเรียนทั้งหมด</p><h3 class="text-3xl font-bold text-blue-600" id="stat-sc-total">0</h3></div>
-                            <div class="bg-white/90 p-4 rounded-xl border border-gray-200 shadow-sm text-center"><p class="text-xs text-gray-500 font-bold">ส่งงานเฉลี่ย / สัดส่วน</p><h3 class="text-3xl font-bold text-green-600" id="stat-sc-avg">0%</h3></div>
-                            <div class="bg-white/90 p-4 rounded-xl border border-gray-200 shadow-sm text-center"><p class="text-xs text-gray-500 font-bold">คะแนนเต็มอ้างอิง</p><h3 class="text-3xl font-bold text-purple-600" id="stat-sc-max">0</h3></div>
+                            <div class="bg-white/90 p-4 rounded-xl border border-gray-200 shadow-sm text-center">
+                                <p class="text-xs text-gray-500 font-bold">นักเรียนทั้งหมด</p>
+                                <h3 class="text-3xl font-bold text-blue-600" id="stat-sc-total">0</h3>
+                            </div>
+                            <div class="bg-white/90 p-4 rounded-xl border border-gray-200 shadow-sm text-center">
+                                <p class="text-xs text-gray-500 font-bold">ส่งงานเฉลี่ย / สัดส่วน</p>
+                                <h3 class="text-3xl font-bold text-green-600" id="stat-sc-avg">0%</h3>
+                            </div>
+                            <div class="bg-white/90 p-4 rounded-xl border border-gray-200 shadow-sm text-center">
+                                <p class="text-xs text-gray-500 font-bold">คะแนนเต็มอ้างอิง</p>
+                                <h3 class="text-3xl font-bold text-purple-600" id="stat-sc-max">0</h3>
+                            </div>
                         </div>
 
+                        <!-- 2. Stats Cards (โหมดเวลาเรียน) -->
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4" id="sum-stats-att" style="display:none;">
                             <div class="bg-blue-600 p-4 rounded-xl shadow-md flex flex-col justify-center items-center text-white print:bg-blue-600 print:text-white print:border-none">
                                 <p class="text-sm font-bold mb-1">ทั้งหมด (คน)</p>
@@ -590,10 +727,12 @@
                             </div>
                         </div>
 
+                        <!-- Table Container -->
                         <div class="bg-white/90 backdrop-blur rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                             <div class="overflow-x-auto max-h-[600px] print:max-h-none print:overflow-visible">
                                 <table class="w-full text-sm text-left relative" id="table-export">
                                     <thead class="bg-gray-100/80 text-gray-800 uppercase text-xs sticky top-0 z-10 shadow-sm print:static print:shadow-none" id="rep-thead">
+                                        <!-- Header injected via JS -->
                                     </thead>
                                     <tbody id="rep-tbody" class="divide-y divide-gray-100/50">
                                         <tr><td colspan="5" class="py-8 text-center text-gray-500">กรุณาเลือกเงื่อนไขเพื่อดูสรุปผล</td></tr>
@@ -608,6 +747,7 @@
             </main>
         </div>
         
+        <!-- Mobile Bottom Nav -->
         <nav class="md:hidden bg-white/80 backdrop-blur-md border-t border-white/30 flex justify-around p-2 text-xs no-print shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-20">
             <button onclick="switchTab('tab-scan')" class="flex flex-col items-center p-2 text-gray-500 hover:text-indigo-600"><i class="fas fa-qrcode text-lg mb-1"></i>สแกน</button>
             <button onclick="switchTab('tab-check')" class="flex flex-col items-center p-2 text-gray-500 hover:text-indigo-600"><i class="fas fa-tasks text-lg mb-1"></i>เช็คกลุ่ม</button>
@@ -772,17 +912,21 @@
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvGbkS3y8_hlDu_mSvdDiZeiRgfYrDm0G_k-XuqlzCXEtdFzgAO_C7WIyh9kD2WN05/exec"; 
         
         let currentUser = null;
-        try { currentUser = JSON.parse(localStorage.getItem('att_user')) || null; } catch(e) { localStorage.removeItem('att_user'); }
+        try { 
+            currentUser = JSON.parse(localStorage.getItem('att_user')) || null; 
+        } catch(e) { 
+            localStorage.removeItem('att_user'); 
+        }
         
         let appData = { students: [], activities: [], attendance: [], scoreLogs: [] };
         let html5QrCode = null; 
         let selectedLogoBase64 = null;
         let isScanningProcess = false;
-        let isModalOpen = false;
+        let isModalOpen = false; // ป้องกันป๊อปอัปซ้อนกันและล็อกคีย์บอร์ด
         let currentCheckView = 'table'; 
         let currentReportMode = 'score'; 
 
-        // ระบบแปลงวันที่ให้รองรับทุกรูปแบบ
+        // ระบบแปลงวันที่ให้ตรง 100% กับรูปแบบที่มนุษย์อ่าน
         function parseCustomDate(dateStr) {
             if (!dateStr) return 0;
             let str = String(dateStr).trim();
@@ -820,7 +964,7 @@
             return 0;
         }
 
-        // อ่านเวลาเพื่อเรียงลำดับโหมดรายวัน
+        // ฟังก์ชันอ่านเวลาเฉพาะ (แก้อาการประวัติสแกนเรียงผิดของโหมดรายวัน)
         function parseTimeOnly(timeStr) {
             if (!timeStr) return 0;
             let parts = String(timeStr).trim().split(':');
@@ -857,6 +1001,7 @@
             return false;
         }
 
+        // เช็คการตรงกันของกิจกรรมและเด็กนักเรียน เพื่อนำมาคำนวณหรือโชว์ประวัติ
         const matchRecord = (logActId, logStdId, logStdNum, logClass, targetActId, targetStdId, targetStdNum, targetClass) => {
              return String(logActId).trim() === String(targetActId).trim() &&
                     (String(logStdId).trim() === String(targetStdId).trim() ||
@@ -980,7 +1125,10 @@
             hideLoader();
         }
 
-        function logout() { localStorage.removeItem('att_user'); location.reload(); }
+        function logout() { 
+            localStorage.removeItem('att_user'); 
+            location.reload(); 
+        }
 
         async function initApp() {
             document.getElementById('auth-screen').classList.add('hidden');
@@ -999,8 +1147,13 @@
             showLoader("กำลังซิงค์ข้อมูลจาก Google Sheets...");
             try {
                 appData = await api.call('getAppData');
-                if (appData.students) appData.students = appData.students.filter(row => row && row.length > 3 && String(row[3]).trim() !== "");
-                if (appData.activities) appData.activities = appData.activities.filter(row => row && row.length > 3 && String(row[3]).trim() !== "");
+                
+                if (appData.students) {
+                    appData.students = appData.students.filter(row => row && row.length > 3 && String(row[3]).trim() !== "");
+                }
+                if (appData.activities) {
+                    appData.activities = appData.activities.filter(row => row && row.length > 3 && String(row[3]).trim() !== "");
+                }
                 if (!appData.scoreLogs) appData.scoreLogs = []; 
                 if (!appData.attendance) appData.attendance = []; 
 
@@ -1012,9 +1165,16 @@
             hideLoader();
         }
 
-        function showLoader(txt) { document.getElementById('loader-text').innerText = txt; document.getElementById('loader').style.display = 'flex'; }
-        function hideLoader() { document.getElementById('loader').style.display = 'none'; }
-        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+        function showLoader(txt) { 
+            document.getElementById('loader-text').innerText = txt; 
+            document.getElementById('loader').style.display = 'flex'; 
+        }
+        function hideLoader() { 
+            document.getElementById('loader').style.display = 'none'; 
+        }
+        function closeModal(id) { 
+            document.getElementById(id).classList.add('hidden'); 
+        }
         
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -1115,6 +1275,9 @@
             if (prefix === 'sum') triggerReportRender();
         }
 
+        // ==========================================
+        // ฟังก์ชันโหลดประวัติการสแกน (แก้ไขการจัดเรียง 100%)
+        // ==========================================
         function loadScanHistory() {
             const actId = document.getElementById('scan-activity').value;
             const dateStr = document.getElementById('scan-date').value; 
@@ -1139,7 +1302,7 @@
             if (isDaily) {
                 relevantLogs = appData.attendance.filter(att => String(att[3]).trim() === String(actId).trim() && String(att[1]).trim() === String(dateStr).trim());
                 
-                // ใช้การกลับด้าน Array (.reverse) เพื่อดันคนที่เพิ่งเช็คชื่อขึ้นบนสุด
+                // ใช้การกลับด้าน Array (.reverse) แบบง่ายๆ เพื่อให้คนที่เพิ่งสแกน (อยู่ล่างสุดใน Sheet) ขึ้นมาอยู่ข้างบน
                 relevantLogs.reverse();
 
                 if (relevantLogs.length === 0) {
@@ -1170,6 +1333,7 @@
                     return isSameDate(dateStr, String(log[1])); 
                 });
                 
+                // จัดเรียงเวลาย้อนกลับ สำหรับโหมดคะแนน
                 relevantLogs.sort((a,b) => parseCustomDate(String(b[1])) - parseCustomDate(String(a[1])));
 
                 if (relevantLogs.length === 0) {
@@ -1261,6 +1425,7 @@
             }
         }
 
+        // Settings Modal
         function openSettingsModal() { 
             document.getElementById('modal-settings').classList.remove('hidden');
             document.getElementById('set-teacher-name').innerText = "ครู" + currentUser.name;
@@ -1434,17 +1599,7 @@
                 playSound('success');
             } else {
                 playSound('success');
-                let htmlContent = `
-                    <div class="flex flex-col items-center mb-4">
-                        <div class="w-24 h-24 bg-gray-100 rounded-full mb-3 flex items-center justify-center border-4 border-indigo-100 overflow-hidden shadow-sm">
-                            <img src="${imgUrl}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(student[3])}&backgroundColor=e2e8f0'">
-                        </div>
-                        <div class="text-center">
-                            <p class="text-sm text-gray-500">รหัส: ${student[2]} | ชั้น: <span class="font-bold text-indigo-600">${student[4]}</span></p>
-                            <h3 class="text-xl font-bold">${student[1]}. ${student[3]}</h3>
-                        </div>
-                    </div>`;
-
+                
                 let studentLogs = [];
                 for(let log of appData.scoreLogs) { 
                     if(matchRecord(log[2], log[4], log[5], log[7], actId, student[0], student[1], student[4])) {
@@ -1458,7 +1613,16 @@
                     if(!isNaN(pts)) sumScore += pts; 
                 } 
 
-                htmlContent += `
+                let htmlContent = `
+                    <div class="flex flex-col items-center mb-4">
+                        <div class="w-24 h-24 bg-gray-100 rounded-full mb-3 flex items-center justify-center border-4 border-indigo-100 overflow-hidden shadow-sm">
+                            <img src="${imgUrl}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(student[3])}&backgroundColor=e2e8f0'">
+                        </div>
+                        <div class="text-center">
+                            <p class="text-sm text-gray-500">รหัส: ${student[2]} | ชั้น: <span class="font-bold text-indigo-600">${student[4]}</span></p>
+                            <h3 class="text-xl font-bold">${student[1]}. ${student[3]}</h3>
+                        </div>
+                    </div>
                     <div class="mb-3 text-left bg-blue-50 p-3 rounded-xl border border-blue-100 flex justify-between items-center">
                         <p class="text-sm font-bold text-blue-800">คะแนนสะสมปัจจุบัน:</p>
                         <p class="text-2xl font-bold text-blue-600">${sumScore}</p>
@@ -1748,7 +1912,7 @@
         }
 
         // =====================================
-        // ฟังก์ชันโหลดข้อมูลตารางและการ์ด (ใส่ Try-Catch กันระบบตาย 100%)
+        // ฟังก์ชันโหลดข้อมูลตารางและการ์ด (แก้ไขบั๊กโหลดไม่ขึ้นสมบูรณ์)
         // =====================================
         function loadBulkTable() {
             try {
@@ -1820,7 +1984,7 @@
                         else if (currentVal === 'ขาด') scoreDisplay = `<div class="mt-2 text-red-600 font-bold text-sm bg-red-50 rounded-full py-1.5 shadow-sm border border-red-100 w-[90%] mx-auto">ขาด</div>`;
                         else scoreDisplay = `<div class="mt-2 text-indigo-600 font-bold text-sm bg-indigo-50 rounded-full py-1.5 shadow-sm border border-indigo-100 w-[90%] mx-auto">ยังไม่เช็ค</div>`;
                     } else {
-                        // ป้องกัน Error หากไม่มีตัวแปร log
+                        // แก้บั๊กตัวแปรคะแนนที่ทำให้หน้าค้าง (แก้ตรงนี้)
                         let sumScore = 0;
                         if (appData.scoreLogs) {
                             for(let log of appData.scoreLogs) { 
