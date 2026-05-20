@@ -658,7 +658,55 @@
         let currentReportMode = 'score'; 
 
         // ==========================================
-        // ฟังก์ชันแปลงลิงก์ Google Drive ให้ดูภาพได้ตรงๆ (Direct Link)
+        // ฟังก์ชันช่วยจัดการวันที่ (Parsing & Validation)
+        // ==========================================
+        function parseCustomDate(dateStr) {
+            if (!dateStr) return 0;
+            
+            // Handle "DD/MM/YYYY HH:mm:ss"
+            if (dateStr.includes('/')) {
+                let parts = dateStr.split(' ');
+                let dmy = parts[0].split('/');
+                let time = parts[1] || '00:00:00';
+                let hms = time.split(':');
+                
+                let d = parseInt(dmy[0]);
+                let m = parseInt(dmy[1]) - 1;
+                let y = parseInt(dmy[2]);
+                if (y > 2500) y -= 543; // แปลง พ.ศ. เป็น ค.ศ.
+                
+                let h = parseInt(hms[0] || 0);
+                let min = parseInt(hms[1] || 0);
+                let s = parseInt(hms[2] || 0);
+                
+                return new Date(y, m, d, h, min, s).getTime();
+            }
+            
+            // Handle "YYYY-MM-DD"
+            if (dateStr.includes('-')) {
+                return new Date(dateStr).getTime();
+            }
+            
+            return new Date(dateStr).getTime() || 0;
+        }
+
+        function isSameDate(dateStrInput, logTimeStr) {
+            if (!logTimeStr) return false;
+            const t1 = parseCustomDate(dateStrInput); 
+            const t2 = parseCustomDate(logTimeStr); 
+            
+            if (t1 === 0 || t2 === 0) return false;
+
+            const d1 = new Date(t1);
+            const d2 = new Date(t2);
+            
+            return d1.getFullYear() === d2.getFullYear() && 
+                   d1.getMonth() === d2.getMonth() && 
+                   d1.getDate() === d2.getDate();
+        }
+
+        // ==========================================
+        // ฟังก์ชันแปลงลิงก์ Google Drive ให้ดูภาพได้ตรงๆ
         // ==========================================
         function getDirectImageUrl(url) {
             if (!url) return '';
@@ -711,8 +759,6 @@
         // ระบบจับคีย์บอร์ด (Barcode Scanner) 
         document.addEventListener('keydown', function(e) {
             if (!document.getElementById('tab-scan').classList.contains('active')) return;
-            
-            // ใช้ isModalOpen ควบคุมอย่างเดียว ห้ามใช้ Swal.isVisible() 
             if (isModalOpen) return; 
             
             if (e.ctrlKey || e.altKey || e.metaKey) return;
@@ -805,6 +851,7 @@
             try {
                 appData = await api.call('getAppData');
                 
+                // 🧹 ระบบเครื่องดูดฝุ่น (ล้างแถวว่าง)
                 if (appData.students) {
                     appData.students = appData.students.filter(row => row && row.length > 3 && String(row[3]).trim() !== "");
                 }
@@ -930,7 +977,7 @@
         }
 
         // ==========================================
-        // ฟังก์ชันโหลดประวัติการสแกน (แก้ไขเรื่อง Date Match 100%)
+        // ฟังก์ชันโหลดประวัติการสแกน (แก้ไข Date Parsing ให้สมบูรณ์ 100%)
         // ==========================================
         function loadScanHistory() {
             const actId = document.getElementById('scan-activity').value;
@@ -950,33 +997,12 @@
             if (!actInfo) return;
             const isDaily = actInfo[1] === 'รายวัน';
             
-            // แยกวันที่เพื่อสร้างรูปแบบการค้นหาที่ครอบคลุม ทั้งไทย และ สากล
-            const parts = dateStr.split('-');
-            if(parts.length !== 3) return;
-            
-            const year = parseInt(parts[0]);
-            const month = parseInt(parts[1]);
-            const day = parseInt(parts[2]);
-            const thYear = year + 543; 
-
-            // สร้าง Array ไว้ค้นหาวันที่ ที่เป็นไปได้ทั้งหมด
-            const searchDates = [
-                dateStr, // "2026-05-20"
-                `${String(day).padStart(2,'0')}/${String(month).padStart(2,'0')}/${year}`, // "20/05/2026"
-                `${day}/${month}/${year}`, // "20/5/2026"
-                `${String(day).padStart(2,'0')}/${String(month).padStart(2,'0')}/${thYear}`, // "20/05/2569"
-                `${day}/${month}/${thYear}` // "20/5/2569"
-            ];
-
             let relevantLogs = [];
 
             if (isDaily) {
                 relevantLogs = appData.attendance.filter(att => att[3] === actId && att[1] === dateStr);
-                relevantLogs.sort((a,b) => {
-                    const timeA = new Date('1970/01/01 ' + a[2]).getTime();
-                    const timeB = new Date('1970/01/01 ' + b[2]).getTime();
-                    return timeB - timeA;
-                });
+                // จัดเรียงเวลาย้อนหลังล่าสุดไว้บนสุด
+                relevantLogs.sort((a,b) => parseCustomDate(b[1] + " " + b[2]) - parseCustomDate(a[1] + " " + a[2]));
 
                 if (relevantLogs.length === 0) {
                     logUl.innerHTML = '<li class="p-4 text-center text-gray-400 text-sm">ยังไม่มีประวัติในวันนี้</li>';
@@ -1004,12 +1030,10 @@
             } else {
                 relevantLogs = appData.scoreLogs.filter(log => {
                     if (log[2] !== actId) return false;
-                    const logTimeStr = String(log[1]);
-                    // ค้นหาวันที่จาก Array ที่เตรียมไว้ ป้องกันบั๊กเรื่องรูปแบบวันที่
-                    return searchDates.some(f => logTimeStr.includes(f));
+                    return isSameDate(dateStr, String(log[1])); // ตรวจสอบวันที่ด้วยระบบใหม่
                 });
                 
-                relevantLogs.sort((a,b) => new Date(b[1]) - new Date(a[1]));
+                relevantLogs.sort((a,b) => parseCustomDate(String(b[1])) - parseCustomDate(String(a[1])));
 
                 if (relevantLogs.length === 0) {
                     logUl.innerHTML = '<li class="p-4 text-center text-gray-400 text-sm">ยังไม่มีประวัติการให้คะแนนในวันนี้</li>';
@@ -1022,11 +1046,15 @@
                     const pointsVal = parseFloat(log[8]);
                     const points = pointsVal > 0 ? '+'+pointsVal : pointsVal;
                     
-                    // ดึงเฉพาะเวลาออกมาแสดง
                     let timePart = "";
-                    const timeSplit = String(log[1]).split(' ');
-                    if (timeSplit.length > 1) timePart = timeSplit[1];
-                    else timePart = log[1];
+                    const timeStr = String(log[1]);
+                    if (timeStr.includes(' ')) {
+                        timePart = timeStr.split(' ')[1];
+                    } else if (timeStr.includes(':')) {
+                        timePart = timeStr;
+                    } else {
+                        timePart = "-";
+                    }
 
                     const li = document.createElement('li');
                     li.className = `p-3 flex justify-between items-center bg-indigo-50 border-l-4 border-indigo-500 mb-1 rounded-r shadow-sm`;
@@ -1338,7 +1366,7 @@
                     },
                     didClose: () => {
                         isModalOpen = false;
-                        if(document.getElementById('tab-check').classList.contains('active') || document.getElementById('tab-scan').classList.contains('active')) {
+                        if(document.getElementById('tab-scan').classList.contains('active')) {
                             const barcodeInput = document.getElementById('barcode-input');
                             if(barcodeInput) {
                                 barcodeInput.value = '';
@@ -1388,10 +1416,18 @@
             Swal.close(); 
 
             const actId = document.getElementById('scan-activity').value;
-            // สร้างเวลามาตรฐานเพื่อใช้ Filter ได้อย่างแม่นยำ
-            const dNow = new Date();
-            const timestamp = `${String(dNow.getDate()).padStart(2, '0')}/${String(dNow.getMonth() + 1).padStart(2, '0')}/${dNow.getFullYear()} ${String(dNow.getHours()).padStart(2, '0')}:${String(dNow.getMinutes()).padStart(2, '0')}:${String(dNow.getSeconds()).padStart(2, '0')}`;
             
+            // อ่านค่าวันที่จาก Dropdown แล้วสร้างเป็น Timestamp ที่เป๊ะ 100%
+            const dateVal = document.getElementById('scan-date').value; 
+            const dateParts = dateVal.split('-');
+            const sYear = parseInt(dateParts[0]);
+            const sMonth = parseInt(dateParts[1]);
+            const sDay = parseInt(dateParts[2]);
+            
+            const dNow = new Date();
+            const timeStr = `${String(dNow.getHours()).padStart(2, '0')}:${String(dNow.getMinutes()).padStart(2, '0')}:${String(dNow.getSeconds()).padStart(2, '0')}`;
+            const timestamp = `${String(sDay).padStart(2, '0')}/${String(sMonth).padStart(2, '0')}/${sYear} ${timeStr}`;
+
             const actInfo = appData.activities.find(a => a[0] === actId);
             const studentInfo = appData.students.find(s => s[0] === studentId);
 
@@ -1401,7 +1437,7 @@
             const tempLogId = 'temp_' + Date.now();
             appData.scoreLogs.push([tempLogId, timestamp, actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, points, note, currentUser.id]);
             
-            updateScanLogUI(studentId, `+${points} คะแนน`, document.getElementById('scan-date').value);
+            updateScanLogUI(studentId, `+${points} คะแนน`, dateVal);
             Swal.fire({ title: 'สำเร็จ', text: `เพิ่ม ${points} คะแนน เรียบร้อย`, icon: 'success', timer: 1500, showConfirmButton: false, position: 'top-end', toast: true });
 
             setTimeout(() => {
@@ -1416,7 +1452,12 @@
 
             try {
                 const res = await api.call('saveScoreLog', data);
-                if(res.status === 'success') { const log = appData.scoreLogs.find(l => l[0] === tempLogId); if(log) log[0] = res.logId; }
+                if(res.status === 'success') { 
+                    const log = appData.scoreLogs.find(l => l[0] === tempLogId); 
+                    if(log) log[0] = res.logId; 
+                    // อัปเดตตารางให้ชัวร์ว่าเซฟเข้าฐานข้อมูลเรียบร้อย
+                    if(document.getElementById('tab-scan').classList.contains('active')) loadScanHistory();
+                }
             } catch(e) { console.error("Sync Failed", e); }
         }
 
@@ -1564,8 +1605,15 @@
                 const date = document.getElementById('chk-date').value;
                 records.forEach(r => { appData.attendance.push(['mock_'+tempBatchId, date, new Date().toLocaleTimeString('th-TH'), actId, actNameStr, r.studentId, r.stdNum, r.stdName, r.stdClass, r.value, currentUser.id]); });
             } else {
+                const dateVal = document.getElementById('chk-date').value; 
+                const dateParts = dateVal.split('-');
+                const sYear = parseInt(dateParts[0]);
+                const sMonth = parseInt(dateParts[1]);
+                const sDay = parseInt(dateParts[2]);
                 const dNow = new Date();
-                const timestamp = `${String(dNow.getDate()).padStart(2, '0')}/${String(dNow.getMonth() + 1).padStart(2, '0')}/${dNow.getFullYear()} ${String(dNow.getHours()).padStart(2, '0')}:${String(dNow.getMinutes()).padStart(2, '0')}:${String(dNow.getSeconds()).padStart(2, '0')}`;
+                const timeStr = `${String(dNow.getHours()).padStart(2, '0')}:${String(dNow.getMinutes()).padStart(2, '0')}:${String(dNow.getSeconds()).padStart(2, '0')}`;
+                const timestamp = `${String(sDay).padStart(2, '0')}/${String(sMonth).padStart(2, '0')}/${sYear} ${timeStr}`;
+
                 records.forEach(r => { appData.scoreLogs.push(['mock_'+tempBatchId, timestamp, actId, actNameStr, r.studentId, r.stdNum, r.stdName, r.stdClass, r.value, "เช็คกลุ่ม", currentUser.id]); });
             }
             
@@ -1576,8 +1624,15 @@
                 if (isDaily) {
                     await api.call('saveBulkAttendance', { date: document.getElementById('chk-date').value, activityId: actId, actName: actNameStr, records, userId: currentUser.id });
                 } else {
+                    const dateVal = document.getElementById('chk-date').value; 
+                    const dateParts = dateVal.split('-');
+                    const sYear = parseInt(dateParts[0]);
+                    const sMonth = parseInt(dateParts[1]);
+                    const sDay = parseInt(dateParts[2]);
                     const dNow = new Date();
-                    const timestamp = `${String(dNow.getDate()).padStart(2, '0')}/${String(dNow.getMonth() + 1).padStart(2, '0')}/${dNow.getFullYear()} ${String(dNow.getHours()).padStart(2, '0')}:${String(dNow.getMinutes()).padStart(2, '0')}:${String(dNow.getSeconds()).padStart(2, '0')}`;
+                    const timeStr = `${String(dNow.getHours()).padStart(2, '0')}:${String(dNow.getMinutes()).padStart(2, '0')}:${String(dNow.getSeconds()).padStart(2, '0')}`;
+                    const timestamp = `${String(sDay).padStart(2, '0')}/${String(sMonth).padStart(2, '0')}/${sYear} ${timeStr}`;
+
                     await api.call('saveBulkScoreLog', { activityId: actId, actName: actNameStr, records, note: "เช็คกลุ่ม", timestamp: timestamp, userId: currentUser.id });
                 }
             } catch(e) { console.error("Bulk sync error", e); }
@@ -1630,7 +1685,7 @@
                 }
             }
             
-            studentLogs.sort((a,b) => new Date(b[1]) - new Date(a[1]));
+            studentLogs.sort((a,b) => parseCustomDate(String(b[1])) - parseCustomDate(String(a[1])));
             
             let sumScore = 0;
             for(let log of studentLogs) { sumScore += parseFloat(log[8]||0); } 
@@ -1707,7 +1762,7 @@
                         const barcodeInput = document.getElementById('barcode-input');
                         if(barcodeInput) {
                             barcodeInput.value = '';
-                            setTimeout(() => barcodeInput.focus(), 100);
+                            setTimeout(() => barcodeInput.focus(), 100); 
                         }
                     }
                 }
@@ -1807,7 +1862,15 @@
             Swal.close();
 
             const actId = document.getElementById('chk-activity').value || document.getElementById('scan-activity').value;
-            const timestamp = new Date().toLocaleString('th-TH');
+            
+            const dateVal = document.getElementById('chk-date').value || document.getElementById('scan-date').value; 
+            const dateParts = dateVal.split('-');
+            const sYear = parseInt(dateParts[0]);
+            const sMonth = parseInt(dateParts[1]);
+            const sDay = parseInt(dateParts[2]);
+            const dNow = new Date();
+            const timeStr = `${String(dNow.getHours()).padStart(2, '0')}:${String(dNow.getMinutes()).padStart(2, '0')}:${String(dNow.getSeconds()).padStart(2, '0')}`;
+            const timestamp = `${String(sDay).padStart(2, '0')}/${String(sMonth).padStart(2, '0')}/${sYear} ${timeStr}`;
             
             const actInfo = appData.activities.find(a => a[0] === actId);
             const studentInfo = appData.students.find(s => s[0] === studentId);
@@ -1849,6 +1912,7 @@
                 if(res.status === 'success') {
                     const log = appData.scoreLogs.find(l => l[0] === tempLogId);
                     if(log) log[0] = res.logId;
+                    if(document.getElementById('tab-scan').classList.contains('active')) loadScanHistory();
                 }
             } catch(e) { console.error("Sync Failed", e); }
         }
@@ -1888,7 +1952,7 @@
                     sLogs.push(l); 
                 }
             } 
-            sLogs.sort((a,b) => new Date(b[1]) - new Date(a[1])); 
+            sLogs.sort((a,b) => parseCustomDate(String(b[1])) - parseCustomDate(String(a[1]))); 
             
             const histBody = document.getElementById('hist-body');
             
