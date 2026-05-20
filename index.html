@@ -29,25 +29,18 @@
         .tab-content { display: none; animation: fadeIn 0.3s ease-in-out; }
         .tab-content.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
         .slot-machine { font-size: 3rem; font-weight: bold; background: linear-gradient(to right, #4f46e5, #ec4899); -webkit-background-clip: text; color: transparent; text-align: center; }
-        
         #loader { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.8); z-index: 9999; justify-content: center; align-items: center; flex-direction: column; }
         .spinner { width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #4f46e5; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
         .modal-body-scroll { max-height: 70vh; overflow-y: auto; }
-
         #reader { width: 100%; min-height: 200px; background-color: #ffffff; text-align: center; border: none !important; }
         #reader video { border-radius: 0.75rem; width: 100% !important; max-height: 350px; object-fit: contain; }
-
         .print-only { display: none; }
-
         @media print {
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
             body { background: white !important; }
@@ -81,7 +74,6 @@
                 <h1 class="text-2xl font-bold text-gray-800">ระบบเช็คชื่ออัจฉริยะ</h1>
                 <p class="text-sm text-gray-500" id="auth-subtitle">ลงชื่อเข้าใช้เพื่อจัดการห้องเรียนของคุณ</p>
             </div>
-
             <form id="login-form" onsubmit="event.preventDefault(); handleLogin(event);">
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-1">อีเมล</label>
@@ -94,7 +86,6 @@
                 <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl transition shadow-lg">เข้าสู่ระบบ</button>
                 <p class="text-center mt-4 text-sm text-gray-600">ยังไม่มีบัญชี? <a href="#" onclick="toggleAuth()" class="text-indigo-600 font-bold hover:underline">สมัครสมาชิก</a></p>
             </form>
-
             <form id="reg-form" class="hidden" onsubmit="event.preventDefault(); handleRegister(event);">
                 <div class="mb-3"><label class="block text-sm font-medium text-gray-700 mb-1">ชื่อ - สกุล (คุณครู)</label><input type="text" id="reg-name" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" required></div>
                 <div class="mb-3"><label class="block text-sm font-medium text-gray-700 mb-1">ชื่อโรงเรียน</label><input type="text" id="reg-school" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" required></div>
@@ -108,8 +99,6 @@
 
     <!-- Main App Container -->
     <div id="main-app" class="hidden flex-1 flex flex-col h-screen">
-        
-        <!-- Header -->
         <header class="bg-white/80 backdrop-blur-md shadow-sm z-10 px-4 py-3 flex justify-between items-center no-print border-b border-white/20">
             <div class="flex items-center gap-3">
                 <div id="head-logo-container" class="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-white font-bold text-xl overflow-hidden shadow-sm">
@@ -186,14 +175,11 @@
                             <div class="p-3 bg-indigo-50/80 border-b border-indigo-100 flex justify-between items-center">
                                 <span class="font-bold text-sm text-indigo-800"><i class="fas fa-camera"></i> เปิดกล้องเว็บแคม / มือถือ</span>
                             </div>
-                            
                             <div class="p-4 bg-white/50 border-b border-gray-100 flex flex-col items-center justify-center min-h-[250px] relative">
                                 <div id="reader" class="w-full max-w-sm rounded-xl overflow-hidden shadow-inner bg-gray-100 border border-gray-200 empty:hidden"></div>
-                                
                                 <div class="mt-4 flex flex-wrap gap-2 justify-center w-full relative z-10 px-2">
                                     <button id="camera-start-btn" onclick="startCamera()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-bold shadow-md transition text-sm flex-1"><i class="fas fa-video mr-1"></i> เปิดกล้องสด</button>
                                     <button id="camera-stop-btn" onclick="stopCamera()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2.5 rounded-xl font-bold shadow-md transition text-sm hidden flex-1"><i class="fas fa-stop mr-1"></i> ปิดกล้อง</button>
-                                    
                                     <label class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2.5 rounded-xl font-bold shadow-md transition text-sm cursor-pointer text-center flex-1">
                                         <i class="fas fa-image mr-1"></i> อัปโหลดรูปภาพ
                                         <input type="file" accept="image/*" class="hidden" onchange="scanImageFile(event)">
@@ -224,7 +210,6 @@
                 <div id="tab-check" class="tab-content max-w-5xl mx-auto">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-4 gap-3">
                         <h2 class="text-2xl font-bold flex items-center gap-2 text-white drop-shadow-md"><i class="fas fa-tasks"></i> เช็คชื่อ/ลงคะแนน ในห้องเรียน</h2>
-                        
                         <div class="bg-white/50 backdrop-blur p-1 rounded-xl flex gap-1 no-print shadow-sm">
                             <button onclick="setCheckView('table')" id="btn-view-table" class="px-4 py-2 rounded-lg bg-white shadow-sm text-sm font-bold text-indigo-600 transition"><i class="fas fa-list mr-1"></i> แบบตาราง</button>
                             <button onclick="setCheckView('card')" id="btn-view-card" class="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-indigo-600 transition"><i class="fas fa-th-large mr-1"></i> แบบการ์ด</button>
@@ -232,18 +217,9 @@
                     </div>
                     
                     <div class="bg-white/90 backdrop-blur p-4 rounded-2xl shadow-sm border border-white/50 mb-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <div class="col-span-2 md:col-span-1">
-                            <label class="block text-xs text-gray-500 mb-1">วันที่</label>
-                            <input type="date" id="chk-date" class="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" onchange="loadBulkTable()">
-                        </div>
-                        <div class="col-span-2 md:col-span-1">
-                            <label class="block text-xs text-gray-500 mb-1">ห้องเรียน</label>
-                            <select id="chk-class" class="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" onchange="loadBulkTable()"></select>
-                        </div>
-                        <div class="col-span-2 md:col-span-1">
-                            <label class="block text-xs text-gray-500 mb-1">เลือกวิชา</label>
-                            <select id="chk-subject" class="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-indigo-600 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500" onchange="updateActivityDropdown('chk')"></select>
-                        </div>
+                        <div class="col-span-2 md:col-span-1"><label class="block text-xs text-gray-500 mb-1">วันที่</label><input type="date" id="chk-date" class="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" onchange="loadBulkTable()"></div>
+                        <div class="col-span-2 md:col-span-1"><label class="block text-xs text-gray-500 mb-1">ห้องเรียน</label><select id="chk-class" class="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" onchange="loadBulkTable()"></select></div>
+                        <div class="col-span-2 md:col-span-1"><label class="block text-xs text-gray-500 mb-1">เลือกวิชา</label><select id="chk-subject" class="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-indigo-600 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500" onchange="updateActivityDropdown('chk')"></select></div>
                         <div class="col-span-2 md:col-span-1">
                             <label class="flex justify-between items-center text-xs text-gray-500 mb-1">
                                 <span>ชิ้นงาน/กิจกรรม</span>
@@ -396,7 +372,6 @@
                     
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-4 gap-3 no-print">
                         <h2 class="text-2xl font-bold flex items-center gap-2 text-white drop-shadow-md"><i class="fas fa-chart-pie"></i> แดชบอร์ดสรุปผล</h2>
-                        
                         <div class="bg-white/50 backdrop-blur p-1 rounded-xl flex gap-1 shadow-sm w-full md:w-auto">
                             <button onclick="setReportMode('score')" id="btn-mode-score" class="flex-1 md:flex-none px-4 py-2 rounded-lg bg-white shadow-sm text-sm font-bold text-indigo-600 transition"><i class="fas fa-star mr-1"></i> สรุปคะแนน (วิชา)</button>
                             <button onclick="setReportMode('attendance')" id="btn-mode-att" class="flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-indigo-600 transition"><i class="fas fa-calendar-check mr-1"></i> สรุปเวลาเรียน (รายวัน)</button>
@@ -409,7 +384,6 @@
                                 <label class="block text-xs text-gray-500 mb-1">ห้องเรียน</label>
                                 <select id="sum-class" class="w-full px-3 py-2 border border-gray-200 bg-white/50 rounded-lg text-sm" onchange="triggerReportRender()"></select>
                             </div>
-                            
                             <div class="md:col-span-2 grid grid-cols-2 gap-2" id="filter-score-wrap">
                                 <div>
                                     <label class="block text-xs text-gray-500 mb-1">เลือกวิชา</label>
@@ -423,14 +397,12 @@
                                     <select id="sum-activity" class="w-full px-3 py-2 border border-gray-200 bg-white/50 rounded-lg text-sm font-bold text-indigo-700 disabled:opacity-50 disabled:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" disabled onchange="showActivityInfo('sum')"></select>
                                 </div>
                             </div>
-
                             <div class="md:col-span-2 hidden" id="filter-att-wrap">
                                 <div class="grid grid-cols-2 gap-2">
                                     <div><label class="block text-xs text-gray-500 mb-1">ตั้งแต่วันที่</label><input type="date" id="rep-start-date" class="w-full px-3 py-2 border border-gray-200 bg-white/50 rounded-lg text-sm" onchange="triggerReportRender()"></div>
                                     <div><label class="block text-xs text-gray-500 mb-1">ถึงวันที่</label><input type="date" id="rep-end-date" class="w-full px-3 py-2 border border-gray-200 bg-white/50 rounded-lg text-sm" onchange="triggerReportRender()"></div>
                                 </div>
                             </div>
-
                             <div class="flex items-end gap-2 md:col-span-1">
                                 <button onclick="triggerReportRender()" class="flex-1 bg-indigo-100 text-indigo-700 font-bold px-3 py-2 rounded-lg hover:bg-indigo-200 transition"><i class="fas fa-search"></i> ค้นหา</button>
                                 <button onclick="handleReportExport()" class="flex-1 bg-green-600 text-white font-bold px-3 py-2 rounded-lg hover:bg-green-700 transition" id="btn-export-rep" title="Export/Print">
@@ -636,19 +608,16 @@
 
     <script>
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvGbkS3y8_hlDu_mSvdDiZeiRgfYrDm0G_k-XuqlzCXEtdFzgAO_C7WIyh9kD2WN05/exec"; 
-        
         let currentUser = null;
         try { currentUser = JSON.parse(localStorage.getItem('att_user')) || null; } catch(e) { localStorage.removeItem('att_user'); }
-        
         let appData = { students: [], activities: [], attendance: [], scoreLogs: [] };
         let html5QrCode = null; 
         let selectedLogoBase64 = null;
         let isScanningProcess = false;
-        let isModalOpen = false; // ป้องกันป๊อปอัปซ้อนกันและล็อกคีย์บอร์ด
+        let isModalOpen = false;
         let currentCheckView = 'table'; 
         let currentReportMode = 'score'; 
 
-        // ระบบแปลงวันที่ให้ตรง 100% กับรูปแบบที่มนุษย์อ่าน
         function parseCustomDate(dateStr) {
             if (!dateStr) return 0;
             let str = String(dateStr).trim();
@@ -686,6 +655,15 @@
             return 0;
         }
 
+        function parseTimeOnly(timeStr) {
+            if (!timeStr) return 0;
+            let parts = String(timeStr).trim().split(':');
+            let h = parseInt(parts[0] || 0, 10);
+            let m = parseInt(parts[1] || 0, 10);
+            let s = parseInt(parts[2] || 0, 10);
+            return (h * 3600) + (m * 60) + s;
+        }
+
         function isSameDate(inputDateStr, logDateStr) {
             if (!logDateStr) return false;
             let inParts = inputDateStr.split('-');
@@ -713,7 +691,6 @@
             return false;
         }
 
-        // เช็คการตรงกันของกิจกรรมและเด็กนักเรียน เพื่อนำมาคำนวณหรือโชว์ประวัติ
         const matchRecord = (logActId, logStdId, logStdNum, logClass, targetActId, targetStdId, targetStdNum, targetClass) => {
              return String(logActId).trim() === String(targetActId).trim() &&
                     (String(logStdId).trim() === String(targetStdId).trim() ||
@@ -856,7 +833,6 @@
             showLoader("กำลังซิงค์ข้อมูลจาก Google Sheets...");
             try {
                 appData = await api.call('getAppData');
-                
                 if (appData.students) appData.students = appData.students.filter(row => row && row.length > 3 && String(row[3]).trim() !== "");
                 if (appData.activities) appData.activities = appData.activities.filter(row => row && row.length > 3 && String(row[3]).trim() !== "");
                 if (!appData.scoreLogs) appData.scoreLogs = []; 
@@ -996,9 +972,7 @@
 
             if (isDaily) {
                 relevantLogs = appData.attendance.filter(att => String(att[3]).trim() === String(actId).trim() && String(att[1]).trim() === String(dateStr).trim());
-                
-                // ให้ Reverse Array เพื่อให้รายชื่อที่เช็คชื่อล่าสุด (อยู่ล่างสุดใน Sheet) เด้งขึ้นมาอยู่ข้างบนสุด
-                relevantLogs = relevantLogs.reverse();
+                relevantLogs.sort((a,b) => parseTimeOnly(b[2]) - parseTimeOnly(a[2]));
 
                 if (relevantLogs.length === 0) {
                     logUl.innerHTML = '<li class="p-4 text-center text-gray-400 text-sm">ยังไม่มีประวัติในวันนี้</li>';
@@ -1006,7 +980,7 @@
                 }
 
                 relevantLogs.forEach(log => {
-                    const student = appData.students.find(s => String(s[0]).trim() === String(log[5]).trim() || (String(s[1]).trim() === String(log[6]).trim() && String(s[4]).trim() === String(log[8]).trim()));
+                    const student = appData.students.find(s => s[0] === log[5] || (s[1] == log[6] && String(s[4]).trim() === String(log[8]).trim()));
                     if(!student) return;
                     const val = log[9];
                     
@@ -1028,8 +1002,7 @@
                     return isSameDate(dateStr, String(log[1])); 
                 });
                 
-                // สำหรับคะแนน ให้ reverse ลำดับเช่นกันเพื่อให้ล่าสุดเด้งบนสุด
-                relevantLogs = relevantLogs.reverse();
+                relevantLogs.sort((a,b) => parseCustomDate(String(b[1])) - parseCustomDate(String(a[1])));
 
                 if (relevantLogs.length === 0) {
                     logUl.innerHTML = '<li class="p-4 text-center text-gray-400 text-sm">ยังไม่มีประวัติการให้คะแนนในวันนี้</li>';
@@ -1372,412 +1345,6 @@
             }
         }
 
-        async function submitDaily(studentId, value) {
-            isModalOpen = false; 
-            if(Swal.isVisible()) Swal.close(); 
-            
-            const actId = document.getElementById('scan-activity').value;
-            const date = document.getElementById('scan-date').value;
-            const actInfo = appData.activities.find(a => a[0] === actId);
-            const studentInfo = appData.students.find(s => s[0] === studentId);
-            
-            const data = { studentId, activityId: actId, date, value, userId: currentUser.id, actName: actInfo ? `[${actInfo[2]}] ${actInfo[3]}` : "", stdNum: studentInfo ? studentInfo[1] : "", stdName: studentInfo ? studentInfo[3] : "", stdClass: studentInfo ? studentInfo[4] : "" };
-            
-            appData.attendance.push(['mock_' + Date.now(), date, new Date().toLocaleTimeString('th-TH'), actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, value, currentUser.id]);
-            
-            updateScanLogUI(studentId, value, date); 
-            Swal.fire({ title: 'เช็คชื่อสำเร็จ', text: `${data.stdName} (${value})`, icon: 'success', timer: 1000, showConfirmButton: false, position: 'top-end', toast: true });
-
-            setTimeout(() => {
-                const barcodeInput = document.getElementById('barcode-input');
-                if(barcodeInput) { 
-                    barcodeInput.value = ''; 
-                    if(document.getElementById('tab-scan').classList.contains('active')) {
-                        barcodeInput.focus(); 
-                    }
-                }
-            }, 300);
-
-            try { await api.call('saveScanRecord', data); } catch(e) { console.error("Sync Failed", e); }
-        }
-
-        async function submitScoreLog(studentId) {
-            const points = document.getElementById('swal-score').value;
-            const note = document.getElementById('swal-note').value;
-            if(points === "") return Swal.showValidationMessage('กรุณากรอกคะแนน');
-            
-            isModalOpen = false; 
-            Swal.close(); 
-
-            const actId = document.getElementById('scan-activity').value;
-            const dateVal = document.getElementById('scan-date').value; 
-            const dateParts = dateVal.split('-');
-            const sYear = parseInt(dateParts[0], 10);
-            const sMonth = parseInt(dateParts[1], 10);
-            const sDay = parseInt(dateParts[2], 10);
-            const dNow = new Date();
-            const timeStr = `${String(dNow.getHours()).padStart(2, '0')}:${String(dNow.getMinutes()).padStart(2, '0')}:${String(dNow.getSeconds()).padStart(2, '0')}`;
-            const timestamp = `${String(sDay).padStart(2, '0')}/${String(sMonth).padStart(2, '0')}/${sYear} ${timeStr}`;
-
-            const actInfo = appData.activities.find(a => a[0] === actId);
-            const studentInfo = appData.students.find(s => s[0] === studentId);
-
-            const data = { studentId, activityId: actId, points, note, timestamp, userId: currentUser.id, actName: actInfo ? `[${actInfo[2]}] ${actInfo[3]}` : "", stdNum: studentInfo ? studentInfo[1] : "", stdName: studentInfo ? studentInfo[3] : "", stdClass: studentInfo ? studentInfo[4] : "" };
-            playSound('success');
-
-            const tempLogId = 'temp_' + Date.now();
-            appData.scoreLogs.push([tempLogId, timestamp, actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, points, note, currentUser.id]);
-            
-            // สั่งเรียกโหลดประวัติซ้ำทันทีเมื่อให้คะแนนเสร็จ (Callback)
-            updateScanLogUI(studentId, `+${points} คะแนน`, dateVal);
-            Swal.fire({ title: 'สำเร็จ', text: `เพิ่ม ${points} คะแนน เรียบร้อย`, icon: 'success', timer: 1500, showConfirmButton: false, position: 'top-end', toast: true });
-
-            setTimeout(() => {
-                const barcodeInput = document.getElementById('barcode-input');
-                if(barcodeInput) {
-                    barcodeInput.value = '';
-                    if(document.getElementById('tab-scan').classList.contains('active')) {
-                        barcodeInput.focus();
-                    }
-                }
-            }, 300);
-
-            try {
-                const res = await api.call('saveScoreLog', data);
-                if(res.status === 'success') { 
-                    const log = appData.scoreLogs.find(l => l[0] === tempLogId); 
-                    if(log) log[0] = res.logId; 
-                    if(document.getElementById('tab-scan').classList.contains('active')) loadScanHistory();
-                }
-            } catch(e) { console.error("Sync Failed", e); }
-        }
-
-        function updateScanLogUI(studentId, badgeText, reqDateStr) {
-            try {
-                loadScanHistory();
-            } catch (error) { console.error("UI Log Error: ", error); }
-        }
-
-        // Check Group
-        function setCheckView(view) {
-            currentCheckView = view;
-            if (view === 'table') {
-                document.getElementById('btn-view-table').className = "px-4 py-2 rounded-lg bg-white shadow-sm text-sm font-bold text-indigo-600 transition";
-                document.getElementById('btn-view-card').className = "px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-indigo-600 transition";
-                document.getElementById('chk-table-view').classList.remove('hidden'); document.getElementById('chk-card-view').classList.add('hidden');
-            } else {
-                document.getElementById('btn-view-card').className = "px-4 py-2 rounded-lg bg-white shadow-sm text-sm font-bold text-indigo-600 transition";
-                document.getElementById('btn-view-table').className = "px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-indigo-600 transition";
-                document.getElementById('chk-table-view').classList.add('hidden'); document.getElementById('chk-card-view').classList.remove('hidden');
-            }
-            loadBulkTable();
-        }
-
-        // =====================================
-        // ฟังก์ชันหัวใจสำคัญ: จัดการแก้บั๊กโหลดข้อมูลในตาราง/การ์ด
-        // =====================================
-        function loadBulkTable() {
-            try {
-                const cClass = document.getElementById('chk-class').value;
-                const cActId = document.getElementById('chk-activity').value;
-                const cDate = document.getElementById('chk-date').value;
-                const tbody = document.getElementById('chk-tbody');
-                const cardView = document.getElementById('chk-card-view');
-                
-                if(!cClass || !cActId) {
-                    tbody.innerHTML = '<tr><td colspan="3" class="py-8 text-center text-gray-500">กรุณาเลือกห้องเรียนและกิจกรรม</td></tr>';
-                    cardView.innerHTML = '<div class="col-span-full py-8 text-center text-gray-500 bg-white/90 rounded-2xl border border-white/50">กรุณาเลือกห้องเรียนและกิจกรรม</div>';
-                    document.getElementById('chk-bulk-actions').style.display = 'none'; 
-                    return;
-                }
-
-                const actOpt = document.getElementById('chk-activity').options[document.getElementById('chk-activity').selectedIndex];
-                const isDaily = actOpt.getAttribute('data-type') === 'รายวัน';
-                
-                document.getElementById('chk-input-header').innerHTML = isDaily ? "สถานะ (เช็คชื่อ)" : `
-                    <div class="flex items-center justify-center gap-2">
-                        <span class="text-xs font-normal text-gray-500">ให้คะแนนทุกคน:</span>
-                        <input type="number" id="master-score-input" class="w-16 px-2 py-1 border border-gray-200 rounded text-center text-sm font-bold text-indigo-700 outline-none focus:ring-2" placeholder="คะแนน">
-                        <button onclick="applyMasterScore()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded text-xs font-bold transition shadow-sm">นำไปใช้</button>
-                    </div>
-                `;
-                document.getElementById('chk-bulk-actions').style.display = 'flex';
-
-                const filteredStudents = appData.students.filter(s => String(s[4]).trim() === String(cClass).trim()).sort((a,b) => parseInt(a[1]) - parseInt(b[1]));
-                
-                if (filteredStudents.length === 0) {
-                     tbody.innerHTML = '<tr><td colspan="3" class="py-8 text-center text-gray-500">ไม่มีรายชื่อนักเรียนในห้องนี้</td></tr>';
-                     cardView.innerHTML = '<div class="col-span-full py-8 text-center text-gray-500 bg-white/90 rounded-2xl border border-white/50">ไม่มีรายชื่อนักเรียนในห้องนี้</div>';
-                     return;
-                }
-
-                // 1. อัปเดต Table View 
-                tbody.innerHTML = filteredStudents.map(s => {
-                    let currentVal = '';
-                    if (isDaily) {
-                        const attLogs = appData.attendance.filter(att => att[1] === cDate && att[3] === cActId && (att[5] === s[0] || (att[6] == s[1] && att[8] === s[4])));
-                        if (attLogs.length > 0) currentVal = attLogs[attLogs.length - 1][9];
-                    }
-
-                    let inputHtml = isDaily ? 
-                        `<select class="bulk-input w-full px-2 py-1.5 border border-gray-200 rounded bg-white text-sm focus:ring-2 outline-none shadow-sm" data-sid="${s[0]}">
-                            <option value="" ${currentVal === '' ? 'selected' : ''}>-- เลือก --</option>
-                            <option value="มา" ${currentVal === 'มา' ? 'selected' : ''}>มา</option>
-                            <option value="สาย" ${currentVal === 'สาย' ? 'selected' : ''}>สาย</option>
-                            <option value="ลา" ${currentVal === 'ลา' ? 'selected' : ''}>ลา</option>
-                            <option value="ขาด" ${currentVal === 'ขาด' ? 'selected' : ''}>ขาด</option>
-                        </select>` : 
-                        `<input type="number" class="bulk-input w-full px-2 py-1.5 border border-gray-200 rounded bg-white text-center font-bold text-indigo-700 outline-none focus:ring-2 shadow-sm" data-sid="${s[0]}" placeholder="คะแนน">`;
-                    return `<tr class="hover:bg-gray-50/50"><td class="py-2 px-4 text-center font-bold text-gray-600">${s[1]}</td><td class="py-2 px-4 font-medium text-gray-800">${s[3]}</td><td class="py-2 px-4">${inputHtml}</td></tr>`;
-                }).join('');
-
-                // 2. อัปเดต Card View
-                cardView.innerHTML = filteredStudents.map(s => {
-                    let scoreDisplay = '';
-
-                    if (isDaily) {
-                        let currentVal = '';
-                        const attLogs = appData.attendance.filter(att => att[1] === cDate && att[3] === cActId && (att[5] === s[0] || (att[6] == s[1] && att[8] === s[4])));
-                        if (attLogs.length > 0) currentVal = attLogs[attLogs.length - 1][9];
-
-                        if (currentVal === 'มา') scoreDisplay = `<div class="mt-2 text-green-600 font-bold text-sm bg-green-50 rounded-full py-1.5 shadow-sm border border-green-100 w-[90%] mx-auto">มาเรียน</div>`;
-                        else if (currentVal === 'สาย') scoreDisplay = `<div class="mt-2 text-yellow-600 font-bold text-sm bg-yellow-50 rounded-full py-1.5 shadow-sm border border-yellow-100 w-[90%] mx-auto">สาย</div>`;
-                        else if (currentVal === 'ลา') scoreDisplay = `<div class="mt-2 text-orange-600 font-bold text-sm bg-orange-50 rounded-full py-1.5 shadow-sm border border-orange-100 w-[90%] mx-auto">ลา</div>`;
-                        else if (currentVal === 'ขาด') scoreDisplay = `<div class="mt-2 text-red-600 font-bold text-sm bg-red-50 rounded-full py-1.5 shadow-sm border border-red-100 w-[90%] mx-auto">ขาด</div>`;
-                        else scoreDisplay = `<div class="mt-2 text-indigo-600 font-bold text-sm bg-indigo-50 rounded-full py-1.5 shadow-sm border border-indigo-100 w-[90%] mx-auto">ยังไม่เช็ค</div>`;
-                    } else {
-                        // แก้บั๊กตัวแปรคะแนนที่ทำให้หน้าค้าง (แก้ตรงนี้)
-                        let sumScore = 0;
-                        if (appData.scoreLogs) {
-                            for(let log of appData.scoreLogs) { 
-                                const matchAct = String(log[2]).trim() === String(cActId).trim() || String(log[3]).trim() === String(actOpt.text).trim();
-                                const matchStd = matchRecord(log[2], log[4], log[5], log[7], cActId, s[0], s[1], s[4]);
-                                if(matchAct && matchStd) {
-                                    let pts = parseFloat(log[8]);
-                                    if(!isNaN(pts)) sumScore += pts; 
-                                }
-                            }
-                        }
-                        scoreDisplay = `<div class="mt-2 text-indigo-600 font-bold text-sm bg-indigo-50 rounded-full py-1.5 shadow-sm border border-indigo-100 mx-auto w-[90%]">${sumScore} คะแนน</div>`;
-                    }
-                    
-                    const rawImgUrl = s[5] ? s[5].trim() : '';
-                    const imgUrl = rawImgUrl ? getDirectImageUrl(rawImgUrl) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(s[3])}&backgroundColor=e2e8f0`;
-                    const safeName = s[3] ? s[3].replace(/'/g, "\\'") : "ไม่มีชื่อ";
-                    const dailyFlag = isDaily ? 'true' : 'false';
-
-                    return `
-                    <div onclick="openCardScorePopup('${s[0]}', '${safeName}', ${dailyFlag})" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer hover:shadow-md hover:-translate-y-1 transition transform duration-200 pb-3">
-                        <div class="h-28 bg-indigo-50/50 relative overflow-hidden flex justify-center items-center">
-                            <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center border-4 border-white overflow-hidden shadow-sm z-10">
-                                <img src="${imgUrl}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(s[3])}&backgroundColor=e2e8f0'">
-                            </div>
-                            <div class="absolute bottom-2 right-2 z-20">
-                                <span class="text-white font-bold text-[10px] bg-indigo-500 px-2 py-0.5 rounded-md shadow-sm">เลขที่ ${s[1]}</span>
-                            </div>
-                        </div>
-                        <div class="p-2 text-center bg-white flex flex-col items-center">
-                            <p class="font-bold text-sm text-gray-800 line-clamp-1 w-full px-1">${s[3]}</p>
-                            ${scoreDisplay}
-                        </div>
-                    </div>`;
-                }).join('');
-            } catch (err) {
-                console.error("Error in loadBulkTable:", err);
-                document.getElementById('chk-tbody').innerHTML = `<tr><td colspan="3" class="py-8 text-center text-red-500">เกิดข้อผิดพลาดในการโหลดข้อมูล โปรดรีเฟรชหน้าจอ</td></tr>`;
-            }
-        }
-
-        function applyMasterScore() {
-            const val = document.getElementById('master-score-input').value;
-            if(val === '') return;
-            document.querySelectorAll('.bulk-input').forEach(el => el.value = val);
-        }
-
-        function bulkMark(val) { document.querySelectorAll('.bulk-input').forEach(el => el.value = val === '0' ? '' : val); }
-
-        async function saveBulkData() {
-            const records = Array.from(document.querySelectorAll('.bulk-input')).filter(el => el.value !== "").map(el => {
-                const sid = el.getAttribute('data-sid'); const studentInfo = appData.students.find(s => s[0] === sid);
-                return { studentId: sid, value: el.value, stdNum: studentInfo ? studentInfo[1] : "", stdName: studentInfo ? studentInfo[3] : "", stdClass: studentInfo ? studentInfo[4] : "" };
-            });
-
-            if(records.length === 0) return Swal.fire('เตือน', 'ไม่มีข้อมูลให้บันทึก', 'warning');
-            const actId = document.getElementById('chk-activity').value;
-            const actOpt = document.getElementById('chk-activity').options[document.getElementById('chk-activity').selectedIndex];
-            const isDaily = actOpt.getAttribute('data-type') === 'รายวัน';
-            const actInfo = appData.activities.find(a => a[0] === actId);
-            const actNameStr = actInfo ? `[${actInfo[2]}] ${actInfo[3]}` : "";
-            const tempBatchId = 'batch_' + Date.now();
-
-            if (isDaily) {
-                const date = document.getElementById('chk-date').value;
-                records.forEach(r => { appData.attendance.push(['mock_'+tempBatchId, date, new Date().toLocaleTimeString('th-TH'), actId, actNameStr, r.studentId, r.stdNum, r.stdName, r.stdClass, r.value, currentUser.id]); });
-            } else {
-                const dateVal = document.getElementById('chk-date').value; 
-                const dateParts = dateVal.split('-');
-                const sYear = parseInt(dateParts[0], 10);
-                const sMonth = parseInt(dateParts[1], 10);
-                const sDay = parseInt(dateParts[2], 10);
-                const dNow = new Date();
-                const timeStr = `${String(dNow.getHours()).padStart(2, '0')}:${String(dNow.getMinutes()).padStart(2, '0')}:${String(dNow.getSeconds()).padStart(2, '0')}`;
-                const timestamp = `${String(sDay).padStart(2, '0')}/${String(sMonth).padStart(2, '0')}/${sYear} ${timeStr}`;
-
-                records.forEach(r => { appData.scoreLogs.push(['mock_'+tempBatchId, timestamp, actId, actNameStr, r.studentId, r.stdNum, r.stdName, r.stdClass, r.value, "เช็คกลุ่ม", currentUser.id]); });
-            }
-            
-            loadBulkTable(); 
-            Swal.fire({ title: 'สำเร็จ', text: 'กำลังบันทึกข้อมูลเข้า Sheet ในพื้นหลัง', icon: 'success', timer: 1500, showConfirmButton: false });
-
-            try {
-                if (isDaily) {
-                    await api.call('saveBulkAttendance', { date: document.getElementById('chk-date').value, activityId: actId, actName: actNameStr, records, userId: currentUser.id });
-                } else {
-                    const dateVal = document.getElementById('chk-date').value; 
-                    const dateParts = dateVal.split('-');
-                    const sYear = parseInt(dateParts[0], 10);
-                    const sMonth = parseInt(dateParts[1], 10);
-                    const sDay = parseInt(dateParts[2], 10);
-                    const dNow = new Date();
-                    const timeStr = `${String(dNow.getHours()).padStart(2, '0')}:${String(dNow.getMinutes()).padStart(2, '0')}:${String(dNow.getSeconds()).padStart(2, '0')}`;
-                    const timestamp = `${String(sDay).padStart(2, '0')}/${String(sMonth).padStart(2, '0')}/${sYear} ${timeStr}`;
-
-                    await api.call('saveBulkScoreLog', { activityId: actId, actName: actNameStr, records, note: "เช็คกลุ่ม", timestamp: timestamp, userId: currentUser.id });
-                }
-            } catch(e) { console.error("Bulk sync error", e); }
-        }
-
-        function openCardScorePopup(studentId, studentName, isDaily) {
-            const actId = document.getElementById('chk-activity').value;
-            const studentInfo = appData.students.find(s => s[0] === studentId);
-
-            if (isDaily) {
-                Swal.fire({
-                    title: `เช็คชื่อ: ${studentName}`,
-                    html: `
-                        <div class="grid grid-cols-2 gap-2 mt-4">
-                            <button onclick="submitCardDaily('${studentId}', 'มา')" class="bg-green-500 text-white rounded-xl p-3 font-bold hover:bg-green-600">มาเรียน</button>
-                            <button onclick="submitCardDaily('${studentId}', 'สาย')" class="bg-yellow-500 text-white rounded-xl p-3 font-bold hover:bg-yellow-600">สาย</button>
-                            <button onclick="submitCardDaily('${studentId}', 'ลา')" class="bg-orange-500 text-white rounded-xl p-3 font-bold hover:bg-orange-600">ลา</button>
-                            <button onclick="submitCardDaily('${studentId}', 'ขาด')" class="bg-red-500 text-white rounded-xl p-3 font-bold hover:bg-red-600">ขาด</button>
-                        </div>
-                    `,
-                    showConfirmButton: false, showCancelButton: true, cancelButtonText: 'ยกเลิก', allowEnterKey: false,
-                    didOpen: () => {
-                        isModalOpen = true; 
-                        const barcodeInput = document.getElementById('barcode-input');
-                        if(barcodeInput) { barcodeInput.blur(); barcodeInput.value = ''; }
-                    },
-                    didClose: () => {
-                        isModalOpen = false; 
-                        if(document.getElementById('tab-check').classList.contains('active') || document.getElementById('tab-scan').classList.contains('active')) {
-                            const barcodeInput = document.getElementById('barcode-input');
-                            if(barcodeInput) {
-                                barcodeInput.value = '';
-                                setTimeout(() => barcodeInput.focus(), 100);
-                            }
-                        }
-                    }
-                });
-            } else {
-                renderScorePopupContent(studentId, studentName, actId);
-            }
-        }
-
-        function renderScorePopupContent(studentId, studentName, actId) {
-            const studentInfo = appData.students.find(s => s[0] === studentId);
-            let studentLogs = [];
-            
-            for(let log of appData.scoreLogs) { 
-                if(log[2] === actId && (log[4] === studentId || (studentInfo && log[5] == studentInfo[1] && log[7] === studentInfo[4]))) {
-                    studentLogs.push(log); 
-                }
-            }
-            
-            studentLogs.sort((a,b) => parseCustomDate(String(b[1])) - parseCustomDate(String(a[1])));
-            
-            let sumScore = 0;
-            for(let log of studentLogs) { sumScore += parseFloat(log[8]||0); } 
-
-            let historyHtml = '';
-            if (studentLogs.length > 0) {
-                historyHtml = `<div class="mt-4 text-left border-t border-gray-200 pt-3 max-h-40 overflow-y-auto">
-                    <p class="text-xs font-bold text-gray-500 mb-2">ประวัติการได้คะแนน</p>`;
-                
-                studentLogs.forEach(log => {
-                    historyHtml += `
-                        <div class="flex justify-between items-center bg-gray-50 p-2 rounded-lg mb-1 border border-gray-100">
-                            <div>
-                                <p class="text-xs text-gray-600">${log[1].split(' ')[1] || log[1]} <span class="font-bold text-indigo-600">${parseFloat(log[8]) > 0 ? '+'+log[8] : log[8]}</span></p>
-                                ${log[9] ? `<p class="text-[10px] text-gray-400 truncate w-32">${log[9]}</p>` : ''}
-                            </div>
-                            <div class="flex gap-2">
-                                <button onclick="editInlineScore('${log[0]}', '${log[8]}', '${studentId}', '${studentName}', '${actId}')" class="text-blue-500 hover:text-blue-700 p-1"><i class="fas fa-edit text-xs"></i></button>
-                                <button onclick="deleteInlineScore('${log[0]}', '${studentId}', '${studentName}', '${actId}')" class="text-red-500 hover:text-red-700 p-1"><i class="fas fa-trash text-xs"></i></button>
-                            </div>
-                        </div>`;
-                });
-                historyHtml += `</div>`;
-            } else {
-                historyHtml = `<div class="mt-4 text-center border-t border-gray-200 pt-3"><p class="text-xs text-gray-400">ยังไม่มีประวัติคะแนน</p></div>`;
-            }
-
-            const htmlContent = `
-                <div class="mb-3 text-left bg-blue-50 p-3 rounded-xl border border-blue-100 flex justify-between items-center shadow-inner">
-                    <p class="text-sm font-bold text-blue-800">คะแนนสะสมปัจจุบัน:</p>
-                    <p class="text-2xl font-bold text-blue-600" id="popup-total-score">${sumScore}</p>
-                </div>
-                <div class="text-left bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
-                    <div class="flex justify-center gap-2 mb-3">
-                        <button onclick="document.getElementById('card-score-input').value=1" class="flex-1 bg-green-50 text-green-700 py-2 rounded-lg font-bold hover:bg-green-100 border border-green-100 transition">+1</button>
-                        <button onclick="document.getElementById('card-score-input').value=2" class="flex-1 bg-green-50 text-green-700 py-2 rounded-lg font-bold hover:bg-green-100 border border-green-100 transition">+2</button>
-                        <button onclick="document.getElementById('card-score-input').value=5" class="flex-1 bg-blue-50 text-blue-700 py-2 rounded-lg font-bold hover:bg-blue-100 border border-blue-100 transition">+5</button>
-                        <button onclick="document.getElementById('card-score-input').value=-1" class="flex-1 bg-red-50 text-red-700 py-2 rounded-lg font-bold hover:bg-red-100 border border-red-100 transition">-1</button>
-                    </div>
-                    <label class="block text-sm font-bold text-gray-700">ระบุคะแนน (+ หรือ -)</label>
-                    <input type="number" id="card-score-input" placeholder="0" class="w-full text-center border-2 border-indigo-200 rounded-xl p-3 text-2xl font-bold outline-none focus:border-indigo-500 mb-3 shadow-inner bg-gray-50" onkeypress="if(event.key==='Enter') { event.preventDefault(); document.getElementById('card-btn-save').click(); }">
-                    <label class="block text-sm font-bold text-gray-700 mt-1">หมายเหตุ (ถ้ามี)</label>
-                    <input type="text" id="card-score-note" placeholder="เช่น ตอบคำถาม" class="w-full px-3 py-2 border border-gray-200 bg-gray-50 rounded-lg outline-none focus:border-indigo-500 text-sm" onkeypress="if(event.key==='Enter') { event.preventDefault(); document.getElementById('card-btn-save').click(); }">
-                </div>
-                <button id="card-btn-save" onclick="submitCardScore('${studentId}', '${studentName}')" class="w-full mt-4 bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 shadow-lg transition transform hover:-translate-y-0.5">บันทึกคะแนน</button>
-                ${historyHtml}
-            `;
-            
-            Swal.fire({ 
-                title: `ให้คะแนน: ${studentName}`, 
-                html: htmlContent, 
-                showConfirmButton: false, 
-                showCancelButton: true, 
-                cancelButtonText: 'ปิดหน้าต่าง',
-                allowEnterKey: false,
-                didOpen: () => {
-                    isModalOpen = true; 
-                    const barcodeInput = document.getElementById('barcode-input');
-                    if(barcodeInput) {
-                        barcodeInput.blur(); 
-                        barcodeInput.value = ''; 
-                    }
-                    setTimeout(() => {
-                        const scoreInput = document.getElementById('card-score-input');
-                        if(scoreInput) {
-                            scoreInput.value = ''; 
-                            scoreInput.focus();
-                        }
-                    }, 300);
-                },
-                didClose: () => {
-                    isModalOpen = false;
-                    if(document.getElementById('tab-check').classList.contains('active') || document.getElementById('tab-scan').classList.contains('active')) {
-                        const barcodeInput = document.getElementById('barcode-input');
-                        if(barcodeInput) {
-                            barcodeInput.value = '';
-                            setTimeout(() => barcodeInput.focus(), 100); 
-                        }
-                    }
-                }
-            });
-        }
-
         async function editInlineScore(logId, currentPoints, sId, sName, actId) {
             const currentModal = Swal.getPopup();
             const currentHtml = currentModal.innerHTML;
@@ -1998,197 +1565,224 @@
             document.getElementById('modal-history').classList.remove('hidden');
         }
 
-        async function editScoreLog(logId, currentPoints, sId, sName) {
-            const { value: newPoints } = await Swal.fire({ title: 'แก้ไขคะแนน', input: 'number', inputValue: currentPoints, showCancelButton: true, confirmButtonText: 'บันทึก', allowEnterKey: false });
-            if (newPoints && newPoints !== currentPoints) {
-                for(let l of appData.scoreLogs) { if(l[0] === logId) { l[8] = newPoints; break; } }
-                viewStudentHistory(sId, sName); 
-                loadBulkTable(); 
-                if(document.getElementById('tab-scan').classList.contains('active')) loadScanHistory();
-                try { await api.call('updateScoreLog', logId, newPoints); } catch(e) { console.error("Sync Failed", e); }
+        function setCheckView(view) {
+            currentCheckView = view;
+            if (view === 'table') {
+                document.getElementById('btn-view-table').className = "px-4 py-2 rounded-lg bg-white shadow-sm text-sm font-bold text-indigo-600 transition";
+                document.getElementById('btn-view-card').className = "px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-indigo-600 transition";
+                document.getElementById('chk-table-view').classList.remove('hidden'); document.getElementById('chk-card-view').classList.add('hidden');
+            } else {
+                document.getElementById('btn-view-card').className = "px-4 py-2 rounded-lg bg-white shadow-sm text-sm font-bold text-indigo-600 transition";
+                document.getElementById('btn-view-table').className = "px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-indigo-600 transition";
+                document.getElementById('chk-table-view').classList.add('hidden'); document.getElementById('chk-card-view').classList.remove('hidden');
             }
+            loadBulkTable();
         }
 
-        async function deleteScoreLog(logId, sId, sName) {
-            const res = await Swal.fire({ title: 'ลบรายการนี้?', text: "คะแนนจะถูกหักออก", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33' });
-            if(res.isConfirmed) {
-                appData.scoreLogs = appData.scoreLogs.filter(l => l[0] !== logId);
-                viewStudentHistory(sId, sName);
-                loadBulkTable();
-                if(document.getElementById('tab-scan').classList.contains('active')) loadScanHistory();
-                try { await api.call('deleteScoreLog', logId); } catch(e) { console.error("Sync Failed", e); }
-            }
-        }
-
-        function openStudentModal() {
-            document.getElementById('m-std-class').value = document.getElementById('filter-class').value || '';
-            document.getElementById('m-std-num').value = ''; document.getElementById('m-std-code').value = ''; document.getElementById('m-std-name').value = ''; document.getElementById('m-std-img').value = '';
-            document.getElementById('modal-student').classList.remove('hidden');
-        }
-        async function saveStudent() { 
-            const d = { 
-                className: document.getElementById('m-std-class').value.trim(), 
-                number: document.getElementById('m-std-num').value, 
-                code: document.getElementById('m-std-code').value.trim(), 
-                name: document.getElementById('m-std-name').value.trim(),
-                imageUrl: document.getElementById('m-std-img').value.trim()
-            };
-            if(!d.className || !d.name || !d.code) return Swal.fire('เตือน', 'กรอกข้อมูลสำคัญให้ครบ (ห้อง, รหัส, ชื่อ)', 'warning');
-            showLoader("บันทึกลง Sheet..."); 
+        function loadBulkTable() {
             try {
-                await api.call('saveStudent', d);
-                appData.students.push(['mock_new_id', d.number, d.code, d.name, d.className, d.imageUrl]);
-                updateGlobalDropdowns(); renderStudentTable(); closeModal('modal-student'); 
-            } catch(e) {}
-            hideLoader();
-        }
-        async function delStudent(id) { 
-            const res = await Swal.fire({ title: 'ลบข้อมูล?', text: "ไม่สามารถกู้คืนได้", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33' });
-            if(res.isConfirmed) {
-                showLoader("กำลังลบ..."); 
-                try {
-                    await api.call('deleteStudent', id);
-                    appData.students = appData.students.filter(s => s[0] !== id);
-                    updateGlobalDropdowns(); renderStudentTable(); 
-                } catch(e) {}
-                hideLoader();
-            }
-        }
-        async function clearAllStudentsConfirm() { 
-            const res = await Swal.fire({ title: 'ล้างข้อมูลโรงเรียน?', text: "ลบนักเรียนทั้งหมด ทิ้งจริงๆ นะ?", icon: 'error', showCancelButton: true, confirmButtonColor: '#d33' });
-            if(res.isConfirmed) {
-                showLoader("กำลังล้าง..."); 
-                try {
-                    await api.call('clearAllStudents');
-                    appData.students = []; updateGlobalDropdowns(); renderStudentTable(); 
-                } catch(e) {}
-                hideLoader();
-            }
-        }
-        function downloadTemplate() { 
-            const ws = XLSX.utils.aoa_to_sheet([["เลขที่", "รหัสประจำตัว", "ชื่อ-สกุล", "ชั้นเรียน", "รูปลิงก์ URL (ไม่บังคับ)"], [1, "12345", "เด็กชายใจดี เรียนเก่ง", "ป.1/1", "https://..."]]);
-            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Template"); XLSX.writeFile(wb, "Student_Template.xlsx");
-        }
-        function importExcel(e) { 
-            const file = e.target.files[0]; if(!file) return;
-            const reader = new FileReader();
-            reader.onload = async (evt) => {
-                const wb = XLSX.read(evt.target.result, {type: 'binary'});
-                const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-                const formatted = data.map(r => ({ number: r['เลขที่'], code: String(r['รหัสประจำตัว']), name: r['ชื่อ-สกุล'], className: String(r['ชั้นเรียน']), imageUrl: String(r['รูปลิงก์ URL (ไม่บังคับ)'] || '') })).filter(r => r.name && r.className);
-                if(formatted.length > 0) {
-                    showLoader("กำลังนำเข้าสู่ Sheet..."); 
-                    try {
-                        await api.call('importStudentsExcel', formatted);
-                        formatted.forEach(f => appData.students.push(['mock_'+Math.random(), f.number, f.code, f.name, f.className, f.imageUrl]));
-                        updateGlobalDropdowns(); renderStudentTable(); Swal.fire('สำเร็จ', `นำเข้า ${formatted.length} รายการ`, 'success');
-                    } catch(e) {}
-                    hideLoader(); 
-                }
-            };
-            reader.readAsBinaryString(file); e.target.value = ''; 
-        }
-
-        // --- TAB 4: ACTIVITIES ---
-        function renderActivities() {
-            const dUl = document.getElementById('list-daily'); const sUl = document.getElementById('list-subject');
-            dUl.innerHTML = ''; sUl.innerHTML = '';
-            
-            if (appData.activities && appData.activities.length > 0) {
-                appData.activities.forEach(a => {
-                    const li = `<li class="py-2 px-3 flex justify-between items-center group"><div class="flex items-center gap-2"><span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded font-mono">${a[2]}</span><span class="font-medium text-sm">${a[3]}</span></div>
-                    <div class="flex gap-2 items-center opacity-0 group-hover:opacity-100 transition">
-                        <span class="text-xs text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">${a[4]} คะแนน</span>
-                        <button onclick="editActivityPrompt('${a[0]}')" class="text-blue-500 hover:text-blue-700 transition px-1" title="แก้ไข"><i class="fas fa-edit"></i></button>
-                        <button onclick="delActivity('${a[0]}')" class="text-red-400 hover:text-red-600 transition px-1" title="ลบ"><i class="fas fa-times-circle"></i></button>
-                    </div></li>`;
-                    if(a[1] === 'รายวัน') dUl.innerHTML += li; else sUl.innerHTML += li;
-                });
-            }
-            
-            if(dUl.innerHTML === '') dUl.innerHTML = '<li class="p-3 text-center text-gray-400 text-sm">ยังไม่มีกิจกรรม</li>';
-            if(sUl.innerHTML === '') sUl.innerHTML = '<li class="p-3 text-center text-gray-400 text-sm">ยังไม่มีชิ้นงาน</li>';
-        }
-
-        function toggleActScore() { document.getElementById('div-act-score').style.display = document.getElementById('m-act-type').value === 'วิชา' ? 'block' : 'none'; }
-        
-        function openActivityModal() { 
-            document.getElementById('modal-activity-title').innerText = 'เพิ่มโครงสร้างใหม่';
-            document.getElementById('m-act-id').value = '';
-            document.getElementById('m-act-code').value = ''; 
-            document.getElementById('m-act-name').value = ''; 
-            document.getElementById('m-act-score').value = 10;
-            document.getElementById('m-act-type').value = 'รายวัน';
-            toggleActScore(); 
-            document.getElementById('modal-activity').classList.remove('hidden'); 
-        }
-
-        function editActivityPrompt(id) {
-            const act = appData.activities.find(a => a[0] === id);
-            if (!act) return;
-
-            document.getElementById('modal-activity-title').innerText = 'แก้ไขกิจกรรม / ชิ้นงาน';
-            document.getElementById('m-act-id').value = id;
-            document.getElementById('m-act-type').value = act[1];
-            document.getElementById('m-act-code').value = act[2];
-            document.getElementById('m-act-name').value = act[3];
-            document.getElementById('m-act-score').value = act[4] || 10;
-            
-            toggleActScore();
-            document.getElementById('modal-activity').classList.remove('hidden');
-        }
-
-        async function saveActivity() {
-            const actId = document.getElementById('m-act-id').value;
-            const d = { 
-                type: document.getElementById('m-act-type').value, 
-                code: document.getElementById('m-act-code').value, 
-                name: document.getElementById('m-act-name').value, 
-                maxScore: document.getElementById('m-act-type').value === 'รายวัน' ? 0 : document.getElementById('m-act-score').value 
-            };
-            
-            if (!d.code || !d.name) return Swal.fire('เตือน', 'กรุณากรอกข้อมูล วิชา และ เรื่อง ให้ครบถ้วน', 'warning');
-
-            showLoader(actId ? "กำลังบันทึกการแก้ไข..." : "บันทึกลง Sheet..."); 
-            try {
-                if (actId) {
-                    await api.call('updateActivity', actId, d);
-                    const actIndex = appData.activities.findIndex(a => a[0] === actId);
-                    if (actIndex !== -1) {
-                        appData.activities[actIndex][1] = d.type;
-                        appData.activities[actIndex][2] = d.code;
-                        appData.activities[actIndex][3] = d.name;
-                        appData.activities[actIndex][4] = d.maxScore;
-                    }
-                    Swal.fire({ title: 'สำเร็จ', text: 'แก้ไขข้อมูลสำเร็จ', icon: 'success', timer: 1000, showConfirmButton: false, position: 'top-end', toast: true });
-                } else {
-                    const res = await api.call('saveActivity', d);
-                    const newId = (res && res.id) ? res.id : 'mock_act_'+Math.random();
-                    appData.activities.push([newId, d.type, d.code, d.name, d.maxScore]);
-                }
+                const cClass = document.getElementById('chk-class').value;
+                const cActId = document.getElementById('chk-activity').value;
+                const cDate = document.getElementById('chk-date').value;
+                const tbody = document.getElementById('chk-tbody');
+                const cardView = document.getElementById('chk-card-view');
                 
-                updateGlobalDropdowns(); 
-                renderActivities(); 
-                closeModal('modal-activity');
-            } catch(e) {
-                console.error(e);
+                if(!cClass || !cActId) {
+                    tbody.innerHTML = '<tr><td colspan="3" class="py-8 text-center text-gray-500">กรุณาเลือกห้องเรียนและกิจกรรม</td></tr>';
+                    cardView.innerHTML = '<div class="col-span-full py-8 text-center text-gray-500 bg-white/90 rounded-2xl border border-white/50">กรุณาเลือกห้องเรียนและกิจกรรม</div>';
+                    document.getElementById('chk-bulk-actions').style.display = 'none'; 
+                    return;
+                }
+
+                const actOpt = document.getElementById('chk-activity').options[document.getElementById('chk-activity').selectedIndex];
+                const isDaily = actOpt.getAttribute('data-type') === 'รายวัน';
+                
+                document.getElementById('chk-input-header').innerHTML = isDaily ? "สถานะ (เช็คชื่อ)" : `
+                    <div class="flex items-center justify-center gap-2">
+                        <span class="text-xs font-normal text-gray-500">ให้คะแนนทุกคน:</span>
+                        <input type="number" id="master-score-input" class="w-16 px-2 py-1 border border-gray-200 rounded text-center text-sm font-bold text-indigo-700 outline-none focus:ring-2" placeholder="คะแนน">
+                        <button onclick="applyMasterScore()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded text-xs font-bold transition shadow-sm">นำไปใช้</button>
+                    </div>
+                `;
+                document.getElementById('chk-bulk-actions').style.display = 'flex';
+
+                const filteredStudents = appData.students.filter(s => String(s[4]).trim() === String(cClass).trim()).sort((a,b) => parseInt(a[1]) - parseInt(b[1]));
+                
+                if (filteredStudents.length === 0) {
+                     tbody.innerHTML = '<tr><td colspan="3" class="py-8 text-center text-gray-500">ไม่มีรายชื่อนักเรียนในห้องนี้</td></tr>';
+                     cardView.innerHTML = '<div class="col-span-full py-8 text-center text-gray-500 bg-white/90 rounded-2xl border border-white/50">ไม่มีรายชื่อนักเรียนในห้องนี้</div>';
+                     return;
+                }
+
+                tbody.innerHTML = filteredStudents.map(s => {
+                    let currentVal = '';
+                    if (isDaily) {
+                        const attLogs = appData.attendance.filter(att => att[1] === cDate && att[3] === cActId && (att[5] === s[0] || (att[6] == s[1] && att[8] === s[4])));
+                        if (attLogs.length > 0) currentVal = attLogs[attLogs.length - 1][9];
+                    }
+
+                    let inputHtml = isDaily ? 
+                        `<select class="bulk-input w-full px-2 py-1.5 border border-gray-200 rounded bg-white text-sm focus:ring-2 outline-none shadow-sm" data-sid="${s[0]}">
+                            <option value="" ${currentVal === '' ? 'selected' : ''}>-- เลือก --</option>
+                            <option value="มา" ${currentVal === 'มา' ? 'selected' : ''}>มา</option>
+                            <option value="สาย" ${currentVal === 'สาย' ? 'selected' : ''}>สาย</option>
+                            <option value="ลา" ${currentVal === 'ลา' ? 'selected' : ''}>ลา</option>
+                            <option value="ขาด" ${currentVal === 'ขาด' ? 'selected' : ''}>ขาด</option>
+                        </select>` : 
+                        `<input type="number" class="bulk-input w-full px-2 py-1.5 border border-gray-200 rounded bg-white text-center font-bold text-indigo-700 outline-none focus:ring-2 shadow-sm" data-sid="${s[0]}" placeholder="คะแนน">`;
+                    return `<tr class="hover:bg-gray-50/50"><td class="py-2 px-4 text-center font-bold text-gray-600">${s[1]}</td><td class="py-2 px-4 font-medium text-gray-800">${s[3]}</td><td class="py-2 px-4">${inputHtml}</td></tr>`;
+                }).join('');
+
+                cardView.innerHTML = filteredStudents.map(s => {
+                    let scoreDisplay = '';
+
+                    if (isDaily) {
+                        let currentVal = '';
+                        const attLogs = appData.attendance.filter(att => att[1] === cDate && att[3] === cActId && (att[5] === s[0] || (att[6] == s[1] && att[8] === s[4])));
+                        if (attLogs.length > 0) currentVal = attLogs[attLogs.length - 1][9];
+
+                        if (currentVal === 'มา') scoreDisplay = `<div class="mt-2 text-green-600 font-bold text-sm bg-green-50 rounded-full py-1.5 shadow-sm border border-green-100 w-[90%] mx-auto">มาเรียน</div>`;
+                        else if (currentVal === 'สาย') scoreDisplay = `<div class="mt-2 text-yellow-600 font-bold text-sm bg-yellow-50 rounded-full py-1.5 shadow-sm border border-yellow-100 w-[90%] mx-auto">สาย</div>`;
+                        else if (currentVal === 'ลา') scoreDisplay = `<div class="mt-2 text-orange-600 font-bold text-sm bg-orange-50 rounded-full py-1.5 shadow-sm border border-orange-100 w-[90%] mx-auto">ลา</div>`;
+                        else if (currentVal === 'ขาด') scoreDisplay = `<div class="mt-2 text-red-600 font-bold text-sm bg-red-50 rounded-full py-1.5 shadow-sm border border-red-100 w-[90%] mx-auto">ขาด</div>`;
+                        else scoreDisplay = `<div class="mt-2 text-indigo-600 font-bold text-sm bg-indigo-50 rounded-full py-1.5 shadow-sm border border-indigo-100 w-[90%] mx-auto">ยังไม่เช็ค</div>`;
+                    } else {
+                        let sumScore = 0;
+                        if (appData.scoreLogs) {
+                            for(let log of appData.scoreLogs) { 
+                                const matchAct = String(log[2]).trim() === String(cActId).trim() || String(log[3]).trim() === String(actOpt.text).trim();
+                                const matchStd = matchRecord(log[2], log[4], log[5], log[7], cActId, s[0], s[1], s[4]);
+                                if(matchAct && matchStd) {
+                                    let pts = parseFloat(log[8]);
+                                    if(!isNaN(pts)) sumScore += pts; 
+                                }
+                            }
+                        }
+                        scoreDisplay = `<div class="mt-2 text-indigo-600 font-bold text-sm bg-indigo-50 rounded-full py-1.5 shadow-sm border border-indigo-100 mx-auto w-[90%]">${sumScore} คะแนน</div>`;
+                    }
+                    
+                    const rawImgUrl = s[5] ? s[5].trim() : '';
+                    const imgUrl = rawImgUrl ? getDirectImageUrl(rawImgUrl) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(s[3])}&backgroundColor=e2e8f0`;
+                    const safeName = s[3] ? s[3].replace(/'/g, "\\'") : "ไม่มีชื่อ";
+                    const dailyFlag = isDaily ? 'true' : 'false';
+
+                    return `
+                    <div onclick="openCardScorePopup('${s[0]}', '${safeName}', ${dailyFlag})" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer hover:shadow-md hover:-translate-y-1 transition transform duration-200 pb-3">
+                        <div class="h-28 bg-indigo-50/50 relative overflow-hidden flex justify-center items-center">
+                            <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center border-4 border-white overflow-hidden shadow-sm z-10">
+                                <img src="${imgUrl}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(s[3])}&backgroundColor=e2e8f0'">
+                            </div>
+                            <div class="absolute bottom-2 right-2 z-20">
+                                <span class="text-white font-bold text-[10px] bg-indigo-500 px-2 py-0.5 rounded-md shadow-sm">เลขที่ ${s[1]}</span>
+                            </div>
+                        </div>
+                        <div class="p-2 text-center bg-white flex flex-col items-center">
+                            <p class="font-bold text-sm text-gray-800 line-clamp-1 w-full px-1">${s[3]}</p>
+                            ${scoreDisplay}
+                        </div>
+                    </div>`;
+                }).join('');
+            } catch (err) {
+                console.error("Error in loadBulkTable:", err);
+                document.getElementById('chk-tbody').innerHTML = `<tr><td colspan="3" class="py-8 text-center text-red-500">เกิดข้อผิดพลาดในการโหลดข้อมูล โปรดรีเฟรชหน้าจอ</td></tr>`;
             }
-            hideLoader();
         }
 
-        async function delActivity(id) { 
-            const res = await Swal.fire({ title: 'ลบกิจกรรมนี้?', text: "ไม่สามารถกู้คืนได้", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33' });
-            if(res.isConfirmed) {
-                showLoader("กำลังลบ...");
-                try {
-                    await api.call('deleteActivity', id); 
-                    appData.activities = appData.activities.filter(a => a[0] !== id); 
-                    updateGlobalDropdowns(); renderActivities(); 
-                } catch(e) {}
-                hideLoader();
+        function generateCards() {
+            try {
+                const cClass = document.getElementById('card-class').value;
+                if(!cClass) {
+                    Swal.fire('เตือน', 'กรุณาเลือกห้องเรียนก่อนสร้างบัตร', 'warning');
+                    return;
+                }
+
+                const type = document.getElementById('card-type').value;
+                const title = document.getElementById('card-title').value || 'บัตรประจำตัวนักเรียน';
+                const color = document.getElementById('card-color').value || '#4f46e5';
+
+                const students = appData.students
+                    .filter(s => s[4] && String(s[4]).trim() === String(cClass).trim())
+                    .sort((a,b) => {
+                        const numA = parseInt(a[1]) || 999;
+                        const numB = parseInt(b[1]) || 999;
+                        return numA - numB;
+                    });
+
+                if (students.length === 0) {
+                    Swal.fire('ไม่พบข้อมูล', 'ไม่มีนักเรียนในห้องเรียนนี้', 'info');
+                    return;
+                }
+
+                const grid = document.getElementById('card-grid');
+                const placeholder = document.getElementById('card-placeholder');
+                if(placeholder) placeholder.style.display = 'none';
+                grid.innerHTML = '';
+
+                const schoolLogoHtml = (currentUser && currentUser.logo)
+                    ? `<img src="${currentUser.logo}" class="w-6 h-6 object-contain bg-white rounded p-0.5 shrink-0" style="border-radius: 4px;">`
+                    : '';
+
+                students.forEach((s, idx) => {
+                    const card = document.createElement('div');
+                    card.className = "border border-gray-300 rounded-xl overflow-hidden flex flex-col bg-white shadow-sm";
+                    card.style.height = "290px";
+
+                    const rawImgUrl = s[5] ? String(s[5]).trim() : '';
+                    const studentName = s[3] ? String(s[3]).trim() : 'ไม่ระบุชื่อ';
+                    const studentNum = s[1] ? String(s[1]).trim() : '-';
+                    const studentClass = s[4] ? String(s[4]).trim() : '-';
+                    const studentCode = s[2] ? String(s[2]).trim() : ''; 
+
+                    const avatarHtml = rawImgUrl
+                        ? `<img src="${getDirectImageUrl(rawImgUrl)}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<i class=\\'fas fa-user text-4xl text-gray-400\\'></i>'">`
+                        : `<i class="fas fa-user text-4xl text-gray-400"></i>`;
+
+                    card.innerHTML = `
+                        <div class="py-1.5 px-2 flex justify-center items-center gap-2 text-white font-bold text-xs" style="background-color: ${color};">
+                            ${schoolLogoHtml}
+                            <span class="truncate">${title}</span>
+                        </div>
+                        <div class="flex-1 flex flex-col items-center justify-center p-2 text-center">
+                            <div class="w-16 h-16 bg-gray-100 rounded-full mb-2 flex items-center justify-center text-gray-400 border-2 border-dashed border-gray-300 overflow-hidden shadow-sm">
+                                 ${avatarHtml}
+                            </div>
+                            <p class="font-bold text-sm leading-tight text-gray-800">${studentName}</p>
+                            <p class="text-[11px] text-gray-500 mt-1">ห้อง ${studentClass} | เลขที่ ${studentNum}</p>
+                        </div>
+                        <div class="bg-gray-50 border-t p-3 flex justify-center items-center h-28 w-full overflow-hidden" id="codebox-${idx}"></div>`;
+
+                    grid.appendChild(card);
+
+                    const box = document.getElementById(`codebox-${idx}`);
+
+                    if (!studentCode) {
+                        box.innerHTML = `<span class="text-xs text-red-500 font-bold">ไม่มีรหัสประจำตัว</span>`;
+                    } else {
+                        try {
+                            if (type === 'barcode') {
+                                const canvas = document.createElement('canvas');
+                                box.appendChild(canvas);
+                                JsBarcode(canvas, studentCode, { format: "CODE128", width: 1.5, height: 50, displayValue: true, fontSize: 12, margin: 0 });
+                            } else {
+                                new QRCode(box, { text: studentCode, width: 90, height: 90, colorDark : "#000000", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.L });
+                                const codeLabel = document.createElement('div');
+                                codeLabel.className = "text-[10px] mt-1 text-center font-mono font-bold text-gray-600";
+                                codeLabel.innerText = studentCode;
+                                box.classList.add('flex-col');
+                                box.appendChild(codeLabel);
+                            }
+                        } catch (err) {
+                            console.error("Barcode Generation Error:", err);
+                            box.innerHTML = `<span class="text-[10px] text-red-500 text-center">สร้างโค้ดไม่สำเร็จ<br>รหัส: ${studentCode}</span>`;
+                        }
+                    }
+                });
+            } catch (mainErr) {
+                console.error("Generate Cards Error:", mainErr);
+                Swal.fire('เกิดข้อผิดพลาด', 'ระบบสร้างบัตรมีปัญหา กรุณาตรวจสอบข้อมูลนักเรียน', 'error');
             }
         }
-        
+
         function setReportMode(mode) {
             currentReportMode = mode;
             if(mode === 'score') {
