@@ -677,6 +677,35 @@
         let currentCheckView = 'table'; 
         let currentReportMode = 'score'; 
 
+        // ==========================================
+        // 🚀 ดักจับการสแกนบาร์โค้ดอัตโนมัติ (ไม่ต้องเอาเมาส์คลิกช่อง)
+        // ==========================================
+        document.addEventListener('keydown', function(e) {
+            // 1. ทำงานเฉพาะตอนอยู่หน้า "สแกน" และไม่มีป๊อปอัปให้คะแนนเด้งค้างอยู่
+            if (!document.getElementById('tab-scan').classList.contains('active')) return;
+            if (isModalOpen) return; 
+
+            // 2. ละเว้นหากเป็นการกดปุ่มคีย์ลัดของคอมพิวเตอร์ (Ctrl, Alt)
+            if (e.ctrlKey || e.altKey || e.metaKey) return;
+
+            const barcodeInput = document.getElementById('barcode-input');
+            const activeElement = document.activeElement;
+
+            // 3. ถ้าคุณครูกำลังกดเลือกวันที่ หรือเลือกดรอปดาวน์วิชาอยู่ ให้ระบบปล่อยผ่านไม่รบกวน
+            if ((activeElement.tagName === 'INPUT' || activeElement.tagName === 'SELECT' || activeElement.tagName === 'TEXTAREA') && activeElement !== barcodeInput) {
+                return;
+            }
+
+            // 4. หากไม่ได้คลิกที่ช่องรับบาร์โค้ด ให้ดึงเคอร์เซอร์มาลงที่ช่องนี้ทันที
+            if(activeElement !== barcodeInput) {
+                barcodeInput.focus();
+                // เก็บตัวอักษรตัวแรกที่เครื่องสแกนยิงมาใส่ลงช่องให้ด้วย ป้องกันปัญหารหัสแหว่ง/รหัสหาย
+                if (e.key.length === 1) {
+                    barcodeInput.value += e.key;
+                }
+            }
+        });
+
         // -------------------------------------------------------------
         // DATE PARSERS
         // -------------------------------------------------------------
