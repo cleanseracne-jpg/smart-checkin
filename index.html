@@ -1070,8 +1070,7 @@
             if (prefix === 'chk') loadBulkTable();
             else if (prefix === 'sum') triggerReportRender();
         }
-
-        // ==========================================
+// ==========================================
         // 🚀 ฟังก์ชันโหลดประวัติการสแกน (แก้ไขระบบเรียงลำดับเวลาโหมดคะแนนให้ถูกต้อง 100%)
         // ==========================================
         function loadScanHistory() {
@@ -1108,47 +1107,6 @@
                 `${String(day).padStart(2,'0')}/${String(month).padStart(2,'0')}/${thYear}`, 
                 `${day}/${month}/${thYear}` 
             ];
-
-            // 1. ฟังก์ชันช่วยแปลง String วันที่/เวลาของระบบให้เป็นค่า Milliseconds (ms)
-            const parseDateTimeString = (dtStr) => {
-                if (!dtStr) return 0;
-                let str = String(dtStr).trim();
-                let timePart = "00:00:00";
-                let datePart = str;
-                
-                // แยกวันที่และเวลาออกจากกัน
-                if (str.includes(' ')) {
-                    const splitStr = str.split(' ');
-                    datePart = splitStr[0];
-                    timePart = splitStr[1];
-                }
-                
-                // แยกชั่วโมง นาที วินาที
-                let hms = timePart.split(':');
-                let h = parseInt(hms[0] || 0, 10);
-                let min = parseInt(hms[1] || 0, 10);
-                let sec = parseInt(hms[2] || 0, 10);
-
-                // แยก วัน/เดือน/ปี
-                if (datePart.includes('/')) {
-                    let dmy = datePart.split('/');
-                    let d = parseInt(dmy[0], 10);
-                    let m = parseInt(dmy[1], 10) - 1;
-                    let y = parseInt(dmy[2], 10);
-                    if (y > 2500) y -= 543; // แปลง พ.ศ. กลับเป็น ค.ศ. สำหรับคำนวณ Date Object
-                    return new Date(y, m, d, h, min, sec).getTime();
-                } else if (datePart.includes('-')) {
-                    let ymd = datePart.split('-');
-                    let y = parseInt(ymd[0], 10);
-                    let m = parseInt(ymd[1], 10) - 1;
-                    let d = parseInt(ymd[2], 10);
-                    if (y > 2500) y -= 543;
-                    return new Date(y, m, d, h, min, sec).getTime();
-                }
-                
-                const fallback = new Date(dtStr).getTime();
-                return isNaN(fallback) ? 0 : fallback;
-            };
 
             let relevantLogs = [];
 
@@ -1193,20 +1151,13 @@
                     const logTimeStr = String(log[1]);
                     return searchDates.some(f => logTimeStr.includes(f));
                 });
-                
-                // 2. ปรับปรุงบล็อกการ Sort ให้เอาค่าล่าสุด (Newest) อยู่บนสุดเสมอ
-                relevantLogs.sort((a, b) => {
-                    const timeA = parseDateTimeString(a[1]); // ดึงและแปลงเวลาจาก Array คอลัมน์ที่เก็บ Timestamp
-                    const timeB = parseDateTimeString(b[1]);
-                    return timeB - timeA; // เรียงจากล่าสุดไปอดีต
-                });
 
                 if (relevantLogs.length === 0) {
                     logUl.innerHTML = '<li class="p-4 text-center text-gray-400 text-sm">ยังไม่มีประวัติการให้คะแนนในวันนี้</li>';
                     return;
                 }
 
-                // วนลูปวาดตาราง
+                // ✨ วนลูปสร้างแถวข้อมูลทีละคนตามลำดับที่บันทึก
                 relevantLogs.forEach(log => {
                     const student = appData.students.find(s => s[0] === log[4] || (s[1] == log[5] && String(s[4]).trim() === String(log[7]).trim()));
                     if(!student) return;
@@ -1226,9 +1177,9 @@
                                         <button onclick="undoScore('${log[0]}')" class="text-red-400 hover:text-red-600 bg-white hover:bg-red-50 p-1.5 rounded-lg border border-red-100 transition shadow-sm" title="ลบข้อมูลนี้"><i class="fas fa-trash"></i></button>
                                     </div>`;
                     
-                    // เนื่องจาก Sort ใหม่ล่าสุดไว้ด้านบน Array แล้ว (Index 0) 
-                    // การใช้ appendChild วนลูปจะเรียงจาก Index 0 ลงล่างสุดอย่างถูกต้องพอดี
-                    logUl.appendChild(li); 
+                    // ✨ ใช้ .prepend(li) แทน .appendChild(li) 
+                    // มันจะดันนักเรียนคนล่าสุดไปแทรกอยู่ "บรรทัดบนสุด" เสมอ โดยไม่ต้องพึ่งคำสั่ง Sort
+                    logUl.prepend(li); 
                 });
             }
             
