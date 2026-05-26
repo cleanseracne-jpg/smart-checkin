@@ -816,26 +816,42 @@
             }
             return url;
         }
+<script>
+const api = {
+  call: async (funcName, ...args) => {
+    try {
+      const response = await fetch(WEB_APP_URL, {
+        method: 'POST',
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: funcName, args: args }),
+        redirect: "follow"
+      });
 
-        const api = {
-            call: async (funcName, ...args) => {
-                try {
-                    const response = await fetch(WEB_APP_URL, {
-                        method: 'POST',
-                        headers: { "Content-Type": "text/plain;charset=utf-8" },
-                        body: JSON.stringify({ action: funcName, args: args }),
-                        redirect: "follow"
-                    });
-                    if (!response.ok) throw new Error('Network Error: ติดต่อเซิร์ฟเวอร์ไม่ได้');
-                    const json = await response.json();
-                    if (json.status === 'success') return json.data;
-                    else throw new Error(json.message || "เกิดข้อผิดพลาดจากเซิร์ฟเวอร์");
-                } catch (error) {
-                    Swal.fire({ title: 'การเชื่อมต่อขัดข้อง', text: 'ไม่สามารถส่งข้อมูลไปที่ Google Sheets ได้ (' + error.message + ')', icon: 'error' });
-                    throw error;
-                }
-            }
-        };
+      if (!response.ok) {
+        throw new Error('ติดต่อเซิร์ฟเวอร์ไม่ได้');
+      }
+
+      const json = await response.json();
+
+      if (json.status === 'success') {
+        // คืน status กลับไปด้วย เพื่อให้โค้ดเดิมที่เช็ก res.status ใช้งานต่อได้
+        if (json.data && typeof json.data === 'object' && !Array.isArray(json.data)) {
+          return { status: 'success', ...json.data };
+        }
+        return { status: 'success', data: json.data };
+      }
+
+      throw new Error(String(json.message || 'เกิดข้อผิดพลาดจากเซิร์ฟเวอร์').replace(/^Error:\s*/, ''));
+    } catch (error) {
+      Swal.fire({
+        title: 'เกิดข้อผิดพลาด',
+        text: error.message,
+        icon: 'error'
+      });
+      throw error;
+    }
+  }
+};
 
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playSound(type) {
