@@ -1782,40 +1782,59 @@ const api = {
         }
 
         async function submitCardScore(studentId, studentName) {
+            // ดึงค่าคะแนนและหมายเหตุจากฟอร์มในป๊อปอัป
             const points = document.getElementById('card-score-input').value;
             const note = document.getElementById('card-score-note').value;
-            if(points === "") return Swal.showValidationMessage('กรุณากรอกคะแนน');
             
+            // ตรวจสอบว่ากรอกคะแนนหรือยัง
+            if(points === "") {
+                return Swal.showValidationMessage('กรุณากรอกคะแนน');
+            }
+            
+            // เคลียร์สถานะการเปิดโมดอล และปิดป๊อปอัปทันทีเพื่อความลื่นไหล
             isModalOpen = false; 
             Swal.close();
 
+            // ตรวจสอบ ID กิจกรรม และ วันที่ จากหน้าแผ่นงาน
             const actId = document.getElementById('chk-activity').value || document.getElementById('scan-activity').value;
-            
             const dateVal = document.getElementById('chk-date').value || document.getElementById('scan-date').value; 
+            
+            // แยกส่วนประกอบของวันที่เพื่อจัดฟอร์แมต Timestamp ภาษาไทยลงแผ่นงาน Sheets
             const dateParts = dateVal.split('-');
             const sYear = parseInt(dateParts[0], 10);
             const sMonth = parseInt(dateParts[1], 10);
             const sDay = parseInt(dateParts[2], 10);
+            
             const dNow = new Date();
             const timeStr = `${String(dNow.getHours()).padStart(2, '0')}:${String(dNow.getMinutes()).padStart(2, '0')}:${String(dNow.getSeconds()).padStart(2, '0')}`;
             const timestamp = `${String(sDay).padStart(2, '0')}/${String(sMonth).padStart(2, '0')}/${sYear} ${timeStr}`;
             
+            // ค้นหาข้อมูลวิชา และข้อมูลนักเรียนจากฐานข้อมูลภายในแอป
             const actInfo = appData.activities.find(a => a[0] === actId);
             const studentInfo = appData.students.find(s => s[0] === studentId);
 
+            // จัดเตรียม Object ข้อมูลเตรียมส่งไปเซิร์ฟเวอร์หลังบ้าน
             const data = { 
-                studentId, activityId: actId, points, note, timestamp, userId: currentUser.id,
+                studentId: studentId, 
+                activityId: actId, 
+                points: points, 
+                note: note, 
+                timestamp: timestamp, 
+                userId: currentUser.id,
                 actName: actInfo ? `[${actInfo[2]}] ${actInfo[3]}` : "",
                 stdNum: studentInfo ? studentInfo[1] : "",
                 stdName: studentInfo ? studentInfo[3] : "",
                 stdClass: studentInfo ? studentInfo[4] : ""
             };
             
+            // เล่นเสียงสัญญาณบันทึกข้อมูลสำเร็จ
             playSound('success');
             
+            // สร้าง Log ชั่วคราวนำหน้าไปก่อนเพื่อความรวดเร็วในการแสดงผล
             const tempLogId = 'temp_' + Date.now();
             appData.scoreLogs.push([tempLogId, timestamp, actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, points, note, currentUser.id]);
             
+            // รีเฟรชส่วนแสดงผลให้เป็นปัจจุบันตามแผ่นหน้าจอที่คุณครูเปิดค้างไว้
             if (document.getElementById('tab-check').classList.contains('active')) {
                 loadBulkTable(); 
                 renderScorePopupContent(studentId, studentName, actId);
@@ -1823,20 +1842,36 @@ const api = {
                 loadScanHistory();
             }
 
-            Swal.fire({ title: 'สำเร็จ', text: `เพิ่ม ${points} คะแนน เรียบร้อย`, icon: 'success', timer: 1500, showConfirmButton: false, position: 'top-end', toast: true });
+            // แจ้งเตือนสถานะความสำเร็จมุมขวาบนแบบ Toast
+            Swal.fire({ 
+                title: 'สำเร็จ', 
+                text: `เพิ่ม ${points} คะแนน เรียบร้อย`, 
+                icon: 'success', 
+                timer: 1500, 
+                showConfirmButton: false, 
+                position: 'top-end', 
+                toast: true 
+            });
 
+            // คืนค่าโฟกัสกลับไปที่ช่องยิงบาร์โค้ดหลักหลังบาร์โค้ดบันทึกเสร็จ
             setTimeout(() => {
                 const barcodeInput = document.getElementById('barcode-input');
-                if(barcodeInput) { barcodeInput.value = ''; barcodeInput.focus(); }
+                if(barcodeInput) { 
+                    barcodeInput.value = ''; 
+                    barcodeInput.focus(); 
+                }
             }, 300);
 
+            // ยิงข้อมูลขึ้นฐานข้อมูล Google Sheets ผ่านระบบ API หลังบ้าน
             try {
                 const res = await api.call('saveScoreLog', data);
                 if(res.status === 'success') {
                     const log = appData.scoreLogs.find(l => l[0] === tempLogId);
                     if(log) log[0] = res.logId;
                 }
-            } catch(e) { console.error("Sync Failed", e); }
+            } catch(e) { 
+                console.error("Sync Failed", e); 
+            }
         }
 
         function applyMasterScore() {
