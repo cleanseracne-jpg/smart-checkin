@@ -1432,33 +1432,72 @@ const api = {
             }
         }
 
-        async function submitDaily(studentId, value) {
+        async function submitCardDaily(studentId, value) {
             isModalOpen = false; 
-            if(Swal.isVisible()) Swal.close(); 
+            Swal.close(); 
             
-            const actId = document.getElementById('scan-activity').value;
-            const date = document.getElementById('scan-date').value;
+            // ดึงค่ากิจกรรมและวันที่ โดยให้เช็คทั้งจากหน้า "เช็คกลุ่ม" และหน้า "สแกน"
+            const actId = document.getElementById('chk-activity').value || document.getElementById('scan-activity').value;
+            const date = document.getElementById('chk-date').value || document.getElementById('scan-date').value;
+            
+            if (!actId) {
+                Swal.fire('แจ้งเตือน', 'กรุณาเลือกชิ้นงาน/กิจกรรมก่อนบันทึก', 'warning');
+                return;
+            }
+
             const actInfo = appData.activities.find(a => a[0] === actId);
             const studentInfo = appData.students.find(s => s[0] === studentId);
             
-            const data = { studentId, activityId: actId, date, value, userId: currentUser.id, actName: actInfo ? `[${actInfo[2]}] ${actInfo[3]}` : "", stdNum: studentInfo ? studentInfo[1] : "", stdName: studentInfo ? studentInfo[3] : "", stdClass: studentInfo ? studentInfo[4] : "" };
+            if(!actInfo || !studentInfo) return;
+
+            const data = { 
+                studentId, 
+                activityId: actId, 
+                date, 
+                value, 
+                userId: currentUser.id, 
+                actName: `[${actInfo[2]}] ${actInfo[3]}`, 
+                stdNum: studentInfo[1], 
+                stdName: studentInfo[3], 
+                stdClass: studentInfo[4] 
+            };
             
+            playSound('success');
+            
+            // บันทึกลงหน่วยความจำชั่วคราวเพื่อให้หน้าเว็บอัปเดตทันที
             appData.attendance.push(['mock_' + Date.now(), date, new Date().toLocaleTimeString('th-TH'), actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, value, currentUser.id]);
             
-            loadScanHistory(); 
-            Swal.fire({ title: 'เช็คชื่อสำเร็จ', text: `${data.stdName} (${value})`, icon: 'success', timer: 1000, showConfirmButton: false, position: 'top-end', toast: true });
+            // รีเฟรชตาราง/การ์ด ให้ตรงกับหน้าที่คุณครูกำลังเปิดอยู่
+            if (document.getElementById('tab-check').classList.contains('active')) {
+                loadBulkTable(); 
+            } else if (document.getElementById('tab-scan').classList.contains('active')) {
+                loadScanHistory();
+            }
+
+            Swal.fire({ 
+                title: 'เช็คชื่อสำเร็จ', 
+                text: `${data.stdName} (${value})`, 
+                icon: 'success', 
+                timer: 1000, 
+                showConfirmButton: false, 
+                position: 'top-end', 
+                toast: true 
+            });
 
             setTimeout(() => {
                 const barcodeInput = document.getElementById('barcode-input');
-                if(barcodeInput) { 
+                if(barcodeInput && document.getElementById('tab-scan').classList.contains('active')) { 
                     barcodeInput.value = ''; 
-                    if(document.getElementById('tab-scan').classList.contains('active')) {
-                        barcodeInput.focus(); 
-                    }
+                    barcodeInput.focus(); 
                 }
             }, 300);
 
-            try { await api.call('saveScanRecord', data); } catch(e) { console.error("Sync Failed", e); }
+            // ส่งข้อมูลไปเซฟที่ Google Sheets
+            try { 
+                await api.call('saveScanRecord', data); 
+            } catch(e) { 
+                console.error("Sync Failed", e); 
+            }
         }
 
         // =====================================
