@@ -1410,79 +1410,57 @@ const api = {
                 }
             }
         }
+    async function processScan(code) {
+        const codeStr = String(code).trim();
+        const actId = document.getElementById('scan-activity').value;
+        if(!actId) { playSound('error'); return Swal.fire('แจ้งเตือน', 'กรุณาเลือก ชิ้นงาน/กิจกรรม ก่อนสแกน', 'warning'); }
+        
+        const student = appData.students.find(s => String(s[2]).trim() === codeStr);
+        if(!student) { playSound('error'); return Swal.fire('ไม่พบข้อมูล', `ไม่มีนักเรียนรหัส ${codeStr} ในระบบ`, 'error'); }
 
-        async function processScan(code) {
-            const codeStr = String(code).trim();
-            const actId = document.getElementById('scan-activity').value;
-            if(!actId) { playSound('error'); return Swal.fire('แจ้งเตือน', 'กรุณาเลือก ชิ้นงาน/กิจกรรม ก่อนสแกน', 'warning'); }
-            
-            const student = appData.students.find(s => String(s[2]).trim() === codeStr);
-            if(!student) { playSound('error'); return Swal.fire('ไม่พบข้อมูล', `ไม่มีนักเรียนรหัส ${codeStr} ในระบบ`, 'error'); }
+        let actInfo = appData.activities.find(a => a[0] === actId);
+        const isDaily = actInfo && String(actInfo[1]).trim() === 'รายวัน';
 
-            let actInfo = appData.activities.find(a => a[0] === actId);
-            const isDaily = actInfo && actInfo[1] === 'รายวัน';
-
-            if (isDaily) {
-                await submitDaily(student[0], 'มา');
-                playSound('success');
-            } else {
-                playSound('success');
-                // เรียกใช้ฟังก์ชันเดียวกับคลิกที่การ์ด ลดความซ้ำซ้อน
-                renderScorePopupContent(student[0], student[3], actId);
-            }
-        }
-
-        async function submitCardDaily(studentId, value) {
-            isModalOpen = false; 
-            Swal.close(); 
-            
-            // ดึงค่ากิจกรรมและวันที่ โดยให้เช็คทั้งจากหน้า "เช็คกลุ่ม" และหน้า "สแกน"
-            const actId = document.getElementById('chk-activity').value || document.getElementById('scan-activity').value;
-            const date = document.getElementById('chk-date').value || document.getElementById('scan-date').value;
-            
-            if (!actId) {
-                Swal.fire('แจ้งเตือน', 'กรุณาเลือกชิ้นงาน/กิจกรรมก่อนบันทึก', 'warning');
-                return;
-            }
-
-            const actInfo = appData.activities.find(a => a[0] === actId);
-            const studentInfo = appData.students.find(s => s[0] === studentId);
-            
-            if(!actInfo || !studentInfo) return;
-
-            const data = { 
-                studentId, 
-                activityId: actId, 
-                date, 
-                value, 
-                userId: currentUser.id, 
-                actName: `[${actInfo[2]}] ${actInfo[3]}`, 
-                stdNum: studentInfo[1], 
-                stdName: studentInfo[3], 
-                stdClass: studentInfo[4] 
-            };
-            
+        if (isDaily) {
+            // ถ้าเป็นรายวัน โยนไปให้ฟังก์ชัน submitDaily ทำงาน (ค่าเริ่มต้นคือ 'มา')
+            await submitDaily(student[0], 'มา');
+        } else {
             playSound('success');
-            
-            // บันทึกลงหน่วยความจำชั่วคราวเพื่อให้หน้าเว็บอัปเดตทันที
-            appData.attendance.push(['mock_' + Date.now(), date, new Date().toLocaleTimeString('th-TH'), actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, value, currentUser.id]);
-            
-            // รีเฟรชตาราง/การ์ด ให้ตรงกับหน้าที่คุณครูกำลังเปิดอยู่
-            if (document.getElementById('tab-check').classList.contains('active')) {
-                loadBulkTable(); 
-            } else if (document.getElementById('tab-scan').classList.contains('active')) {
-                loadScanHistory();
-            }
+            // ถ้าเป็นให้คะแนน เปิดป๊อปอัปให้คะแนน
+            renderScorePopupContent(student[0], student[3], actId);
+        }
+    }
 
-            Swal.fire({ 
-                title: 'เช็คชื่อสำเร็จ', 
-                text: `${data.stdName} (${value})`, 
-                icon: 'success', 
-                timer: 1000, 
-                showConfirmButton: false, 
-                position: 'top-end', 
-                toast: true 
-            });
+    // ==========================================
+    // สำหรับระบบ "ยิงบาร์โค้ดสแกน" (ทำงานอัตโนมัติ)
+    // ==========================================
+    async function submitDaily(studentId, value) {
+        isModalOpen = false; 
+        if(Swal.isVisible()) Swal.close(); 
+        
+        const actId = document.getElementById('scan-activity').value;
+        const date = document.getElementById('scan-date').value;
+        const actInfo = appData.activities.find(a => a[0] === actId);
+        const studentInfo = appData.students.find(s => s[0] === studentId);
+        
+        if(!actInfo || !studentInfo) return;
+
+        // จัดฟอร์แมตเวลาให้ปลอดภัย 100% ป้องกันระบบช็อก
+        const dNow = new Date();
+        const timeStr = `${String(dNow.getHours()).padStart(2, '0')}:${String(dNow.getMinutes()).padStart(2, '0')}:${String(dNow.getSeconds()).padStart(2, '0')}`;
+
+        const data = { 
+            studentId: studentId, activityId: actId, date: date, value: value, userId: currentUser.id, 
+            actName: `[${actInfo[2]}] ${actInfo[3]}`, stdNum: studentInfo[1], stdName: studentInfo[3], stdClass: studentInfo[4] 
+        };
+        
+        playSound('success');
+        
+        appData.attendance.push(['mock_' + Date.now(), date, timeStr, actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, value, currentUser.id]);
+        
+        try {
+            loadScanHistory(); 
+            Swal.fire({ title: 'เช็คชื่อสำเร็จ', text: `${data.stdName} (${value})`, icon: 'success', timer: 1000, showConfirmButton: false, position: 'top-end', toast: true });
 
             setTimeout(() => {
                 const barcodeInput = document.getElementById('barcode-input');
@@ -1492,13 +1470,65 @@ const api = {
                 }
             }, 300);
 
-            // ส่งข้อมูลไปเซฟที่ Google Sheets
-            try { 
-                await api.call('saveScanRecord', data); 
-            } catch(e) { 
-                console.error("Sync Failed", e); 
-            }
+            await api.call('saveScanRecord', data); 
+        } catch(e) { console.error("Sync Failed", e); }
+    }
+
+    // ==========================================
+    // สำหรับระบบ "กดปุ่มด้วยมือ" ในหน้าเช็คกลุ่ม / การ์ด
+    // ==========================================
+    async function submitCardDaily(studentId, value) {
+        isModalOpen = false; 
+        Swal.close(); 
+        
+        const actId = document.getElementById('chk-activity').value || document.getElementById('scan-activity').value;
+        const date = document.getElementById('chk-date').value || document.getElementById('scan-date').value;
+        
+        if (!actId) {
+            Swal.fire('แจ้งเตือน', 'กรุณาเลือกชิ้นงาน/กิจกรรมก่อนบันทึก', 'warning');
+            return;
         }
+
+        const actInfo = appData.activities.find(a => a[0] === actId);
+        const studentInfo = appData.students.find(s => s[0] === studentId);
+        
+        if(!actInfo || !studentInfo) return;
+
+        // จัดฟอร์แมตเวลาให้ปลอดภัย 100% ป้องกันระบบช็อก
+        const dNow = new Date();
+        const timeStr = `${String(dNow.getHours()).padStart(2, '0')}:${String(dNow.getMinutes()).padStart(2, '0')}:${String(dNow.getSeconds()).padStart(2, '0')}`;
+
+        const data = { 
+            studentId, activityId: actId, date, value, userId: currentUser.id, 
+            actName: `[${actInfo[2]}] ${actInfo[3]}`, stdNum: studentInfo[1], stdName: studentInfo[3], stdClass: studentInfo[4] 
+        };
+        
+        playSound('success');
+        
+        appData.attendance.push(['mock_' + Date.now(), date, timeStr, actId, data.actName, studentId, data.stdNum, data.stdName, data.stdClass, value, currentUser.id]);
+        
+        // รีเฟรชตาราง/การ์ด ให้ตรงกับหน้าที่คุณครูกำลังเปิดอยู่
+        if (document.getElementById('tab-check').classList.contains('active')) {
+            loadBulkTable(); 
+        } else if (document.getElementById('tab-scan').classList.contains('active')) {
+            loadScanHistory();
+        }
+
+        Swal.fire({ title: 'เช็คชื่อสำเร็จ', text: `${data.stdName} (${value})`, icon: 'success', timer: 1000, showConfirmButton: false, position: 'top-end', toast: true });
+
+        setTimeout(() => {
+            const barcodeInput = document.getElementById('barcode-input');
+            if(barcodeInput && document.getElementById('tab-scan').classList.contains('active')) { 
+                barcodeInput.value = ''; 
+                barcodeInput.focus(); 
+            }
+        }, 300);
+
+        try { 
+            await api.call('saveScanRecord', data); 
+        } catch(e) { console.error("Sync Failed", e); }
+    }
+
 
         // =====================================
         // CHECK TAB FUNCTIONS (ตาราง & การ์ด)
